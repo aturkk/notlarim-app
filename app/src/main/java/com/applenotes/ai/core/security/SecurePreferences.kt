@@ -101,11 +101,11 @@ class SecurePreferences(context: Context) {
 
     // GitHub Updater Settings
     var githubOwner: String
-        get() = sharedPreferences.getString(KEY_GITHUB_OWNER, "developer") ?: "developer"
+        get() = sharedPreferences.getString(KEY_GITHUB_OWNER, "aturkk") ?: "aturkk"
         set(value) = sharedPreferences.edit().putString(KEY_GITHUB_OWNER, value.trim()).apply()
 
     var githubRepo: String
-        get() = sharedPreferences.getString(KEY_GITHUB_REPO, "AppleNotesAI") ?: "AppleNotesAI"
+        get() = sharedPreferences.getString(KEY_GITHUB_REPO, "notlarim-app") ?: "notlarim-app"
         set(value) = sharedPreferences.edit().putString(KEY_GITHUB_REPO, value.trim()).apply()
 
     var autoCheckUpdates: Boolean
