@@ -59,11 +59,34 @@ fun NoteEditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = viewModel::toggleLock) {
+                        Icon(
+                            imageVector = if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
+                            contentDescription = "Kilitle",
+                            tint = if (uiState.isLocked) AppleYellow else textSecondary
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setDrawingDialogOpen(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.Brush,
+                            contentDescription = "Çizim Ekle",
+                            tint = AppleYellow
+                        )
+                    }
                     IconButton(onClick = viewModel::togglePin) {
                         Icon(
-                            imageVector = if (uiState.isPinned) Icons.Default.PushPin else Icons.Default.PushPin,
+                            imageVector = Icons.Default.PushPin,
                             contentDescription = "Sabitle",
                             tint = if (uiState.isPinned) AppleYellow else textSecondary
+                        )
+                    }
+                    IconButton(onClick = {
+                        viewModel.exportToPdf(context)
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.PictureAsPdf,
+                            contentDescription = "PDF Dışa Aktar",
+                            tint = AppleYellow
                         )
                     }
                     IconButton(onClick = {
@@ -217,6 +240,52 @@ fun NoteEditorScreen(
                     }
                 }
 
+                // Drawing Preview Card
+                uiState.drawingPath?.let { path ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "🎨 Çizim Eki",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = AppleYellow
+                                )
+                                IconButton(
+                                    onClick = viewModel::deleteDrawing,
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Çizimi Sil",
+                                        tint = iOSRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            coil.compose.AsyncImage(
+                                model = java.io.File(path),
+                                contentDescription = "Not Çizimi",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(RoundedCornerShape(8.dp)),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                            )
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Content Field
@@ -298,6 +367,22 @@ fun NoteEditorScreen(
         }
     }
 
+    // Drawing Canvas Dialog
+    if (uiState.isDrawingDialogOpen) {
+        com.applenotes.ai.core.components.AppleDrawingDialog(
+            onDismiss = { viewModel.setDrawingDialogOpen(false) },
+            onSaveDrawing = viewModel::saveDrawing
+        )
+    }
+
+    // Flashcards & Mindmap Dialog
+    uiState.flashcardsResult?.let { result ->
+        com.applenotes.ai.presentation.ai_assistant.AiFlashcardsDialog(
+            rawText = result,
+            onDismiss = viewModel::dismissFlashcardsDialog
+        )
+    }
+
     // AI Action Sheet (Apple Style)
     if (uiState.isAiSheetVisible) {
         ModalBottomSheet(
@@ -350,6 +435,9 @@ fun NoteEditorScreen(
                             AiAction.FIX_GRAMMAR -> Icons.Default.Spellcheck
                             AiAction.TRANSLATE -> Icons.Default.Translate
                             AiAction.CONTINUE_WRITING -> Icons.Default.EditNote
+                            AiAction.FLASHCARDS -> Icons.Default.School
+                            AiAction.MINDMAP -> Icons.Default.AccountTree
+                            AiAction.EXTRACT_REMINDERS -> Icons.Default.Alarm
                         },
                         onClick = { viewModel.executeAiAction(action) }
                     )

@@ -22,10 +22,16 @@ data class NoteEditorUiState(
     val content: String = "",
     val tags: List<String> = emptyList(),
     val isPinned: Boolean = false,
+    val isLocked: Boolean = false,
+    val drawingPath: String? = null,
+    val audioPath: String? = null,
+    val reminderTime: Long? = null,
     val isAiLoading: Boolean = false,
     val aiErrorMessage: String? = null,
     val isAiSheetVisible: Boolean = false,
     val isChatSheetVisible: Boolean = false,
+    val isDrawingDialogOpen: Boolean = false,
+    val flashcardsResult: String? = null,
     val chatMessages: List<ChatMessage> = emptyList(),
     val isChatLoading: Boolean = false,
     val shareText: String? = null
@@ -57,7 +63,11 @@ class NoteEditorViewModel(
                         title = note.title,
                         content = note.content,
                         tags = note.tags,
-                        isPinned = note.isPinned
+                        isPinned = note.isPinned,
+                        isLocked = note.isLocked,
+                        drawingPath = note.drawingPath,
+                        audioPath = note.audioPath,
+                        reminderTime = note.reminderTime
                     )
                 }
             }
@@ -141,6 +151,35 @@ class NoteEditorViewModel(
                     }
                 }
             }
+            AiAction.FLASHCARDS,
+            AiAction.MINDMAP -> {
+                _uiState.update { it.copy(isAiLoading = true, isAiSheetVisible = false, aiErrorMessage = null) }
+                viewModelScope.launch {
+                    val result = aiServiceManager.executeAction(action, content)
+                    result.onSuccess { output ->
+                        _uiState.update { it.copy(isAiLoading = false, flashcardsResult = output) }
+                    }.onFailure { err ->
+                        _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
+                    }
+                }
+            }
+            AiAction.EXTRACT_REMINDERS -> {
+                _uiState.update { it.copy(isAiLoading = true, isAiSheetVisible = false, aiErrorMessage = null) }
+                viewModelScope.launch {
+                    val result = aiServiceManager.executeAction(action, content)
+                    result.onSuccess { output ->
+                        _uiState.update { current ->
+                            current.copy(
+                                content = "${current.content}\n\n---\n### ⏰ Hatırlatıcılar & Randevular\n$output",
+                                isAiLoading = false
+                            )
+                        }
+                        saveNoteImmediately()
+                    }.onFailure { err ->
+                        _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
+                    }
+                }
+            }
             else -> {
                 _uiState.update { it.copy(isAiLoading = true, isAiSheetVisible = false, aiErrorMessage = null) }
                 viewModelScope.launch {
@@ -167,6 +206,47 @@ class NoteEditorViewModel(
                 }
             }
         }
+    }
+
+    fun toggleLock() {
+        val newLocked = !_uiState.value.isLocked
+        _uiState.update { it.copy(isLocked = newLocked) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun setDrawingDialogOpen(open: Boolean) {
+        _uiState.update { it.copy(isDrawingDialogOpen = open) }
+    }
+
+    fun saveDrawing(path: String) {
+        _uiState.update { it.copy(drawingPath = path, isDrawingDialogOpen = false) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun deleteDrawing() {
+        _uiState.update { it.copy(drawingPath = null) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun setAudioPath(path: String?) {
+        _uiState.update { it.copy(audioPath = path) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun dismissFlashcardsDialog() {
+        _uiState.update { it.copy(flashcardsResult = null) }
+    }
+
+    fun exportToPdf(context: android.content.Context) {
+        val currentNote = Note(
+            id = _uiState.value.noteId,
+            title = _uiState.value.title,
+            content = _uiState.value.content,
+            tags = _uiState.value.tags,
+            updatedAt = System.currentTimeMillis()
+        )
+        val file = com.applenotes.ai.core.export.NoteExporter.exportToPdf(context, currentNote)
+        com.applenotes.ai.core.export.NoteExporter.shareFile(context, file, "application/pdf")
     }
 
     fun translateNote(targetLanguage: String = "İngilizce") {

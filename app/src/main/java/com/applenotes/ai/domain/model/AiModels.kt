@@ -9,7 +9,10 @@ enum class AiAction(val title: String, val description: String, val icon: String
     AUTO_TITLE_TAGS("Başlık ve Etiket Öner", "Notun içeriğine uygun başlık ve #etiketler üret", "tag"),
     FIX_GRAMMAR("Yazım Hatalarını Düzelt", "İmla, dilbilgisi ve noktalama hatalarını düzelt", "spellcheck"),
     TRANSLATE("Çevir", "Notu farklı bir dile çevir", "translate"),
-    CONTINUE_WRITING("Yazmaya Devam Et", "Metnin devamını AI ile tamamla", "edit_note")
+    CONTINUE_WRITING("Yazmaya Devam Et", "Metnin devamını AI ile tamamla", "edit_note"),
+    FLASHCARDS("Soru-Cevap Çalışma Kartları", "Not içeriğinden pratik soru-cevap kartları üret", "cards"),
+    MINDMAP("Zihin Haritası Çıkar", "Kavramları hiyerarşik zihin haritasına dönüştür", "mindmap"),
+    EXTRACT_REMINDERS("Hatırlatıcı & Tarihleri Bul", "Not içindeki zaman ve randevuları tespit et", "alarm")
 }
 
 data class ChatMessage(

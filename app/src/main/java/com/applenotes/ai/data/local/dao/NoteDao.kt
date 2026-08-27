@@ -39,6 +39,9 @@ interface NoteDao {
     @Query("UPDATE notes SET isPinned = NOT isPinned WHERE id = :noteId")
     suspend fun togglePin(noteId: Long)
 
+    @Query("UPDATE notes SET isLocked = NOT isLocked WHERE id = :noteId")
+    suspend fun toggleLock(noteId: Long)
+
     @Query("DELETE FROM notes WHERE isDeleted = 1")
     suspend fun emptyTrash()
 }

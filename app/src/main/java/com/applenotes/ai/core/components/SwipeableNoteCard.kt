@@ -8,6 +8,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -112,14 +113,24 @@ fun SwipeableNoteCard(
                     modifier = Modifier.weight(1f)
                 )
 
-                if (note.isPinned) {
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Icon(
-                        imageVector = Icons.Default.PushPin,
-                        contentDescription = "Sabitlendi",
-                        tint = AppleYellow,
-                        modifier = Modifier.size(16.dp)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note.isLocked) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Kilitli",
+                            tint = AppleYellow,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
+                    if (note.isPinned) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "Sabitlendi",
+                            tint = AppleYellow,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
@@ -141,14 +152,15 @@ fun SwipeableNoteCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                val previewSnippet = remember(note.content) {
-                    cleanMarkdownSnippet(note.content)
+                val previewSnippet = remember(note.content, note.isLocked) {
+                    if (note.isLocked) "🔒 Kilitli Not (Açmak için dokunun)"
+                    else cleanMarkdownSnippet(note.content)
                 }
 
                 Text(
                     text = if (previewSnippet.isNotBlank()) previewSnippet else "Ek metin yok",
                     style = MaterialTheme.typography.bodySmall.copy(fontSize = 13.sp),
-                    color = textSecondary,
+                    color = if (note.isLocked) AppleYellowDark else textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)

@@ -15,6 +15,7 @@ interface NoteRepository {
     suspend fun restoreFromTrash(noteId: Long)
     suspend fun deletePermanently(noteId: Long)
     suspend fun togglePin(noteId: Long)
+    suspend fun toggleLock(noteId: Long)
     suspend fun emptyTrash()
 
     fun getAllFolders(): Flow<List<Folder>>

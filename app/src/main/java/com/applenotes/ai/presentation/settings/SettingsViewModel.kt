@@ -7,9 +7,11 @@ import com.applenotes.ai.data.remote.ai.AiServiceManager
 import com.applenotes.ai.data.remote.github.GitHubUpdateService
 import com.applenotes.ai.domain.model.AiProvider
 import com.applenotes.ai.domain.model.AppUpdateInfo
+import com.applenotes.ai.domain.repository.NoteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -42,7 +44,8 @@ data class SettingsUiState(
 class SettingsViewModel(
     private val prefs: SecurePreferences,
     private val updateService: GitHubUpdateService,
-    private val aiServiceManager: AiServiceManager
+    private val aiServiceManager: AiServiceManager,
+    private val repository: NoteRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(
@@ -193,6 +196,19 @@ class SettingsViewModel(
                         updateMessage = "İndirme başarısız: ${e.message}"
                     )
                 }
+            }
+        }
+    }
+
+    fun createBackup(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                repository.getAllNotes().first().let { allNotes ->
+                    val zipFile = com.applenotes.ai.core.export.NoteExporter.createBackupZip(context, allNotes)
+                    com.applenotes.ai.core.export.NoteExporter.shareFile(context, zipFile, "application/zip")
+                }
+            } catch (e: Exception) {
+                _uiState.update { it.copy(updateMessage = "Yedekleme hatası: ${e.message}") }
             }
         }
     }

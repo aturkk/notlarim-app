@@ -27,7 +27,8 @@ fun AppNavigation(
             val viewModel = NotesListViewModel(
                 repository = appContainer.noteRepository,
                 updateService = appContainer.updateService,
-                prefs = appContainer.securePreferences
+                prefs = appContainer.securePreferences,
+                aiServiceManager = appContainer.aiServiceManager
             )
             NotesListScreen(
                 viewModel = viewModel,
@@ -45,7 +46,8 @@ fun AppNavigation(
                     val settingsVm = SettingsViewModel(
                         prefs = appContainer.securePreferences,
                         updateService = appContainer.updateService,
-                        aiServiceManager = appContainer.aiServiceManager
+                        aiServiceManager = appContainer.aiServiceManager,
+                        repository = appContainer.noteRepository
                     )
                     settingsVm.downloadAndInstallUpdate(downloadUrl)
                 }
@@ -77,7 +79,8 @@ fun AppNavigation(
             val viewModel = SettingsViewModel(
                 prefs = appContainer.securePreferences,
                 updateService = appContainer.updateService,
-                aiServiceManager = appContainer.aiServiceManager
+                aiServiceManager = appContainer.aiServiceManager,
+                repository = appContainer.noteRepository
             )
             SettingsScreen(
                 viewModel = viewModel,

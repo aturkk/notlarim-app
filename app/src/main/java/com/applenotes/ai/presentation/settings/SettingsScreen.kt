@@ -37,6 +37,7 @@ fun SettingsScreen(
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     var showKey by remember { mutableStateOf(false) }
 
@@ -348,6 +349,35 @@ fun SettingsScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text("Güncellemeleri Şimdi Denetle", fontWeight = FontWeight.SemiBold)
                             }
+                        }
+                    }
+                }
+            }
+
+            // Data & Backup Section
+            item {
+                InsetGroupedSection(
+                    title = "Veri Güvenliği ve Yedekleme"
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "Tüm notlarınızı, etiketlerinizi ve medya dosyalarınızı şifreli bir ZIP arşivi olarak dışa aktarabilirsiniz.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = textSecondary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.createBackup(context) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight,
+                                contentColor = textPrimary
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.Archive, contentDescription = null, tint = AppleYellow, modifier = Modifier.size(18.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Tüm Notları ZIP Olarak Yedekle", fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }

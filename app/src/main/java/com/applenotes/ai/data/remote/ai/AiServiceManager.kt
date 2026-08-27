@@ -53,6 +53,18 @@ class AiServiceManager(
                 "Aşağıdaki metnin devamını, aynı üslup ve bağlamda yaz. Yarıda kalmış cümleleri tamamla ve metni doğal bir şekilde genişlet:\n\n" + noteContent,
                 "Sen yaratıcı bir yazar asistanısın. Verilen metnin bağlamını ve üslubunu koruyarak anlamlı şekilde devam ettirirsin."
             )
+            AiAction.FLASHCARDS -> Pair(
+                "Aşağıdaki not içeriğinden çalışma ve tekrar amaçlı 3-5 adet Soru ve Cevap (Flashcard) çıkar. Formatı şu şekilde yap:\nSoru 1: ...\nCevap 1: ...\n\n" + noteContent,
+                "Sen bir eğitmen ve çalışma koçusun. Notlardan en kritik bilgileri soru-cevap kartlarına dönüştürürsün."
+            )
+            AiAction.MINDMAP -> Pair(
+                "Aşağıdaki notu hiyerarşik bir Zihin Haritası (Kavram Ağacı) şeklinde düzenle. Ana kavramdan alt dallara doğru girintili (indent) liste olarak sun:\n\n" + noteContent,
+                "Sen görsel düşünme ve kavram haritası uzmanısın. Bilgiyi hiyerarşik ve temiz bir zihin haritasına dönüştürürsün."
+            )
+            AiAction.EXTRACT_REMINDERS -> Pair(
+                "Aşağıdaki nottaki tüm randevu, tarih, saat, son teslim tarihi ve eylem planlarını tespit et. Her birini saat/tarih ve yapılacak iş olarak açıkça listele:\n\n" + noteContent,
+                "Sen bir kişisel takvim asistanısın. Metinlerdeki zaman belirteçlerini ve görevleri eksiksiz çıkarırsın."
+            )
         }
 
         return sendPrompt(prompt, systemPrompt)
@@ -110,6 +122,30 @@ class AiServiceManager(
         val prompt = "Aşağıdaki metnin devamını, aynı üslup ve bağlamda yaz. Yarıda kalmış cümleleri tamamla ve metni doğal bir şekilde genişlet:\n\n" + noteContent
         val systemPrompt = "Sen yaratıcı bir yazar asistanısın. Verilen metnin bağlamını ve üslubunu koruyarak anlamlı şekilde devam ettirirsin."
         return sendPrompt(prompt, systemPrompt)
+    }
+
+    suspend fun chatWithAllNotes(
+        allNotes: List<com.applenotes.ai.domain.model.Note>,
+        userQuestion: String,
+        chatHistory: List<ChatMessage>
+    ): Result<String> {
+        val notesContext = allNotes.take(20).joinToString("\n\n---\n") { note ->
+            "Başlık: ${note.title}\nEtiketler: ${note.tags.joinToString(", ")}\nİçerik: ${note.content.take(600)}"
+        }
+
+        val systemPrompt = "Sen kullanıcının tüm not arşivini tarayan Genel Kişisel Zeka Asistanısın (Global AI Assistant).\n" +
+            "Kullanıcının veritabanındaki kayıtlı notlar aşağıdadır:\n" +
+            "====================\n" +
+            notesContext + "\n" +
+            "====================\n" +
+            "Kullanıcının sorusunu bu notlardaki bilgileri çapraz tarayarak, Türkçe, son derece net ve yardımcı bir dille yanıtla. Eğer ilgili not varsa başlığını da belirt."
+
+        val historyPairs = chatHistory.map { msg ->
+            val role = if (msg.role == MessageRole.USER) "user" else "assistant"
+            Pair(role, msg.content)
+        }
+
+        return sendPrompt(userQuestion, systemPrompt, historyPairs)
     }
 
     private suspend fun sendPrompt(

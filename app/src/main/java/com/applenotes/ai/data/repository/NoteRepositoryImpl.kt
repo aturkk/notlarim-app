@@ -70,6 +70,10 @@ class NoteRepositoryImpl(
         db.noteDao.togglePin(noteId)
     }
 
+    override suspend fun toggleLock(noteId: Long) {
+        db.noteDao.toggleLock(noteId)
+    }
+
     override suspend fun emptyTrash() {
         db.noteDao.emptyTrash()
     }

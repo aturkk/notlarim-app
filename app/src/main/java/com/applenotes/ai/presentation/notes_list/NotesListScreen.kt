@@ -25,6 +25,11 @@ import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.Note
 import com.applenotes.ai.presentation.updater.UpdateDialog
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.fragment.app.FragmentActivity
+import com.applenotes.ai.core.security.BiometricAuthHelper
+import com.applenotes.ai.presentation.ai_assistant.GlobalAiChatBottomSheet
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
@@ -34,6 +39,8 @@ fun NotesListScreen(
     onSettingsClick: () -> Unit,
     onDownloadUpdate: (String) -> Unit
 ) {
+    val context = LocalContext.current
+    val activity = context as? FragmentActivity
     val uiState by viewModel.uiState.collectAsState()
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
@@ -53,10 +60,24 @@ fun NotesListScreen(
         else uiState.folders.find { it.id == uiState.selectedFolderId }?.name ?: "Klasör"
     }
 
+    val handleNoteClick: (Note) -> Unit = { note ->
+        if (note.isLocked && activity != null) {
+            BiometricAuthHelper.authenticate(
+                activity = activity,
+                title = note.title.ifBlank { "Kilitli Not" },
+                subtitle = "Notu görüntülemek için kimliğinizi doğrulayın",
+                onSuccess = { onNoteClick(note.id) },
+                onError = { /* Keep locked */ }
+            )
+        } else {
+            onNoteClick(note.id)
+        }
+    }
+
     Scaffold(
         bottomBar = {
             CupertinoBottomBar(
-                noteCountText = " Not",
+                noteCountText = "${uiState.notes.size} Not",
                 onFolderClick = { viewModel.setFolderSheetVisible(true) },
                 onNewNoteClick = onNewNoteClick,
                 onSettingsClick = onSettingsClick
@@ -74,10 +95,32 @@ fun NotesListScreen(
             ) {
                 item {
                     Spacer(modifier = Modifier.statusBarsPadding())
-                    CupertinoLargeHeader(
-                        title = currentFolderTitle,
-                        subtitle = if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
-                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(end = 16.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            CupertinoLargeHeader(
+                                title = currentFolderTitle,
+                                subtitle = if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
+                            )
+                        }
+                        IconButton(
+                            onClick = { viewModel.setGlobalAiChatVisible(true) },
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(AppleYellow.copy(alpha = 0.15f))
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Psychology,
+                                contentDescription = "Global AI Asistan",
+                                tint = AppleYellow
+                            )
+                        }
+                    }
                 }
 
                 item {
@@ -157,7 +200,7 @@ fun NotesListScreen(
                             pinnedNotes.forEachIndexed { index, note ->
                                 SwipeableNoteCard(
                                     note = note,
-                                    onClick = { onNoteClick(note.id) },
+                                    onClick = { handleNoteClick(note) },
                                     onTogglePin = { viewModel.togglePin(note.id) },
                                     onDelete = { viewModel.moveToTrash(note.id) }
                                 )
@@ -175,7 +218,7 @@ fun NotesListScreen(
                             unpinnedNotes.forEachIndexed { index, note ->
                                 SwipeableNoteCard(
                                     note = note,
-                                    onClick = { onNoteClick(note.id) },
+                                    onClick = { handleNoteClick(note) },
                                     onTogglePin = { viewModel.togglePin(note.id) },
                                     onDelete = { viewModel.moveToTrash(note.id) }
                                 )
@@ -327,6 +370,16 @@ fun NotesListScreen(
             updateInfo = updateInfo,
             onDismiss = viewModel::dismissUpdateDialog,
             onDownload = { onDownloadUpdate(updateInfo.downloadUrl) }
+        )
+    }
+
+    // Global AI Assistant Sheet
+    if (uiState.isGlobalAiChatVisible) {
+        GlobalAiChatBottomSheet(
+            messages = uiState.globalChatMessages,
+            isLoading = uiState.isGlobalAiLoading,
+            onSendMessage = viewModel::sendGlobalChatMessage,
+            onDismiss = { viewModel.setGlobalAiChatVisible(false) }
         )
     }
 }

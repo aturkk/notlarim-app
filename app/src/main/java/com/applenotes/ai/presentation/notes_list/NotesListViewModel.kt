@@ -12,6 +12,10 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
+import com.applenotes.ai.data.remote.ai.AiServiceManager
+import com.applenotes.ai.domain.model.ChatMessage
+import com.applenotes.ai.domain.model.MessageRole
+
 data class NotesListUiState(
     val notes: List<Note> = emptyList(),
     val folders: List<Folder> = emptyList(),
@@ -20,7 +24,10 @@ data class NotesListUiState(
     val selectedTag: String? = null,
     val isLoading: Boolean = true,
     val updateInfo: AppUpdateInfo? = null,
-    val isShowingFolderSheet: Boolean = false
+    val isShowingFolderSheet: Boolean = false,
+    val isGlobalAiChatVisible: Boolean = false,
+    val globalChatMessages: List<ChatMessage> = emptyList(),
+    val isGlobalAiLoading: Boolean = false
 )
 
 private data class FilterParams(
@@ -33,7 +40,8 @@ private data class FilterParams(
 class NotesListViewModel(
     private val repository: NoteRepository,
     private val updateService: GitHubUpdateService,
-    private val prefs: SecurePreferences
+    private val prefs: SecurePreferences,
+    private val aiServiceManager: AiServiceManager
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -41,6 +49,9 @@ class NotesListViewModel(
     private val _selectedTag = MutableStateFlow<String?>(null)
     private val _isShowingFolderSheet = MutableStateFlow(false)
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
+    private val _isGlobalAiChatVisible = MutableStateFlow(false)
+    private val _globalChatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
+    private val _isGlobalAiLoading = MutableStateFlow(false)
 
     private val filterParams: Flow<FilterParams> = combine(
         _searchQuery,
@@ -114,6 +125,41 @@ class NotesListViewModel(
     fun togglePin(noteId: Long) {
         viewModelScope.launch {
             repository.togglePin(noteId)
+        }
+    }
+
+    fun toggleLock(noteId: Long) {
+        viewModelScope.launch {
+            repository.toggleLock(noteId)
+        }
+    }
+
+    fun setGlobalAiChatVisible(visible: Boolean) {
+        _isGlobalAiChatVisible.value = visible
+    }
+
+    fun sendGlobalChatMessage(userQuestion: String) {
+        if (userQuestion.isBlank()) return
+        val currentNotes = uiState.value.notes
+        val userMsg = ChatMessage(role = MessageRole.USER, content = userQuestion)
+        val updatedList = _globalChatMessages.value + userMsg
+        _globalChatMessages.value = updatedList
+        _isGlobalAiLoading.value = true
+
+        viewModelScope.launch {
+            val result = aiServiceManager.chatWithAllNotes(currentNotes, userQuestion, updatedList)
+            result.onSuccess { reply ->
+                val assistantMsg = ChatMessage(role = MessageRole.ASSISTANT, content = reply)
+                _globalChatMessages.value = _globalChatMessages.value + assistantMsg
+                _isGlobalAiLoading.value = false
+            }.onFailure { err ->
+                val errorMsg = ChatMessage(
+                    role = MessageRole.ASSISTANT,
+                    content = "Hata: ${err.message ?: "İstek işlenirken bir sorun oluştu."}"
+                )
+                _globalChatMessages.value = _globalChatMessages.value + errorMsg
+                _isGlobalAiLoading.value = false
+            }
         }
     }
 
