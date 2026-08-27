@@ -11,6 +11,7 @@ class AiServiceManager(
     private val prefs: SecurePreferences
 ) {
     private val geminiClient = GeminiApiClient()
+    private val vertexAiClient = VertexAiApiClient()
     private val openAiClient = OpenAiApiClient()
     private val claudeClient = ClaudeApiClient()
 
@@ -121,6 +122,17 @@ class AiServiceManager(
                 geminiClient.generateContent(
                     apiKey = prefs.geminiApiKey,
                     model = prefs.geminiModel,
+                    prompt = prompt,
+                    systemPrompt = systemPrompt,
+                    history = history
+                )
+            }
+            AiProvider.VERTEX_AI -> {
+                vertexAiClient.generateContent(
+                    projectId = prefs.vertexProjectId,
+                    region = prefs.vertexRegion,
+                    apiKeyOrToken = prefs.vertexApiKey,
+                    model = prefs.vertexModel,
                     prompt = prompt,
                     systemPrompt = systemPrompt,
                     history = history

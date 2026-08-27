@@ -40,6 +40,23 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getString(KEY_GEMINI_MODEL, "gemini-1.5-flash") ?: "gemini-1.5-flash"
         set(value) = sharedPreferences.edit().putString(KEY_GEMINI_MODEL, value.trim()).apply()
 
+    // Vertex AI
+    var vertexProjectId: String
+        get() = sharedPreferences.getString(KEY_VERTEX_PROJECT_ID, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_VERTEX_PROJECT_ID, value.trim()).apply()
+
+    var vertexRegion: String
+        get() = sharedPreferences.getString(KEY_VERTEX_REGION, "us-central1") ?: "us-central1"
+        set(value) = sharedPreferences.edit().putString(KEY_VERTEX_REGION, value.trim()).apply()
+
+    var vertexApiKey: String
+        get() = sharedPreferences.getString(KEY_VERTEX_KEY, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_VERTEX_KEY, value.trim()).apply()
+
+    var vertexModel: String
+        get() = sharedPreferences.getString(KEY_VERTEX_MODEL, "gemini-1.5-flash") ?: "gemini-1.5-flash"
+        set(value) = sharedPreferences.edit().putString(KEY_VERTEX_MODEL, value.trim()).apply()
+
     // OpenAI
     var openAiApiKey: String
         get() = sharedPreferences.getString(KEY_OPENAI_KEY, "") ?: ""
@@ -64,7 +81,7 @@ class SecurePreferences(context: Context) {
         set(value) = sharedPreferences.edit().putString(KEY_OPENROUTER_KEY, value.trim()).apply()
 
     var openRouterModel: String
-        get() = sharedPreferences.getString(KEY_OPENROUTER_MODEL, "google/gemini-flash-1.5") ?: "google/gemini-flash-1.5"
+        get() = sharedPreferences.getString(KEY_OPENROUTER_MODEL, "google/gemini-2.0-flash-exp:free") ?: "google/gemini-2.0-flash-exp:free"
         set(value) = sharedPreferences.edit().putString(KEY_OPENROUTER_MODEL, value.trim()).apply()
 
     // Active AI Provider
@@ -98,6 +115,10 @@ class SecurePreferences(context: Context) {
     companion object {
         private const val KEY_GEMINI_KEY = "gemini_api_key"
         private const val KEY_GEMINI_MODEL = "gemini_model"
+        private const val KEY_VERTEX_PROJECT_ID = "vertex_project_id"
+        private const val KEY_VERTEX_REGION = "vertex_region"
+        private const val KEY_VERTEX_KEY = "vertex_api_key"
+        private const val KEY_VERTEX_MODEL = "vertex_model"
         private const val KEY_OPENAI_KEY = "openai_api_key"
         private const val KEY_OPENAI_MODEL = "openai_model"
         private const val KEY_CLAUDE_KEY = "claude_api_key"

@@ -117,12 +117,56 @@ fun SettingsScreen(
             // Active Provider API Key & Model Configuration
             item {
                 InsetGroupedSection(
-                    title = " Yapılandırması"
+                    title = "${uiState.activeProvider.displayName} Yapılandırması"
                 ) {
-                    // API Key Field
                     Column(modifier = Modifier.padding(16.dp)) {
+                        if (uiState.activeProvider == AiProvider.VERTEX_AI) {
+                            Text(
+                                text = "Google Cloud Project ID",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = uiState.vertexProjectId,
+                                onValueChange = viewModel::onVertexProjectIdChange,
+                                placeholder = { Text("Örn: my-gcp-project-12345") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppleYellow,
+                                    cursorColor = AppleYellow
+                                ),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Text(
+                                text = "Vertex AI Bölgesi (Location)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = uiState.vertexRegion,
+                                onValueChange = viewModel::onVertexRegionChange,
+                                placeholder = { Text("Örn: us-central1 veya europe-west1") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppleYellow,
+                                    cursorColor = AppleYellow
+                                ),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        // API Key Field
                         Text(
-                            text = "API Anahtarı",
+                            text = if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex AI API Anahtarı / Access Token" else "API Anahtarı",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -130,6 +174,7 @@ fun SettingsScreen(
 
                         val (currentKey, onKeyChange) = when (uiState.activeProvider) {
                             AiProvider.GEMINI -> Pair(uiState.geminiApiKey, viewModel::onGeminiKeyChange)
+                            AiProvider.VERTEX_AI -> Pair(uiState.vertexApiKey, viewModel::onVertexApiKeyChange)
                             AiProvider.OPENAI -> Pair(uiState.openAiApiKey, viewModel::onOpenAiKeyChange)
                             AiProvider.CLAUDE -> Pair(uiState.claudeApiKey, viewModel::onClaudeKeyChange)
                             AiProvider.OPENROUTER -> Pair(uiState.openRouterApiKey, viewModel::onOpenRouterKeyChange)
@@ -138,7 +183,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = currentKey,
                             onValueChange = onKeyChange,
-                            placeholder = { Text("API anahtarınızı yapıştırın...") },
+                            placeholder = { Text(if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex API Key veya OAuth Token..." else "API anahtarınızı yapıştırın...") },
                             visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                             trailingIcon = {
@@ -171,6 +216,7 @@ fun SettingsScreen(
 
                         val (currentModel, onModelChange) = when (uiState.activeProvider) {
                             AiProvider.GEMINI -> Pair(uiState.geminiModel, viewModel::onGeminiModelChange)
+                            AiProvider.VERTEX_AI -> Pair(uiState.vertexModel, viewModel::onVertexModelChange)
                             AiProvider.OPENAI -> Pair(uiState.openAiModel, viewModel::onOpenAiModelChange)
                             AiProvider.CLAUDE -> Pair(uiState.claudeModel, viewModel::onClaudeModelChange)
                             AiProvider.OPENROUTER -> Pair(uiState.openRouterModel, viewModel::onOpenRouterModelChange)
@@ -179,7 +225,7 @@ fun SettingsScreen(
                         OutlinedTextField(
                             value = currentModel,
                             onValueChange = onModelChange,
-                            placeholder = { Text("Örn: ") },
+                            placeholder = { Text("Örn: ${uiState.activeProvider.defaultModel}") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
                             colors = OutlinedTextFieldDefaults.colors(

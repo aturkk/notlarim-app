@@ -17,12 +17,16 @@ data class SettingsUiState(
     val activeProvider: AiProvider = AiProvider.GEMINI,
     val geminiApiKey: String = "",
     val geminiModel: String = "gemini-1.5-flash",
+    val vertexProjectId: String = "",
+    val vertexRegion: String = "us-central1",
+    val vertexApiKey: String = "",
+    val vertexModel: String = "gemini-1.5-flash",
     val openAiApiKey: String = "",
     val openAiModel: String = "gpt-4o-mini",
     val claudeApiKey: String = "",
     val claudeModel: String = "claude-3-5-sonnet-20241022",
     val openRouterApiKey: String = "",
-    val openRouterModel: String = "google/gemini-flash-1.5",
+    val openRouterModel: String = "google/gemini-2.0-flash-exp:free",
     val githubOwner: String = "developer",
     val githubRepo: String = "AppleNotesAI",
     val autoCheckUpdates: Boolean = true,
@@ -46,6 +50,10 @@ class SettingsViewModel(
             activeProvider = prefs.getActiveAiProvider(),
             geminiApiKey = prefs.geminiApiKey,
             geminiModel = prefs.geminiModel,
+            vertexProjectId = prefs.vertexProjectId,
+            vertexRegion = prefs.vertexRegion,
+            vertexApiKey = prefs.vertexApiKey,
+            vertexModel = prefs.vertexModel,
             openAiApiKey = prefs.openAiApiKey,
             openAiModel = prefs.openAiModel,
             claudeApiKey = prefs.claudeApiKey,
@@ -72,6 +80,26 @@ class SettingsViewModel(
     fun onGeminiModelChange(model: String) {
         prefs.geminiModel = model
         _uiState.update { it.copy(geminiModel = model) }
+    }
+
+    fun onVertexProjectIdChange(projectId: String) {
+        prefs.vertexProjectId = projectId
+        _uiState.update { it.copy(vertexProjectId = projectId) }
+    }
+
+    fun onVertexRegionChange(region: String) {
+        prefs.vertexRegion = region
+        _uiState.update { it.copy(vertexRegion = region) }
+    }
+
+    fun onVertexApiKeyChange(key: String) {
+        prefs.vertexApiKey = key
+        _uiState.update { it.copy(vertexApiKey = key) }
+    }
+
+    fun onVertexModelChange(model: String) {
+        prefs.vertexModel = model
+        _uiState.update { it.copy(vertexModel = model) }
     }
 
     fun onOpenAiKeyChange(key: String) {
