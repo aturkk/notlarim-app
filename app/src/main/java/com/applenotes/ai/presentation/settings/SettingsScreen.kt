@@ -368,7 +368,7 @@ fun SettingsScreen(
                         color = textSecondary
                     )
                     Text(
-                        text = "Sürüm:  (Build )",
+                        text = "Sürüm: ${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
                         style = MaterialTheme.typography.bodySmall,
                         color = textSecondary
                     )

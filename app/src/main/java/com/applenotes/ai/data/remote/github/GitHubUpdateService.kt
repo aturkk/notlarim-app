@@ -31,17 +31,18 @@ import java.net.URL
 
 @Serializable
 private data class GitHubRelease(
-    val tag_name: String,
+    val tag_name: String? = null,
     val name: String? = null,
     val body: String? = null,
     val published_at: String? = null,
+    val message: String? = null,
     val assets: List<GitHubAsset> = emptyList()
 )
 
 @Serializable
 private data class GitHubAsset(
-    val name: String,
-    val browser_download_url: String,
+    val name: String = "",
+    val browser_download_url: String = "",
     val size: Long = 0
 )
 
@@ -58,8 +59,8 @@ class GitHubUpdateService(
 
     suspend fun checkForUpdate(): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
         try {
-            val owner = prefs.githubOwner.ifBlank { "developer" }
-            val repo = prefs.githubRepo.ifBlank { "AppleNotesAI" }
+            val owner = prefs.githubOwner.ifBlank { "aturkk" }
+            val repo = prefs.githubRepo.ifBlank { "notlarim-app" }
             val url = "https://api.github.com/repos/$owner/$repo/releases/latest"
 
             val response = httpClient.get(url) {
@@ -67,11 +68,44 @@ class GitHubUpdateService(
                 header("User-Agent", "AppleNotesAI-Updater")
             }
 
+            val currentVersion = BuildConfig.VERSION_NAME
+            val status = response.status.value
+
+            if (status == 404) {
+                return@withContext Result.success(
+                    AppUpdateInfo(
+                        currentVersion = currentVersion,
+                        latestVersion = currentVersion,
+                        releaseTitle = "Güncel",
+                        changelog = "Henüz yeni bir sürüm yayınlanmamış.",
+                        downloadUrl = "",
+                        isUpdateAvailable = false
+                    )
+                )
+            }
+
+            if (status !in 200..299) {
+                return@withContext Result.failure(Exception("GitHub API hatası (HTTP $status)"))
+            }
+
             val body = response.bodyAsText()
             val release = json.decodeFromString<GitHubRelease>(body)
 
-            val currentVersion = BuildConfig.VERSION_NAME
-            val latestVersion = release.tag_name.removePrefix("v").trim()
+            val tagName = release.tag_name
+            if (tagName.isNullOrBlank()) {
+                return@withContext Result.success(
+                    AppUpdateInfo(
+                        currentVersion = currentVersion,
+                        latestVersion = currentVersion,
+                        releaseTitle = "Güncel",
+                        changelog = "Uygulamanız en güncel sürümde.",
+                        downloadUrl = "",
+                        isUpdateAvailable = false
+                    )
+                )
+            }
+
+            val latestVersion = tagName.removePrefix("v").trim()
 
             // Find APK asset
             val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
@@ -83,8 +117,8 @@ class GitHubUpdateService(
             Result.success(
                 AppUpdateInfo(
                     currentVersion = currentVersion,
-                    latestVersion = release.tag_name,
-                    releaseTitle = release.name ?: release.tag_name,
+                    latestVersion = tagName,
+                    releaseTitle = release.name ?: tagName,
                     changelog = release.body ?: "Hata düzeltmeleri ve performans iyileştirmeleri.",
                     downloadUrl = downloadUrl,
                     isUpdateAvailable = isNewer && downloadUrl.isNotBlank(),
