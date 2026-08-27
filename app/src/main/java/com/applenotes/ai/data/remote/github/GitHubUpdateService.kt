@@ -58,17 +58,21 @@ class GitHubUpdateService(
     }
 
     suspend fun checkForUpdate(): Result<AppUpdateInfo> = withContext(Dispatchers.IO) {
+        val owner = prefs.githubOwner.ifBlank { "aturkk" }
+        val repo = prefs.githubRepo.ifBlank { "notlarim-app" }
+        val currentVersion = BuildConfig.VERSION_NAME
+
         try {
-            val owner = prefs.githubOwner.ifBlank { "aturkk" }
-            val repo = prefs.githubRepo.ifBlank { "notlarim-app" }
             val url = "https://api.github.com/repos/$owner/$repo/releases/latest"
 
             val response = httpClient.get(url) {
                 header("Accept", "application/vnd.github+json")
-                header("User-Agent", "AppleNotesAI-Updater")
+                header("User-Agent", "Mozilla/5.0 (Linux; Android)")
+                if (prefs.githubToken.isNotBlank()) {
+                    header("Authorization", "Bearer ${prefs.githubToken}")
+                }
             }
 
-            val currentVersion = BuildConfig.VERSION_NAME
             val status = response.status.value
 
             if (status == 404) {
@@ -84,16 +88,69 @@ class GitHubUpdateService(
                 )
             }
 
-            if (status !in 200..299) {
-                return@withContext Result.failure(Exception("GitHub API hatası (HTTP $status)"))
+            if (status in 200..299) {
+                val body = response.bodyAsText()
+                val release = json.decodeFromString<GitHubRelease>(body)
+
+                val tagName = release.tag_name
+                if (!tagName.isNullOrBlank()) {
+                    val latestVersion = tagName.removePrefix("v").trim()
+                    val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
+                        ?: release.assets.firstOrNull()
+                    val downloadUrl = apkAsset?.browser_download_url
+                        ?: "https://github.com/$owner/$repo/releases/download/$tagName/app-release.apk"
+                    val isNewer = isVersionNewer(latest = latestVersion, current = currentVersion)
+
+                    return@withContext Result.success(
+                        AppUpdateInfo(
+                            currentVersion = currentVersion,
+                            latestVersion = tagName,
+                            releaseTitle = release.name ?: tagName,
+                            changelog = release.body ?: "Hata düzeltmeleri ve yeni özellikler.",
+                            downloadUrl = downloadUrl,
+                            isUpdateAvailable = isNewer,
+                            publishedAt = release.published_at ?: ""
+                        )
+                    )
+                }
             }
 
-            val body = response.bodyAsText()
-            val release = json.decodeFromString<GitHubRelease>(body)
+            // If API returned 403 (Rate Limit) or non-200, fallback to direct Web URL resolution
+            return@withContext checkUpdateViaWebFallback(owner, repo, currentVersion)
+        } catch (e: Exception) {
+            // Fallback to web check if network/api throws
+            return@withContext checkUpdateViaWebFallback(owner, repo, currentVersion)
+        }
+    }
 
-            val tagName = release.tag_name
-            if (tagName.isNullOrBlank()) {
-                return@withContext Result.success(
+    private suspend fun checkUpdateViaWebFallback(owner: String, repo: String, currentVersion: String): Result<AppUpdateInfo> {
+        return try {
+            val webUrl = "https://github.com/$owner/$repo/releases/latest"
+            val response = httpClient.get(webUrl) {
+                header("User-Agent", "Mozilla/5.0 (Linux; Android)")
+            }
+
+            val finalUrl = response.call.request.url.toString()
+            val tagMatch = Regex(".*/releases/tag/([^/?#]+)").find(finalUrl)
+            val tagName = tagMatch?.groupValues?.getOrNull(1)
+
+            if (tagName != null) {
+                val latestVersion = tagName.removePrefix("v").trim()
+                val isNewer = isVersionNewer(latest = latestVersion, current = currentVersion)
+                val downloadUrl = "https://github.com/$owner/$repo/releases/download/$tagName/app-release.apk"
+
+                Result.success(
+                    AppUpdateInfo(
+                        currentVersion = currentVersion,
+                        latestVersion = tagName,
+                        releaseTitle = "Yeni Sürüm $tagName",
+                        changelog = "GitHub üzerinden yeni sürüm mevcut.",
+                        downloadUrl = downloadUrl,
+                        isUpdateAvailable = isNewer
+                    )
+                )
+            } else {
+                Result.success(
                     AppUpdateInfo(
                         currentVersion = currentVersion,
                         latestVersion = currentVersion,
@@ -104,29 +161,8 @@ class GitHubUpdateService(
                     )
                 )
             }
-
-            val latestVersion = tagName.removePrefix("v").trim()
-
-            // Find APK asset
-            val apkAsset = release.assets.firstOrNull { it.name.endsWith(".apk", ignoreCase = true) }
-                ?: release.assets.firstOrNull()
-
-            val downloadUrl = apkAsset?.browser_download_url ?: ""
-            val isNewer = isVersionNewer(latest = latestVersion, current = currentVersion)
-
-            Result.success(
-                AppUpdateInfo(
-                    currentVersion = currentVersion,
-                    latestVersion = tagName,
-                    releaseTitle = release.name ?: tagName,
-                    changelog = release.body ?: "Hata düzeltmeleri ve performans iyileştirmeleri.",
-                    downloadUrl = downloadUrl,
-                    isUpdateAvailable = isNewer && downloadUrl.isNotBlank(),
-                    publishedAt = release.published_at ?: ""
-                )
-            )
         } catch (e: Exception) {
-            Result.failure(Exception("Güncelleme kontrolü başarısız: ${e.localizedMessage ?: e.message}"))
+            Result.failure(Exception("Güncelleme denetimi yapılamadı: ${e.localizedMessage ?: e.message}"))
         }
     }
 

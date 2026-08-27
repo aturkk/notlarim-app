@@ -108,6 +108,10 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getString(KEY_GITHUB_REPO, "notlarim-app") ?: "notlarim-app"
         set(value) = sharedPreferences.edit().putString(KEY_GITHUB_REPO, value.trim()).apply()
 
+    var githubToken: String
+        get() = sharedPreferences.getString(KEY_GITHUB_TOKEN, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_GITHUB_TOKEN, value.trim()).apply()
+
     var autoCheckUpdates: Boolean
         get() = sharedPreferences.getBoolean(KEY_AUTO_CHECK_UPDATES, true)
         set(value) = sharedPreferences.edit().putBoolean(KEY_AUTO_CHECK_UPDATES, value).apply()
@@ -128,6 +132,7 @@ class SecurePreferences(context: Context) {
         private const val KEY_ACTIVE_PROVIDER = "active_ai_provider"
         private const val KEY_GITHUB_OWNER = "github_owner"
         private const val KEY_GITHUB_REPO = "github_repo"
+        private const val KEY_GITHUB_TOKEN = "github_token"
         private const val KEY_AUTO_CHECK_UPDATES = "auto_check_updates"
     }
 }
