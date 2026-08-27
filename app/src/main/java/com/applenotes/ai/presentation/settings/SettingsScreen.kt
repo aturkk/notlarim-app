@@ -1,0 +1,382 @@
+package com.applenotes.ai.presentation.settings
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.applenotes.ai.BuildConfig
+import com.applenotes.ai.core.components.*
+import com.applenotes.ai.core.theme.*
+import com.applenotes.ai.domain.model.AiProvider
+import com.applenotes.ai.presentation.updater.UpdateDialog
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    onBack: () -> Unit
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    val isDark = isSystemInDarkTheme()
+    val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
+    val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
+    val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+
+    var showKey by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            CupertinoTopAppBar(
+                title = "Ayarlar & Profil",
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Geri",
+                            tint = AppleYellow
+                        )
+                    }
+                }
+            )
+        },
+        containerColor = bgColor
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            item {
+                CupertinoLargeHeader(
+                    title = "Ayarlar",
+                    subtitle = "Yapay zeka anahtarları ve uygulama tercihleri"
+                )
+            }
+
+            // AI Provider Selection Section
+            item {
+                InsetGroupedSection(
+                    title = "Yapay Zeka Sağlayıcısı (BYOK)",
+                    footer = "API anahtarlarınız doğrudan cihazınızın donanım şifreleme çipinde (Android Keystore) saklanır ve hiçbir sunucuya gönderilmez."
+                ) {
+                    AiProvider.entries.forEachIndexed { index, provider ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setActiveProvider(provider) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = provider.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (uiState.activeProvider == provider) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = textPrimary
+                                )
+                                Text(
+                                    text = "Varsayılan: ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textSecondary
+                                )
+                            }
+
+                            if (uiState.activeProvider == provider) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Seçili",
+                                    tint = AppleYellow
+                                )
+                            }
+                        }
+
+                        if (index < AiProvider.entries.lastIndex) {
+                            InsetDivider()
+                        }
+                    }
+                }
+            }
+
+            // Active Provider API Key & Model Configuration
+            item {
+                InsetGroupedSection(
+                    title = " Yapılandırması"
+                ) {
+                    // API Key Field
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Text(
+                            text = "API Anahtarı",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        val (currentKey, onKeyChange) = when (uiState.activeProvider) {
+                            AiProvider.GEMINI -> Pair(uiState.geminiApiKey, viewModel::onGeminiKeyChange)
+                            AiProvider.OPENAI -> Pair(uiState.openAiApiKey, viewModel::onOpenAiKeyChange)
+                            AiProvider.CLAUDE -> Pair(uiState.claudeApiKey, viewModel::onClaudeKeyChange)
+                            AiProvider.OPENROUTER -> Pair(uiState.openRouterApiKey, viewModel::onOpenRouterKeyChange)
+                        }
+
+                        OutlinedTextField(
+                            value = currentKey,
+                            onValueChange = onKeyChange,
+                            placeholder = { Text("API anahtarınızı yapıştırın...") },
+                            visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            trailingIcon = {
+                                IconButton(onClick = { showKey = !showKey }) {
+                                    Icon(
+                                        imageVector = if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                        contentDescription = null,
+                                        tint = textSecondary
+                                    )
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AppleYellow,
+                                cursorColor = AppleYellow
+                            ),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Model selection field
+                        Text(
+                            text = "Kullanılacak Model",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        val (currentModel, onModelChange) = when (uiState.activeProvider) {
+                            AiProvider.GEMINI -> Pair(uiState.geminiModel, viewModel::onGeminiModelChange)
+                            AiProvider.OPENAI -> Pair(uiState.openAiModel, viewModel::onOpenAiModelChange)
+                            AiProvider.CLAUDE -> Pair(uiState.claudeModel, viewModel::onClaudeModelChange)
+                            AiProvider.OPENROUTER -> Pair(uiState.openRouterModel, viewModel::onOpenRouterModelChange)
+                        }
+
+                        OutlinedTextField(
+                            value = currentModel,
+                            onValueChange = onModelChange,
+                            placeholder = { Text("Örn: ") },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = AppleYellow,
+                                cursorColor = AppleYellow
+                            ),
+                            singleLine = true
+                        )
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Button(
+                            onClick = viewModel::testAiConnection,
+                            colors = ButtonDefaults.buttonColors(containerColor = AppleYellow),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isTestingApi && currentKey.isNotBlank()
+                        ) {
+                            if (uiState.isTestingApi) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = Color.White,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Bağlantı Test Ediliyor...")
+                            } else {
+                                Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("API Bağlantısını Test Et", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // GitHub Auto-Updater Section
+            item {
+                InsetGroupedSection(
+                    title = "GitHub Otomatik Güncelleme Motoru",
+                    footer = "Uygulama, GitHub Releases üzerinden doğrudan APK indirerek kendini güncelleyebilir."
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Otomatik Güncelleme Denetimi",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Uygulama açılışında yeni sürüm kontrolü yap",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textSecondary
+                                )
+                            }
+                            Switch(
+                                checked = uiState.autoCheckUpdates,
+                                onCheckedChange = viewModel::onAutoCheckUpdatesToggle,
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = AppleYellow)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+                        InsetDivider(startIndent = 0.dp)
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        Text(
+                            text = "GitHub Repo Bilgileri",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = uiState.githubOwner,
+                                onValueChange = viewModel::onGithubOwnerChange,
+                                label = { Text("Kullanıcı / Organizasyon") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = uiState.githubRepo,
+                                onValueChange = viewModel::onGithubRepoChange,
+                                label = { Text("Repo Adı") },
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(10.dp),
+                                singleLine = true
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(14.dp))
+
+                        Button(
+                            onClick = viewModel::checkForUpdateManually,
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight,
+                                contentColor = textPrimary
+                            ),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = !uiState.isCheckingUpdate
+                        ) {
+                            if (uiState.isCheckingUpdate) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    color = AppleYellow,
+                                    strokeWidth = 2.dp
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Kontrol Ediliyor...")
+                            } else {
+                                Icon(Icons.Default.Refresh, contentDescription = null, tint = AppleYellow, modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Güncellemeleri Şimdi Denetle", fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // App Info Footer
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Apple Notes AI",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = textSecondary
+                    )
+                    Text(
+                        text = "Sürüm:  (Build )",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = textSecondary
+                    )
+                }
+            }
+        }
+    }
+
+    // Download Progress Dialog
+    if (uiState.isDownloadInProgress) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Güncelleme İndiriliyor", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LinearProgressIndicator(
+                        progress = { uiState.downloadProgress / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = AppleYellow
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("%", style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            confirmButton = {},
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Update Available Dialog
+    uiState.updateInfo?.let { updateInfo ->
+        UpdateDialog(
+            updateInfo = updateInfo,
+            onDismiss = viewModel::dismissUpdateDialog,
+            onDownload = { viewModel.downloadAndInstallUpdate(updateInfo.downloadUrl) }
+        )
+    }
+
+    // Information Dialogs
+    val alertMessage = uiState.testApiMessage ?: uiState.updateMessage
+    if (alertMessage != null) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissMessageDialog,
+            title = { Text("Bilgilendirme", fontWeight = FontWeight.Bold) },
+            text = { Text(alertMessage) },
+            confirmButton = {
+                TextButton(onClick = viewModel::dismissMessageDialog) {
+                    Text("Tamam", color = AppleYellow, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+}
