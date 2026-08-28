@@ -90,7 +90,7 @@ class OpenAiApiClient {
             val parsed = json.decodeFromString<OpenAiChatResponse>(body)
 
             if (parsed.error != null) {
-                Result.failure(Exception("OpenAI/Servis Hatası: ${parsed.error.message ?: "Bilinmeyen hata"}"))
+                Result.failure(Exception("API/Servis Hatası: ${parsed.error.message ?: "Bilinmeyen hata"}"))
             } else {
                 val answer = parsed.choices?.firstOrNull()?.message?.content
                 if (!answer.isNullOrBlank()) {
