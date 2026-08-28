@@ -121,91 +121,125 @@ fun SettingsScreen(
                     title = "${uiState.activeProvider.displayName} Yapılandırması"
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        if (uiState.activeProvider == AiProvider.VERTEX_AI) {
-                            Text(
-                                text = "Google Cloud Project ID",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = uiState.vertexProjectId,
-                                onValueChange = viewModel::onVertexProjectIdChange,
-                                placeholder = { Text("Örn: my-gcp-project-12345") },
-                                modifier = Modifier.fillMaxWidth(),
+                        if (uiState.activeProvider == AiProvider.GEMINI_NANO) {
+                            Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = AppleYellow,
-                                    cursorColor = AppleYellow
-                                ),
-                                singleLine = true
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            Text(
-                                text = "Vertex AI Bölgesi (Location)",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            OutlinedTextField(
-                                value = uiState.vertexRegion,
-                                onValueChange = viewModel::onVertexRegionChange,
-                                placeholder = { Text("Örn: us-central1 veya europe-west1") },
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(10.dp),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    focusedBorderColor = AppleYellow,
-                                    cursorColor = AppleYellow
-                                ),
-                                singleLine = true
-                            )
-
-                            Spacer(modifier = Modifier.height(12.dp))
-                        }
-
-                        // API Key Field
-                        Text(
-                            text = if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex AI API Anahtarı / Access Token" else "API Anahtarı",
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        val (currentKey, onKeyChange) = when (uiState.activeProvider) {
-                            AiProvider.GEMINI -> Pair(uiState.geminiApiKey, viewModel::onGeminiKeyChange)
-                            AiProvider.VERTEX_AI -> Pair(uiState.vertexApiKey, viewModel::onVertexApiKeyChange)
-                            AiProvider.OPENAI -> Pair(uiState.openAiApiKey, viewModel::onOpenAiKeyChange)
-                            AiProvider.CLAUDE -> Pair(uiState.claudeApiKey, viewModel::onClaudeKeyChange)
-                            AiProvider.OPENROUTER -> Pair(uiState.openRouterApiKey, viewModel::onOpenRouterKeyChange)
-                        }
-
-                        OutlinedTextField(
-                            value = currentKey,
-                            onValueChange = onKeyChange,
-                            placeholder = { Text(if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex API Key veya OAuth Token..." else "API anahtarınızı yapıştırın...") },
-                            visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            trailingIcon = {
-                                IconButton(onClick = { showKey = !showKey }) {
-                                    Icon(
-                                        imageVector = if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = null,
-                                        tint = textSecondary
+                                color = AppleYellow.copy(alpha = 0.12f),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "⚡ %100 Çevrimdışı & Donanımsal Yapay Zeka",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AppleYellow
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Bu modda notlarınız internete veya bulut sunucularına gönderilmez. Android 14+ (Pixel, Galaxy S24 vb.) cihazların NPU çipinde yerel olarak işlenir. API anahtarı veya kredi kartı gerekmez.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = textPrimary
                                     )
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = AppleYellow,
-                                cursorColor = AppleYellow
-                            ),
-                            singleLine = true
-                        )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        } else {
+                            if (uiState.activeProvider == AiProvider.VERTEX_AI) {
+                                Text(
+                                    text = "Google Cloud Project ID",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                OutlinedTextField(
+                                    value = uiState.vertexProjectId,
+                                    onValueChange = viewModel::onVertexProjectIdChange,
+                                    placeholder = { Text("Örn: my-gcp-project-12345") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AppleYellow,
+                                        cursorColor = AppleYellow
+                                    ),
+                                    singleLine = true
+                                )
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                Text(
+                                    text = "Vertex AI Bölgesi (Location)",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                OutlinedTextField(
+                                    value = uiState.vertexRegion,
+                                    onValueChange = viewModel::onVertexRegionChange,
+                                    placeholder = { Text("Örn: us-central1 veya europe-west1") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = AppleYellow,
+                                        cursorColor = AppleYellow
+                                    ),
+                                    singleLine = true
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            // API Key Field
+                            Text(
+                                text = if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex AI API Anahtarı / Access Token" else "API Anahtarı",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            val apiKey = when (uiState.activeProvider) {
+                                AiProvider.GEMINI -> uiState.geminiApiKey
+                                AiProvider.VERTEX_AI -> uiState.vertexApiKey
+                                AiProvider.OPENAI -> uiState.openAiApiKey
+                                AiProvider.CLAUDE -> uiState.claudeApiKey
+                                AiProvider.OPENROUTER -> uiState.openRouterApiKey
+                                AiProvider.GEMINI_NANO -> ""
+                            }
+
+                            OutlinedTextField(
+                                value = apiKey,
+                                onValueChange = { newVal ->
+                                    when (uiState.activeProvider) {
+                                        AiProvider.GEMINI -> viewModel.onGeminiKeyChange(newVal)
+                                        AiProvider.VERTEX_AI -> viewModel.onVertexApiKeyChange(newVal)
+                                        AiProvider.OPENAI -> viewModel.onOpenAiKeyChange(newVal)
+                                        AiProvider.CLAUDE -> viewModel.onClaudeKeyChange(newVal)
+                                        AiProvider.OPENROUTER -> viewModel.onOpenRouterKeyChange(newVal)
+                                        AiProvider.GEMINI_NANO -> Unit
+                                    }
+                                },
+                                placeholder = { Text(if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex API Key veya OAuth Token..." else "API anahtarınızı yapıştırın...") },
+                                visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                trailingIcon = {
+                                    IconButton(onClick = { showKey = !showKey }) {
+                                        Icon(
+                                            imageVector = if (showKey) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = null,
+                                            tint = textSecondary
+                                        )
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppleYellow,
+                                    cursorColor = AppleYellow
+                                ),
+                                singleLine = true
+                            )
+
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
 
                         // Model selection field
                         Text(
@@ -215,17 +249,28 @@ fun SettingsScreen(
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
-                        val (currentModel, onModelChange) = when (uiState.activeProvider) {
-                            AiProvider.GEMINI -> Pair(uiState.geminiModel, viewModel::onGeminiModelChange)
-                            AiProvider.VERTEX_AI -> Pair(uiState.vertexModel, viewModel::onVertexModelChange)
-                            AiProvider.OPENAI -> Pair(uiState.openAiModel, viewModel::onOpenAiModelChange)
-                            AiProvider.CLAUDE -> Pair(uiState.claudeModel, viewModel::onClaudeModelChange)
-                            AiProvider.OPENROUTER -> Pair(uiState.openRouterModel, viewModel::onOpenRouterModelChange)
+                        val modelName = when (uiState.activeProvider) {
+                            AiProvider.GEMINI -> uiState.geminiModel
+                            AiProvider.VERTEX_AI -> uiState.vertexModel
+                            AiProvider.OPENAI -> uiState.openAiModel
+                            AiProvider.CLAUDE -> uiState.claudeModel
+                            AiProvider.OPENROUTER -> uiState.openRouterModel
+                            AiProvider.GEMINI_NANO -> "gemini-nano (Yerleşik NPU)"
                         }
 
                         OutlinedTextField(
-                            value = currentModel,
-                            onValueChange = onModelChange,
+                            value = modelName,
+                            onValueChange = { newModel ->
+                                when (uiState.activeProvider) {
+                                    AiProvider.GEMINI -> viewModel.onGeminiModelChange(newModel)
+                                    AiProvider.VERTEX_AI -> viewModel.onVertexModelChange(newModel)
+                                    AiProvider.OPENAI -> viewModel.onOpenAiModelChange(newModel)
+                                    AiProvider.CLAUDE -> viewModel.onClaudeModelChange(newModel)
+                                    AiProvider.OPENROUTER -> viewModel.onOpenRouterModelChange(newModel)
+                                    AiProvider.GEMINI_NANO -> Unit
+                                }
+                            },
+                            readOnly = uiState.activeProvider == AiProvider.GEMINI_NANO,
                             placeholder = { Text("Örn: ${uiState.activeProvider.defaultModel}") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(10.dp),
@@ -238,12 +283,21 @@ fun SettingsScreen(
 
                         Spacer(modifier = Modifier.height(14.dp))
 
+                        val isKeyProvided = when (uiState.activeProvider) {
+                            AiProvider.GEMINI -> uiState.geminiApiKey.isNotBlank()
+                            AiProvider.VERTEX_AI -> uiState.vertexApiKey.isNotBlank()
+                            AiProvider.OPENAI -> uiState.openAiApiKey.isNotBlank()
+                            AiProvider.CLAUDE -> uiState.claudeApiKey.isNotBlank()
+                            AiProvider.OPENROUTER -> uiState.openRouterApiKey.isNotBlank()
+                            AiProvider.GEMINI_NANO -> true
+                        }
+
                         Button(
                             onClick = viewModel::testAiConnection,
                             colors = ButtonDefaults.buttonColors(containerColor = AppleYellow),
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth(),
-                            enabled = !uiState.isTestingApi && currentKey.isNotBlank()
+                            enabled = !uiState.isTestingApi && isKeyProvided
                         ) {
                             if (uiState.isTestingApi) {
                                 CircularProgressIndicator(
@@ -256,7 +310,7 @@ fun SettingsScreen(
                             } else {
                                 Icon(Icons.Default.CloudSync, contentDescription = null, modifier = Modifier.size(18.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("API Bağlantısını Test Et", fontWeight = FontWeight.SemiBold)
+                                Text(if (uiState.activeProvider == AiProvider.GEMINI_NANO) "Yerel AI Motorunu Test Et" else "Bağlantıyı Test Et", fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }

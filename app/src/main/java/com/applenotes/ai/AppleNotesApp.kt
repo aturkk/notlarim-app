@@ -31,7 +31,7 @@ class AppleNotesApp : Application() {
         database = AppDatabase.getInstance(this)
         securePreferences = SecurePreferences(this)
         noteRepository = NoteRepositoryImpl(database)
-        aiServiceManager = AiServiceManager(securePreferences)
+        aiServiceManager = AiServiceManager(this, securePreferences)
         updateService = GitHubUpdateService(this, securePreferences)
     }
 }

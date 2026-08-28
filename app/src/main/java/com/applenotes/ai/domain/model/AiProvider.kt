@@ -25,5 +25,10 @@ enum class AiProvider(val displayName: String, val defaultModel: String, val ava
         displayName = "OpenRouter (Ücretsiz Modeller)",
         defaultModel = "google/gemini-2.0-flash-exp:free",
         availableModels = listOf("google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.2-3b-instruct:free", "deepseek/deepseek-r1:free")
+    ),
+    GEMINI_NANO(
+        displayName = "📱 Cihaz İçi Gemini Nano (İnternetsiz / AICore)",
+        defaultModel = "gemini-nano",
+        availableModels = listOf("gemini-nano", "aicore-ondevice")
     )
 }

@@ -1,5 +1,6 @@
 package com.applenotes.ai.data.remote.ai
 
+import android.content.Context
 import com.applenotes.ai.core.security.SecurePreferences
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.domain.model.AiProvider
@@ -8,12 +9,14 @@ import com.applenotes.ai.domain.model.MessageRole
 import com.applenotes.ai.domain.model.TitleAndTagsResult
 
 class AiServiceManager(
+    private val context: Context,
     private val prefs: SecurePreferences
 ) {
     private val geminiClient = GeminiApiClient()
     private val vertexAiClient = VertexAiApiClient()
     private val openAiClient = OpenAiApiClient()
     private val claudeClient = ClaudeApiClient()
+    val onDeviceClient = OnDeviceAiClient(context)
 
     suspend fun executeAction(action: AiAction, noteContent: String): Result<String> {
         val (prompt, systemPrompt) = when (action) {
@@ -202,6 +205,10 @@ class AiServiceManager(
                     history = history,
                     baseUrl = "https://openrouter.ai/api/v1/chat/completions"
                 )
+            }
+            AiProvider.GEMINI_NANO -> {
+                val fullPrompt = if (systemPrompt != null) "$systemPrompt\n\n$prompt" else prompt
+                onDeviceClient.generateText(fullPrompt)
             }
         }
     }
