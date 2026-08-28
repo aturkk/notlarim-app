@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import com.applenotes.ai.core.components.CupertinoTopAppBar
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
@@ -44,6 +45,7 @@ fun NoteEditorScreen(
     val context = LocalContext.current
 
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
@@ -59,6 +61,13 @@ fun NoteEditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { viewModel.setChatSheetVisible(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.ChatBubbleOutline,
+                            contentDescription = "Notla Sohbet Et",
+                            tint = AppleYellow
+                        )
+                    }
                     IconButton(onClick = viewModel::toggleLock) {
                         Icon(
                             imageVector = if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
@@ -305,6 +314,7 @@ fun NoteEditorScreen(
                     BasicTextField(
                         value = uiState.content,
                         onValueChange = viewModel::onContentChange,
+                        visualTransformation = com.applenotes.ai.core.components.MarkdownVisualTransformation(isDark),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = textPrimary,
                             lineHeight = 24.sp
@@ -414,8 +424,11 @@ fun NoteEditorScreen(
                     subtitle = "Notun içeriği hakkında soru sor ve yanıt al",
                     icon = Icons.Default.Chat,
                     onClick = {
-                        viewModel.setAiSheetVisible(false)
-                        viewModel.setChatSheetVisible(true)
+                        coroutineScope.launch {
+                            viewModel.setAiSheetVisible(false)
+                            kotlinx.coroutines.delay(120)
+                            viewModel.setChatSheetVisible(true)
+                        }
                     }
                 )
 
