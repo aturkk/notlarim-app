@@ -84,13 +84,22 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getString(KEY_OPENROUTER_MODEL, "google/gemini-2.0-flash-exp:free") ?: "google/gemini-2.0-flash-exp:free"
         set(value) = sharedPreferences.edit().putString(KEY_OPENROUTER_MODEL, value.trim()).apply()
 
+    // Groq
+    var groqApiKey: String
+        get() = sharedPreferences.getString(KEY_GROQ_KEY, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_GROQ_KEY, value.trim()).apply()
+
+    var groqModel: String
+        get() = sharedPreferences.getString(KEY_GROQ_MODEL, "llama-3.3-70b-versatile") ?: "llama-3.3-70b-versatile"
+        set(value) = sharedPreferences.edit().putString(KEY_GROQ_MODEL, value.trim()).apply()
+
     // Active AI Provider
     fun getActiveAiProvider(): AiProvider {
-        val name = sharedPreferences.getString(KEY_ACTIVE_PROVIDER, AiProvider.GEMINI.name) ?: AiProvider.GEMINI.name
+        val name = sharedPreferences.getString(KEY_ACTIVE_PROVIDER, AiProvider.GROQ.name) ?: AiProvider.GROQ.name
         return try {
             AiProvider.valueOf(name)
         } catch (e: Exception) {
-            AiProvider.GEMINI
+            AiProvider.GROQ
         }
     }
 
@@ -129,6 +138,8 @@ class SecurePreferences(context: Context) {
         private const val KEY_CLAUDE_MODEL = "claude_model"
         private const val KEY_OPENROUTER_KEY = "openrouter_api_key"
         private const val KEY_OPENROUTER_MODEL = "openrouter_model"
+        private const val KEY_GROQ_KEY = "groq_api_key"
+        private const val KEY_GROQ_MODEL = "groq_model"
         private const val KEY_ACTIVE_PROVIDER = "active_ai_provider"
         private const val KEY_GITHUB_OWNER = "github_owner"
         private const val KEY_GITHUB_REPO = "github_repo"

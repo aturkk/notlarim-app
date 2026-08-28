@@ -29,6 +29,8 @@ data class SettingsUiState(
     val claudeModel: String = "claude-3-5-sonnet-20241022",
     val openRouterApiKey: String = "",
     val openRouterModel: String = "google/gemini-2.0-flash-exp:free",
+    val groqApiKey: String = "",
+    val groqModel: String = "llama-3.3-70b-versatile",
     val githubOwner: String = "aturkk",
     val githubRepo: String = "notlarim-app",
     val autoCheckUpdates: Boolean = true,
@@ -63,6 +65,8 @@ class SettingsViewModel(
             claudeModel = prefs.claudeModel,
             openRouterApiKey = prefs.openRouterApiKey,
             openRouterModel = prefs.openRouterModel,
+            groqApiKey = prefs.groqApiKey,
+            groqModel = prefs.groqModel,
             githubOwner = prefs.githubOwner,
             githubRepo = prefs.githubRepo,
             autoCheckUpdates = prefs.autoCheckUpdates
@@ -133,6 +137,16 @@ class SettingsViewModel(
     fun onOpenRouterModelChange(model: String) {
         prefs.openRouterModel = model
         _uiState.update { it.copy(openRouterModel = model) }
+    }
+
+    fun onGroqKeyChange(key: String) {
+        prefs.groqApiKey = key
+        _uiState.update { it.copy(groqApiKey = key) }
+    }
+
+    fun onGroqModelChange(model: String) {
+        prefs.groqModel = model
+        _uiState.update { it.copy(groqModel = model) }
     }
 
     fun onGithubOwnerChange(owner: String) {

@@ -196,16 +196,54 @@ class GitHubUpdateService(
                         )
                     )
                 } else {
-                    Result.success(
-                        AppUpdateInfo(
-                            currentVersion = currentVersion,
-                            latestVersion = currentVersion,
-                            releaseTitle = "Güncel",
-                            changelog = "Uygulamanız en güncel sürümde.",
-                            downloadUrl = "",
-                            isUpdateAvailable = false
+                    // Check raw build.gradle.kts on main branch as ultimate fallback
+                    val rawGradleUrl = "https://raw.githubusercontent.com/$owner/$repo/main/app/build.gradle.kts"
+                    val gradleResponse = httpClient.get(rawGradleUrl) {
+                        header("User-Agent", "Mozilla/5.0 (Linux; Android)")
+                    }
+                    if (gradleResponse.status.value in 200..299) {
+                        val gradleContent = gradleResponse.bodyAsText()
+                        val versionMatch = Regex("""versionName\s*=\s*"([^"]+)"""").find(gradleContent)
+                        val rawVersion = versionMatch?.groupValues?.getOrNull(1)
+
+                        if (rawVersion != null) {
+                            val isNewer = isVersionNewer(latest = rawVersion, current = currentVersion)
+                            val downloadUrl = "https://github.com/$owner/$repo/releases/download/v$rawVersion/app-release.apk"
+
+                            Result.success(
+                                AppUpdateInfo(
+                                    currentVersion = currentVersion,
+                                    latestVersion = "v$rawVersion",
+                                    releaseTitle = "Yeni Sürüm v$rawVersion",
+                                    changelog = "GitHub üzerinden yeni sürüm mevcut.",
+                                    downloadUrl = downloadUrl,
+                                    isUpdateAvailable = isNewer
+                                )
+                            )
+                        } else {
+                            Result.success(
+                                AppUpdateInfo(
+                                    currentVersion = currentVersion,
+                                    latestVersion = currentVersion,
+                                    releaseTitle = "Güncel",
+                                    changelog = "Uygulamanız en güncel sürümde.",
+                                    downloadUrl = "",
+                                    isUpdateAvailable = false
+                                )
+                            )
+                        }
+                    } else {
+                        Result.success(
+                            AppUpdateInfo(
+                                currentVersion = currentVersion,
+                                latestVersion = currentVersion,
+                                releaseTitle = "Güncel",
+                                changelog = "Uygulamanız en güncel sürümde.",
+                                downloadUrl = "",
+                                isUpdateAvailable = false
+                            )
                         )
-                    )
+                    }
                 }
             }
         } catch (e: Exception) {
@@ -232,7 +270,7 @@ class GitHubUpdateService(
     }
 
     /**
-     * Downloads APK with progress percentage stream (0..100)
+     * Downloads APK with progress percentage stream (0..100) and full HTTP 302 redirect handling
      */
     fun downloadApk(downloadUrl: String, fileName: String = "update.apk"): Flow<Int> = flow {
         val destinationFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
@@ -240,11 +278,35 @@ class GitHubUpdateService(
             destinationFile.delete()
         }
 
-        val url = URL(downloadUrl)
-        val connection = url.openConnection() as HttpURLConnection
-        connection.connect()
+        var currentUrl = downloadUrl
+        var connection: HttpURLConnection
+        var redirectCount = 0
 
-        if (connection.responseCode != HttpURLConnection.HTTP_OK) {
+        while (true) {
+            val url = URL(currentUrl)
+            connection = (url.openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android)")
+            }
+            connection.connect()
+
+            val status = connection.responseCode
+            if (status == HttpURLConnection.HTTP_MOVED_TEMP ||
+                status == HttpURLConnection.HTTP_MOVED_PERM ||
+                status == HttpURLConnection.HTTP_SEE_OTHER ||
+                status == 307 || status == 308
+            ) {
+                val newUrl = connection.getHeaderField("Location")
+                if (!newUrl.isNullOrBlank() && redirectCount < 5) {
+                    currentUrl = newUrl
+                    redirectCount++
+                    continue
+                }
+            }
+            break
+        }
+
+        if (connection.responseCode !in 200..299) {
             throw Exception("İndirme sunucusu hata verdi: ${connection.responseCode}")
         }
 

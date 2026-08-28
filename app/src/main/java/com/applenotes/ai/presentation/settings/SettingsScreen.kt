@@ -202,6 +202,7 @@ fun SettingsScreen(
                                 AiProvider.OPENAI -> uiState.openAiApiKey
                                 AiProvider.CLAUDE -> uiState.claudeApiKey
                                 AiProvider.OPENROUTER -> uiState.openRouterApiKey
+                                AiProvider.GROQ -> uiState.groqApiKey
                                 AiProvider.GEMINI_NANO -> ""
                             }
 
@@ -214,10 +215,11 @@ fun SettingsScreen(
                                         AiProvider.OPENAI -> viewModel.onOpenAiKeyChange(newVal)
                                         AiProvider.CLAUDE -> viewModel.onClaudeKeyChange(newVal)
                                         AiProvider.OPENROUTER -> viewModel.onOpenRouterKeyChange(newVal)
+                                        AiProvider.GROQ -> viewModel.onGroqKeyChange(newVal)
                                         AiProvider.GEMINI_NANO -> Unit
                                     }
                                 },
-                                placeholder = { Text(if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex API Key veya OAuth Token..." else "API anahtarınızı yapıştırın...") },
+                                placeholder = { Text(if (uiState.activeProvider == AiProvider.VERTEX_AI) "Vertex API Key veya OAuth Token..." else if (uiState.activeProvider == AiProvider.GROQ) "Groq API Key (gsk_...)" else "API anahtarınızı yapıştırın...") },
                                 visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                                 trailingIcon = {
@@ -255,6 +257,7 @@ fun SettingsScreen(
                             AiProvider.OPENAI -> uiState.openAiModel
                             AiProvider.CLAUDE -> uiState.claudeModel
                             AiProvider.OPENROUTER -> uiState.openRouterModel
+                            AiProvider.GROQ -> uiState.groqModel
                             AiProvider.GEMINI_NANO -> "gemini-nano (Yerleşik NPU)"
                         }
 
@@ -267,6 +270,7 @@ fun SettingsScreen(
                                     AiProvider.OPENAI -> viewModel.onOpenAiModelChange(newModel)
                                     AiProvider.CLAUDE -> viewModel.onClaudeModelChange(newModel)
                                     AiProvider.OPENROUTER -> viewModel.onOpenRouterModelChange(newModel)
+                                    AiProvider.GROQ -> viewModel.onGroqModelChange(newModel)
                                     AiProvider.GEMINI_NANO -> Unit
                                 }
                             },
@@ -289,6 +293,7 @@ fun SettingsScreen(
                             AiProvider.OPENAI -> uiState.openAiApiKey.isNotBlank()
                             AiProvider.CLAUDE -> uiState.claudeApiKey.isNotBlank()
                             AiProvider.OPENROUTER -> uiState.openRouterApiKey.isNotBlank()
+                            AiProvider.GROQ -> uiState.groqApiKey.isNotBlank()
                             AiProvider.GEMINI_NANO -> true
                         }
 

@@ -244,6 +244,16 @@ class AiServiceManager(
                     baseUrl = "https://openrouter.ai/api/v1/chat/completions"
                 )
             }
+            AiProvider.GROQ -> {
+                openAiClient.generateChatCompletion(
+                    apiKey = prefs.groqApiKey,
+                    model = prefs.groqModel,
+                    prompt = prompt,
+                    systemPrompt = systemPrompt,
+                    history = history,
+                    baseUrl = "https://api.groq.com/openai/v1/chat/completions"
+                )
+            }
             AiProvider.GEMINI_NANO -> {
                 val fullPrompt = if (systemPrompt != null) "$systemPrompt\n\n$prompt" else prompt
                 onDeviceClient.generateText(fullPrompt)
