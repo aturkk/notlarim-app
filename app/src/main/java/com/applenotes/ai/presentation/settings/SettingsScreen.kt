@@ -261,29 +261,76 @@ fun SettingsScreen(
                             AiProvider.GEMINI_NANO -> "gemini-nano (Yerleşik NPU)"
                         }
 
-                        OutlinedTextField(
-                            value = modelName,
-                            onValueChange = { newModel ->
-                                when (uiState.activeProvider) {
-                                    AiProvider.GEMINI -> viewModel.onGeminiModelChange(newModel)
-                                    AiProvider.VERTEX_AI -> viewModel.onVertexModelChange(newModel)
-                                    AiProvider.OPENAI -> viewModel.onOpenAiModelChange(newModel)
-                                    AiProvider.CLAUDE -> viewModel.onClaudeModelChange(newModel)
-                                    AiProvider.OPENROUTER -> viewModel.onOpenRouterModelChange(newModel)
-                                    AiProvider.GROQ -> viewModel.onGroqModelChange(newModel)
-                                    AiProvider.GEMINI_NANO -> Unit
+                        var expanded by remember { mutableStateOf(false) }
+
+                        val availableModels = when (uiState.activeProvider) {
+                            AiProvider.GEMINI -> listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp")
+                            AiProvider.VERTEX_AI -> listOf("gemini-1.5-flash", "gemini-1.5-pro")
+                            AiProvider.OPENAI -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-preview", "o1-mini")
+                            AiProvider.CLAUDE -> listOf("claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229")
+                            AiProvider.OPENROUTER -> listOf("google/gemini-2.0-flash-exp:free", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o-mini", "deepseek/deepseek-chat")
+                            AiProvider.GROQ -> listOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it", "deepseek-r1-distill-llama-70b")
+                            AiProvider.GEMINI_NANO -> listOf("gemini-nano (Yerleşik NPU)")
+                        }
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { if (uiState.activeProvider != AiProvider.GEMINI_NANO) expanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = modelName,
+                                onValueChange = { newModel ->
+                                    when (uiState.activeProvider) {
+                                        AiProvider.GEMINI -> viewModel.onGeminiModelChange(newModel)
+                                        AiProvider.VERTEX_AI -> viewModel.onVertexModelChange(newModel)
+                                        AiProvider.OPENAI -> viewModel.onOpenAiModelChange(newModel)
+                                        AiProvider.CLAUDE -> viewModel.onClaudeModelChange(newModel)
+                                        AiProvider.OPENROUTER -> viewModel.onOpenRouterModelChange(newModel)
+                                        AiProvider.GROQ -> viewModel.onGroqModelChange(newModel)
+                                        AiProvider.GEMINI_NANO -> Unit
+                                    }
+                                },
+                                readOnly = uiState.activeProvider == AiProvider.GEMINI_NANO,
+                                placeholder = { Text("Örn: ${uiState.activeProvider.defaultModel}") },
+                                modifier = Modifier.fillMaxWidth().menuAnchor(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppleYellow,
+                                    cursorColor = AppleYellow
+                                ),
+                                singleLine = true,
+                                trailingIcon = {
+                                    if (uiState.activeProvider != AiProvider.GEMINI_NANO) {
+                                        ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                                    }
                                 }
-                            },
-                            readOnly = uiState.activeProvider == AiProvider.GEMINI_NANO,
-                            placeholder = { Text("Örn: ${uiState.activeProvider.defaultModel}") },
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = RoundedCornerShape(10.dp),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = AppleYellow,
-                                cursorColor = AppleYellow
-                            ),
-                            singleLine = true
-                        )
+                            )
+
+                            if (uiState.activeProvider != AiProvider.GEMINI_NANO) {
+                                ExposedDropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false }
+                                ) {
+                                    availableModels.forEach { model ->
+                                        DropdownMenuItem(
+                                            text = { Text(model) },
+                                            onClick = {
+                                                when (uiState.activeProvider) {
+                                                    AiProvider.GEMINI -> viewModel.onGeminiModelChange(model)
+                                                    AiProvider.VERTEX_AI -> viewModel.onVertexModelChange(model)
+                                                    AiProvider.OPENAI -> viewModel.onOpenAiModelChange(model)
+                                                    AiProvider.CLAUDE -> viewModel.onClaudeModelChange(model)
+                                                    AiProvider.OPENROUTER -> viewModel.onOpenRouterModelChange(model)
+                                                    AiProvider.GROQ -> viewModel.onGroqModelChange(model)
+                                                    AiProvider.GEMINI_NANO -> Unit
+                                                }
+                                                expanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
