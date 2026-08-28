@@ -19,6 +19,23 @@ class AiServiceManager(
     val onDeviceClient = OnDeviceAiClient(context)
 
     suspend fun executeAction(action: AiAction, noteContent: String): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return when (action) {
+                AiAction.SUMMARIZE -> onDeviceClient.summarize(noteContent)
+                AiAction.REWRITE_PROFESSIONAL -> onDeviceClient.rewrite(noteContent, "professional")
+                AiAction.REWRITE_CASUAL -> onDeviceClient.rewrite(noteContent, "casual")
+                AiAction.REWRITE_CONCISE -> onDeviceClient.rewrite(noteContent, "concise")
+                AiAction.EXTRACT_ACTIONS -> onDeviceClient.extractActions(noteContent)
+                AiAction.AUTO_TITLE_TAGS -> onDeviceClient.suggestTitleAndTags(noteContent).map { "${it.title}\nEtiketler: ${it.tags.joinToString(" ") { t -> "#$t" }}" }
+                AiAction.FIX_GRAMMAR -> onDeviceClient.fixGrammar(noteContent)
+                AiAction.TRANSLATE -> onDeviceClient.translate(noteContent, "İngilizce")
+                AiAction.CONTINUE_WRITING -> onDeviceClient.continueWriting(noteContent)
+                AiAction.FLASHCARDS -> onDeviceClient.generateFlashcards(noteContent)
+                AiAction.MINDMAP -> onDeviceClient.generateMindmap(noteContent)
+                AiAction.EXTRACT_REMINDERS -> onDeviceClient.extractReminders(noteContent)
+            }
+        }
+
         val (prompt, systemPrompt) = when (action) {
             AiAction.SUMMARIZE -> Pair(
                 "Lütfen aşağıdaki notu analiz et ve en önemli noktaları maddeler halinde, açık ve öz bir şekilde özetle:\n\n" + noteContent,
@@ -74,6 +91,10 @@ class AiServiceManager(
     }
 
     suspend fun suggestTitleAndTags(noteContent: String): Result<TitleAndTagsResult> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.suggestTitleAndTags(noteContent)
+        }
+
         val prompt = "Aşağıdaki not içeriğini incele. İlk satıra sadece önerdiğin kısa ve etkili başlığı yaz. İkinci satıra aralarında boşluk olan ve '#' ile başlayan 2 ila 4 etiket yaz. Başka hiçbir açıklama yapma.\n\n" + noteContent
         val systemPrompt = "Format kesinlikle şöyle olmalıdır:\nÖrnek Başlık\n#iş #proje #toplantı"
 
@@ -96,6 +117,10 @@ class AiServiceManager(
         userQuestion: String,
         chatHistory: List<ChatMessage>
     ): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.chatWithNote(noteContent, userQuestion)
+        }
+
         val systemPrompt = "Sen kullanıcının notu üzerinde sohbet eden zeki bir not asistanısın.\n" +
             "Kullanıcının üzerinde çalıştığı notun içeriği aşağıdadır:\n" +
             "---\n" + noteContent + "\n---\n" +
@@ -110,18 +135,27 @@ class AiServiceManager(
     }
 
     suspend fun translateNote(noteContent: String, targetLanguage: String): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.translate(noteContent, targetLanguage)
+        }
         val prompt = "Aşağıdaki notu " + targetLanguage + " diline çevir. Sadece çevrilmiş metni yaz, ek açıklama yapma:\n\n" + noteContent
         val systemPrompt = "Sen profesyonel bir çeviri asistanısın. Doğal ve akıcı çeviriler yaparsın."
         return sendPrompt(prompt, systemPrompt)
     }
 
     suspend fun fixGrammar(noteContent: String): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.fixGrammar(noteContent)
+        }
         val prompt = "Aşağıdaki metindeki yazım hatalarını, dilbilgisi yanlışlarını ve noktalama işareti eksikliklerini düzelt. Sadece düzeltilmiş metni yaz:\n\n" + noteContent
         val systemPrompt = "Sen titiz bir Türkçe dil editörüsün. İmla, gramer ve noktalama hatalarını eksiksiz düzeltirsin."
         return sendPrompt(prompt, systemPrompt)
     }
 
     suspend fun continueWriting(noteContent: String): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.continueWriting(noteContent)
+        }
         val prompt = "Aşağıdaki metnin devamını, aynı üslup ve bağlamda yaz. Yarıda kalmış cümleleri tamamla ve metni doğal bir şekilde genişlet:\n\n" + noteContent
         val systemPrompt = "Sen yaratıcı bir yazar asistanısın. Verilen metnin bağlamını ve üslubunu koruyarak anlamlı şekilde devam ettirirsin."
         return sendPrompt(prompt, systemPrompt)
@@ -132,6 +166,10 @@ class AiServiceManager(
         userQuestion: String,
         chatHistory: List<ChatMessage>
     ): Result<String> {
+        if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
+            return onDeviceClient.chatWithAllNotes(allNotes, userQuestion)
+        }
+
         val notesContext = allNotes.take(20).joinToString("\n\n---\n") { note ->
             "Başlık: ${note.title}\nEtiketler: ${note.tags.joinToString(", ")}\nİçerik: ${note.content.take(600)}"
         }
