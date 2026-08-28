@@ -27,9 +27,9 @@ enum class AiProvider(val displayName: String, val defaultModel: String, val ava
         availableModels = listOf("google/gemini-2.0-flash-exp:free", "meta-llama/llama-3.2-3b-instruct:free", "deepseek/deepseek-r1:free")
     ),
     GROQ(
-        displayName = "⚡ Groq (Llama 3.3 70B & DeepSeek R1 - Ultra Hızlı)",
-        defaultModel = "llama-3.3-70b-versatile",
-        availableModels = listOf("llama-3.3-70b-versatile", "deepseek-r1-distill-llama-70b", "gemma2-9b-it", "llama-3.1-8b-instant")
+        displayName = "⚡ Groq (Llama & Gemma - Ultra Hızlı)",
+        defaultModel = "llama3-8b-8192",
+        availableModels = listOf("llama3-8b-8192", "llama3-70b-8192", "gemma2-9b-it", "llama-4-maverick-17b-128e-instruct", "llama-4-scout-17b-16e-instruct")
     ),
     GEMINI_NANO(
         displayName = "📱 Cihaz İçi Gemini Nano (İnternetsiz / AICore)",

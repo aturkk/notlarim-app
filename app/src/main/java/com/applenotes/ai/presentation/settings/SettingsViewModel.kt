@@ -30,7 +30,7 @@ data class SettingsUiState(
     val openRouterApiKey: String = "",
     val openRouterModel: String = "google/gemini-2.0-flash-exp:free",
     val groqApiKey: String = "",
-    val groqModel: String = "llama-3.3-70b-versatile",
+    val groqModel: String = "llama3-8b-8192",
     val githubOwner: String = "aturkk",
     val githubRepo: String = "notlarim-app",
     val autoCheckUpdates: Boolean = true,
