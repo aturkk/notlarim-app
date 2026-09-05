@@ -76,7 +76,11 @@ class VertexAiApiClient {
         }
 
         val activeRegion = region.ifBlank { "us-central1" }
-        val activeModel = model.ifBlank { "gemini-1.5-flash" }
+        val cleanModel = model.trim().removePrefix("models/")
+        val activeModel = when {
+            cleanModel.isBlank() || cleanModel == "gemini-1.5-flash" -> "gemini-2.5-flash"
+            else -> cleanModel
+        }
 
         // Support both Express API Key (?key=) and OAuth Bearer tokens
         val isExpressKey = apiKeyOrToken.startsWith("AIza")

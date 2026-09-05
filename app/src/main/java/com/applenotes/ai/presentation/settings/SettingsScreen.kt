@@ -295,11 +295,11 @@ fun SettingsScreen(
                         var expanded by remember { mutableStateOf(false) }
 
                         val availableModels = when (uiState.activeProvider) {
-                            AiProvider.GEMINI -> listOf("gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp")
-                            AiProvider.VERTEX_AI -> listOf("gemini-1.5-flash", "gemini-1.5-pro")
+                            AiProvider.GEMINI -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash")
+                            AiProvider.VERTEX_AI -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash")
                             AiProvider.OPENAI -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-preview", "o1-mini")
                             AiProvider.CLAUDE -> listOf("claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229")
-                            AiProvider.OPENROUTER -> listOf("google/gemini-2.0-flash-exp:free", "anthropic/claude-3.5-sonnet", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o-mini", "deepseek/deepseek-chat")
+                            AiProvider.OPENROUTER -> listOf("google/gemini-2.5-flash", "google/gemini-2.0-flash-001", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o-mini", "deepseek/deepseek-chat")
                             AiProvider.GROQ -> listOf("llama3-8b-8192", "llama3-70b-8192", "gemma2-9b-it", "llama-4-maverick-17b-128e-instruct", "llama-4-scout-17b-16e-instruct")
                             AiProvider.GEMINI_NANO -> listOf("gemini-nano (Yerleşik NPU)")
                         }

@@ -37,7 +37,14 @@ class SecurePreferences(context: Context) {
         set(value) = sharedPreferences.edit().putString(KEY_GEMINI_KEY, value.trim()).apply()
 
     var geminiModel: String
-        get() = sharedPreferences.getString(KEY_GEMINI_MODEL, "gemini-1.5-flash") ?: "gemini-1.5-flash"
+        get() {
+            val saved = sharedPreferences.getString(KEY_GEMINI_MODEL, "gemini-2.5-flash") ?: "gemini-2.5-flash"
+            return if (saved == "gemini-1.5-flash" || saved == "gemini-2.0-flash-exp" || saved.isBlank()) {
+                "gemini-2.5-flash"
+            } else {
+                saved
+            }
+        }
         set(value) = sharedPreferences.edit().putString(KEY_GEMINI_MODEL, value.trim()).apply()
 
     // Vertex AI
@@ -54,7 +61,10 @@ class SecurePreferences(context: Context) {
         set(value) = sharedPreferences.edit().putString(KEY_VERTEX_KEY, value.trim()).apply()
 
     var vertexModel: String
-        get() = sharedPreferences.getString(KEY_VERTEX_MODEL, "gemini-1.5-flash") ?: "gemini-1.5-flash"
+        get() {
+            val saved = sharedPreferences.getString(KEY_VERTEX_MODEL, "gemini-2.5-flash") ?: "gemini-2.5-flash"
+            return if (saved == "gemini-1.5-flash" || saved.isBlank()) "gemini-2.5-flash" else saved
+        }
         set(value) = sharedPreferences.edit().putString(KEY_VERTEX_MODEL, value.trim()).apply()
 
     // OpenAI
@@ -81,7 +91,14 @@ class SecurePreferences(context: Context) {
         set(value) = sharedPreferences.edit().putString(KEY_OPENROUTER_KEY, value.trim()).apply()
 
     var openRouterModel: String
-        get() = sharedPreferences.getString(KEY_OPENROUTER_MODEL, "google/gemini-2.0-flash-exp:free") ?: "google/gemini-2.0-flash-exp:free"
+        get() {
+            val saved = sharedPreferences.getString(KEY_OPENROUTER_MODEL, "google/gemini-2.5-flash") ?: "google/gemini-2.5-flash"
+            return if (saved.contains("gemini-2.0-flash-exp") || saved.isBlank()) {
+                "google/gemini-2.5-flash"
+            } else {
+                saved
+            }
+        }
         set(value) = sharedPreferences.edit().putString(KEY_OPENROUTER_MODEL, value.trim()).apply()
 
     // Groq

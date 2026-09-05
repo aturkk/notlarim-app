@@ -66,11 +66,19 @@ class GeminiApiClient {
         systemPrompt: String? = null,
         history: List<Pair<String, String>> = emptyList() // role to message
     ): Result<String> {
-        if (apiKey.isBlank()) {
+        val trimmedKey = apiKey.trim()
+        if (trimmedKey.isBlank()) {
             return Result.failure(IllegalStateException("Google Gemini API anahtarı girilmemiş. Lütfen Ayarlar > Profil bölümünden API anahtarınızı girin."))
         }
 
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+        // Clean model name and map deprecated models automatically
+        val rawModel = model.trim().removePrefix("models/")
+        val effectiveModel = when {
+            rawModel.isBlank() || rawModel == "gemini-1.5-flash" || rawModel == "gemini-2.0-flash-exp" -> "gemini-2.5-flash"
+            else -> rawModel
+        }
+
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/$effectiveModel:generateContent?key=$trimmedKey"
 
         val contents = mutableListOf<GeminiContent>()
         for ((role, text) in history) {
@@ -89,12 +97,19 @@ class GeminiApiClient {
                 setBody(GeminiRequest(contents = contents, systemInstruction = sysContent))
             }
             val body = response.bodyAsText()
-            val parsed = json.decodeFromString<GeminiResponse>(body)
+            val parsed = try {
+                json.decodeFromString<GeminiResponse>(body)
+            } catch (e: Exception) {
+                null
+            }
 
-            if (parsed.error != null) {
-                Result.failure(Exception("Gemini Hatası: ${parsed.error.message ?: "Bilinmeyen hata"}"))
+            if (parsed?.error != null) {
+                val codeStr = parsed.error.code?.let { "[$it] " } ?: ""
+                Result.failure(Exception("Gemini Hatası: $codeStr${parsed.error.message ?: "Bilinmeyen hata"}"))
+            } else if (response.status.value !in 200..299) {
+                Result.failure(Exception("Gemini Servis Hatası (${response.status.value}): ${body.take(250)}"))
             } else {
-                val answer = parsed.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                val answer = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
                 if (!answer.isNullOrBlank()) {
                     Result.success(answer.trim())
                 } else {
