@@ -216,7 +216,10 @@ class SettingsViewModel(
                     _uiState.update { it.copy(downloadProgress = progress) }
                     if (progress >= 100) {
                         _uiState.update { it.copy(isDownloadInProgress = false) }
-                        updateService.installDownloadedApk()
+                        val installResult = updateService.installDownloadedApk()
+                        installResult.onFailure { installErr ->
+                            _uiState.update { it.copy(updateMessage = installErr.message) }
+                        }
                     }
                 }
             } catch (e: Exception) {

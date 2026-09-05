@@ -314,22 +314,40 @@ class GitHubUpdateService(
         emit(100)
     }.flowOn(Dispatchers.IO)
 
-    fun installDownloadedApk(fileName: String = "update.apk") {
+    fun installDownloadedApk(fileName: String = "update.apk"): Result<Unit> {
         val file = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName)
-        if (!file.exists()) return
-
-        val apkUri: Uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file
-        )
-
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(apkUri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (!file.exists()) {
+            return Result.failure(Exception("İndirilen APK dosyası bulunamadı: ${file.absolutePath}"))
         }
 
-        context.startActivity(intent)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            if (!context.packageManager.canRequestPackageInstalls()) {
+                val settingsIntent = Intent(android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                context.startActivity(settingsIntent)
+                return Result.failure(Exception("Uygulama güncellemesi yüklemek için 'Bilinmeyen uygulamaları yükle' iznini açmanız gerekiyor. Ayarlar ekranı açıldı."))
+            }
+        }
+
+        return try {
+            val apkUri: Uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(apkUri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+
+            context.startActivity(intent)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(Exception("Yükleyici başlatılamadı: ${e.localizedMessage ?: e.message}"))
+        }
     }
 }
