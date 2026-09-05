@@ -17,6 +17,9 @@ interface NoteRepository {
     suspend fun togglePin(noteId: Long)
     suspend fun toggleLock(noteId: Long)
     suspend fun moveToFolder(noteId: Long, folderId: Long?)
+    suspend fun updateKanbanColumn(noteId: Long, column: String)
+    suspend fun updateNoteIcon(noteId: Long, icon: String?)
+    suspend fun updateNoteCover(noteId: Long, coverUrl: String?)
     suspend fun emptyTrash()
 
     fun getAllFolders(): Flow<List<Folder>>

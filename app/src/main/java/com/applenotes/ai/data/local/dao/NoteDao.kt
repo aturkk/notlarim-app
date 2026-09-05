@@ -45,6 +45,15 @@ interface NoteDao {
     @Query("UPDATE notes SET folderId = :folderId WHERE id = :noteId")
     suspend fun moveToFolder(noteId: Long, folderId: Long?)
 
+    @Query("UPDATE notes SET kanbanColumn = :column WHERE id = :noteId")
+    suspend fun updateKanbanColumn(noteId: Long, column: String)
+
+    @Query("UPDATE notes SET icon = :icon WHERE id = :noteId")
+    suspend fun updateNoteIcon(noteId: Long, icon: String?)
+
+    @Query("UPDATE notes SET coverUrl = :coverUrl WHERE id = :noteId")
+    suspend fun updateNoteCover(noteId: Long, coverUrl: String?)
+
     @Query("DELETE FROM notes WHERE isDeleted = 1")
     suspend fun emptyTrash()
 }

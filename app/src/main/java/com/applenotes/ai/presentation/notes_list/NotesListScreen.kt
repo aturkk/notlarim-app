@@ -29,6 +29,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.fragment.app.FragmentActivity
 import com.applenotes.ai.core.security.BiometricAuthHelper
 import com.applenotes.ai.presentation.ai_assistant.GlobalAiChatBottomSheet
+import com.applenotes.ai.presentation.notes_list.components.KanbanBoardView
+import com.applenotes.ai.presentation.notes_list.components.GraphViewDialog
+import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -206,7 +209,7 @@ fun NotesListScreen(
                                     )
                                 }
                             } else {
-                                // Grid / List View Toggle
+                                // View Mode Switcher (List -> Gallery -> Kanban)
                                 IconButton(
                                     onClick = viewModel::toggleGridView,
                                     modifier = Modifier
@@ -214,9 +217,47 @@ fun NotesListScreen(
                                         .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                 ) {
                                     Icon(
-                                        imageVector = if (uiState.isGridView) Icons.Default.ViewAgenda else Icons.Default.GridView,
-                                        contentDescription = if (uiState.isGridView) "Liste Görünümü" else "Galeri Görünümü",
-                                        tint = if (uiState.isGridView) AppleYellow else textSecondary,
+                                        imageVector = when (uiState.viewMode) {
+                                            ViewMode.LIST -> Icons.Default.ViewAgenda
+                                            ViewMode.GALLERY -> Icons.Default.GridView
+                                            ViewMode.KANBAN -> Icons.Default.ViewWeek
+                                        },
+                                        contentDescription = when (uiState.viewMode) {
+                                            ViewMode.LIST -> "Liste Görünümü"
+                                            ViewMode.GALLERY -> "Galeri Görünümü"
+                                            ViewMode.KANBAN -> "Pano (Kanban) Görünümü"
+                                        },
+                                        tint = if (uiState.viewMode != ViewMode.LIST) AppleYellow else textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Interactive Knowledge Graph
+                                IconButton(
+                                    onClick = { viewModel.setGraphDialogOpen(true) },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountTree,
+                                        contentDescription = "Ağ Görünümü (Graph)",
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Templates Library
+                                IconButton(
+                                    onClick = { viewModel.setTemplateSheetOpen(true) },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PostAdd,
+                                        contentDescription = "Şablonlar",
+                                        tint = textSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -323,8 +364,25 @@ fun NotesListScreen(
                     }
                 }
 
+                // ─── KANBAN BOARD VIEW ────────────────────────────────────────
+                if (uiState.viewMode == ViewMode.KANBAN && uiState.notes.isNotEmpty()) {
+                    item {
+                        KanbanBoardView(
+                            notes = uiState.notes,
+                            onNoteClick = handleNoteClick,
+                            onMoveNote = viewModel::updateKanbanColumn,
+                            onAddCard = { col ->
+                                viewModel.createKanbanCard(col, onNoteClick)
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(580.dp)
+                        )
+                    }
+                }
+
                 // ─── GALLERY (GRID) VIEW ──────────────────────────────────────
-                if (uiState.isGridView && uiState.notes.isNotEmpty()) {
+                if (uiState.viewMode == ViewMode.GALLERY && uiState.notes.isNotEmpty()) {
                     if (pinnedNotes.isNotEmpty()) {
                         item {
                             Text(
@@ -423,7 +481,7 @@ fun NotesListScreen(
                 }
 
                 // ─── CLASSIC LIST VIEW ────────────────────────────────────────
-                if (!uiState.isGridView && uiState.notes.isNotEmpty()) {
+                if (uiState.viewMode == ViewMode.LIST && uiState.notes.isNotEmpty()) {
                     if (pinnedNotes.isNotEmpty()) {
                         item {
                             InsetGroupedSection(title = "Sabitlenenler") {
@@ -731,6 +789,29 @@ fun NotesListScreen(
                 }
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Knowledge Graph 2D Dialog
+    if (uiState.isGraphDialogOpen) {
+        GraphViewDialog(
+            notes = uiState.notes,
+            onDismiss = { viewModel.setGraphDialogOpen(false) },
+            onNoteClick = { noteId ->
+                val targetNote = uiState.notes.find { it.id == noteId }
+                if (targetNote != null) handleNoteClick(targetNote)
+                else onNoteClick(noteId)
+            }
+        )
+    }
+
+    // Template Picker Bottom Sheet
+    if (uiState.isTemplateSheetOpen) {
+        TemplatePickerBottomSheet(
+            onDismiss = { viewModel.setTemplateSheetOpen(false) },
+            onSelectTemplate = { template ->
+                viewModel.createNoteFromTemplate(template, onNoteClick)
+            }
         )
     }
 }

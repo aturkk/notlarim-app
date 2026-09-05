@@ -15,6 +15,11 @@ import kotlinx.coroutines.launch
 import com.applenotes.ai.data.remote.ai.AiServiceManager
 import com.applenotes.ai.domain.model.ChatMessage
 import com.applenotes.ai.domain.model.MessageRole
+import com.applenotes.ai.core.templates.NoteTemplate
+
+enum class ViewMode {
+    LIST, GALLERY, KANBAN
+}
 
 data class NotesListUiState(
     val notes: List<Note> = emptyList(),
@@ -28,17 +33,22 @@ data class NotesListUiState(
     val isGlobalAiChatVisible: Boolean = false,
     val globalChatMessages: List<ChatMessage> = emptyList(),
     val isGlobalAiLoading: Boolean = false,
+    val viewMode: ViewMode = ViewMode.LIST,
     val isGridView: Boolean = false,
     val isSelectionMode: Boolean = false,
     val selectedNoteIds: Set<Long> = emptySet(),
-    val isMoveFolderDialogOpen: Boolean = false
+    val isMoveFolderDialogOpen: Boolean = false,
+    val isGraphDialogOpen: Boolean = false,
+    val isTemplateSheetOpen: Boolean = false
 )
 
 private data class SelectionState(
-    val isGridView: Boolean = false,
+    val viewMode: ViewMode = ViewMode.LIST,
     val isSelectionMode: Boolean = false,
     val selectedNoteIds: Set<Long> = emptySet(),
-    val isMoveFolderDialogOpen: Boolean = false
+    val isMoveFolderDialogOpen: Boolean = false,
+    val isGraphDialogOpen: Boolean = false,
+    val isTemplateSheetOpen: Boolean = false
 )
 
 private data class FilterParams(
@@ -105,10 +115,13 @@ class NotesListViewModel(
             isLoading = false,
             updateInfo = updateInfo,
             isShowingFolderSheet = isSheet,
-            isGridView = sel.isGridView,
+            viewMode = sel.viewMode,
+            isGridView = sel.viewMode == ViewMode.GALLERY,
             isSelectionMode = sel.isSelectionMode,
             selectedNoteIds = sel.selectedNoteIds,
-            isMoveFolderDialogOpen = sel.isMoveFolderDialogOpen
+            isMoveFolderDialogOpen = sel.isMoveFolderDialogOpen,
+            isGraphDialogOpen = sel.isGraphDialogOpen,
+            isTemplateSheetOpen = sel.isTemplateSheetOpen
         )
     }.stateIn(
         scope = viewModelScope,
@@ -180,10 +193,60 @@ class NotesListViewModel(
         }
     }
 
+    fun setViewMode(mode: ViewMode) {
+        _selectionState.value = _selectionState.value.copy(viewMode = mode)
+    }
+
     fun toggleGridView() {
-        _selectionState.value = _selectionState.value.copy(
-            isGridView = !_selectionState.value.isGridView
-        )
+        val nextMode = when (_selectionState.value.viewMode) {
+            ViewMode.LIST -> ViewMode.GALLERY
+            ViewMode.GALLERY -> ViewMode.KANBAN
+            ViewMode.KANBAN -> ViewMode.LIST
+        }
+        setViewMode(nextMode)
+    }
+
+    fun setGraphDialogOpen(open: Boolean) {
+        _selectionState.value = _selectionState.value.copy(isGraphDialogOpen = open)
+    }
+
+    fun setTemplateSheetOpen(open: Boolean) {
+        _selectionState.value = _selectionState.value.copy(isTemplateSheetOpen = open)
+    }
+
+    fun updateKanbanColumn(noteId: Long, column: String) {
+        viewModelScope.launch {
+            repository.updateKanbanColumn(noteId, column)
+        }
+    }
+
+    fun createNoteFromTemplate(template: NoteTemplate, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newNote = Note(
+                title = template.title,
+                content = template.content,
+                tags = template.defaultTags,
+                icon = template.icon,
+                coverUrl = template.coverUrl,
+                updatedAt = System.currentTimeMillis()
+            )
+            val id = repository.saveNote(newNote)
+            setTemplateSheetOpen(false)
+            onCreated(id)
+        }
+    }
+
+    fun createKanbanCard(column: String, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newNote = Note(
+                title = "",
+                content = "",
+                kanbanColumn = column,
+                updatedAt = System.currentTimeMillis()
+            )
+            val id = repository.saveNote(newNote)
+            onCreated(id)
+        }
     }
 
     fun setSelectionMode(enabled: Boolean) {

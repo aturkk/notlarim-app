@@ -146,7 +146,7 @@ fun SwipeableNoteCard(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                 Text(
-                    text = if (note.title.isNotBlank()) note.title else "Başlıksız Not",
+                    text = (note.icon?.let { "$it " } ?: "") + (if (note.title.isNotBlank()) note.title else "Başlıksız Not"),
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp),
                     fontWeight = FontWeight.SemiBold,
                     color = textPrimary,

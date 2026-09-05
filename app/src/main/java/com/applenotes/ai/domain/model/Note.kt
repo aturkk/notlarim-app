@@ -15,5 +15,8 @@ data class Note(
     val tags: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val summary: String? = null
+    val summary: String? = null,
+    val icon: String? = null,
+    val coverUrl: String? = null,
+    val kanbanColumn: String? = null
 )

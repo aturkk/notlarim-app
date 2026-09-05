@@ -16,6 +16,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.applenotes.ai.core.components.SlashCommand
+import com.applenotes.ai.core.templates.NoteTemplate
+
 data class NoteEditorUiState(
     val noteId: Long = 0,
     val title: String = "",
@@ -41,7 +44,15 @@ data class NoteEditorUiState(
     val isRecordingAudio: Boolean = false,
     val isPlayingAudio: Boolean = false,
     val isTranscribingAudio: Boolean = false,
-    val isOcrLoading: Boolean = false
+    val isOcrLoading: Boolean = false,
+    val icon: String? = null,
+    val coverUrl: String? = null,
+    val kanbanColumn: String? = null,
+    val backlinks: List<Note> = emptyList(),
+    val isSlashMenuVisible: Boolean = false,
+    val isIconPickerVisible: Boolean = false,
+    val isCoverPickerVisible: Boolean = false,
+    val isTemplatePickerVisible: Boolean = false
 )
 
 class NoteEditorViewModel(
@@ -74,9 +85,27 @@ class NoteEditorViewModel(
                         isLocked = note.isLocked,
                         drawingPath = note.drawingPath,
                         audioPath = note.audioPath,
-                        reminderTime = note.reminderTime
+                        reminderTime = note.reminderTime,
+                        icon = note.icon,
+                        coverUrl = note.coverUrl,
+                        kanbanColumn = note.kanbanColumn
                     )
                 }
+                loadBacklinks(note.title)
+            }
+        }
+    }
+
+    private fun loadBacklinks(title: String) {
+        if (title.isBlank()) return
+        viewModelScope.launch {
+            repository.getAllNotes().collect { allNotes ->
+                val target = "[[${title.trim()}]]"
+                val links = allNotes.filter {
+                    it.id != _uiState.value.noteId &&
+                    it.content.contains(target, ignoreCase = true)
+                }
+                _uiState.update { it.copy(backlinks = links) }
             }
         }
     }
@@ -87,6 +116,7 @@ class NoteEditorViewModel(
 
     fun onTitleChange(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
+        loadBacklinks(newTitle)
         scheduleAutoSave()
     }
 
@@ -105,11 +135,14 @@ class NoteEditorViewModel(
             redoStack.clear()
         }
 
+        val shouldTriggerSlash = newContent.endsWith("/") && (newContent.length == 1 || newContent.endsWith("\n/") || newContent.endsWith(" /"))
+
         _uiState.update {
             it.copy(
                 content = newContent,
                 canUndo = undoStack.isNotEmpty(),
-                canRedo = redoStack.isNotEmpty()
+                canRedo = redoStack.isNotEmpty(),
+                isSlashMenuVisible = if (shouldTriggerSlash) true else it.isSlashMenuVisible
             )
         }
         scheduleAutoSave()
@@ -551,6 +584,73 @@ class NoteEditorViewModel(
         }
     }
 
+    fun setIcon(icon: String?) {
+        _uiState.update { it.copy(icon = icon, isIconPickerVisible = false) }
+        scheduleAutoSave()
+    }
+
+    fun setCoverUrl(coverUrl: String?) {
+        _uiState.update { it.copy(coverUrl = coverUrl, isCoverPickerVisible = false) }
+        scheduleAutoSave()
+    }
+
+    fun setKanbanColumn(column: String?) {
+        _uiState.update { it.copy(kanbanColumn = column) }
+        scheduleAutoSave()
+    }
+
+    fun setSlashMenuVisible(visible: Boolean) {
+        _uiState.update { it.copy(isSlashMenuVisible = visible) }
+    }
+
+    fun setIconPickerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isIconPickerVisible = visible) }
+    }
+
+    fun setCoverPickerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isCoverPickerVisible = visible) }
+    }
+
+    fun setTemplatePickerVisible(visible: Boolean) {
+        _uiState.update { it.copy(isTemplatePickerVisible = visible) }
+    }
+
+    fun applyTemplate(template: NoteTemplate) {
+        _uiState.update { current ->
+            val updatedTitle = if (current.title.isBlank()) template.title else current.title
+            val updatedContent = if (current.content.isBlank()) template.content else "${current.content}\n\n${template.content}"
+            val mergedTags = (current.tags + template.defaultTags).distinct()
+            current.copy(
+                title = updatedTitle,
+                content = updatedContent,
+                tags = mergedTags,
+                icon = current.icon ?: template.icon,
+                coverUrl = current.coverUrl ?: template.coverUrl,
+                isTemplatePickerVisible = false
+            )
+        }
+        scheduleAutoSave()
+    }
+
+    fun insertSlashCommand(command: SlashCommand) {
+        setSlashMenuVisible(false)
+        val current = _uiState.value.content
+        val baseContent = if (current.endsWith("/")) current.dropLast(1) else current
+        val snippet = command.snippet
+        val updated = if (baseContent.isEmpty()) {
+            snippet
+        } else if (baseContent.endsWith("\n")) {
+            "$baseContent$snippet"
+        } else {
+            "$baseContent\n$snippet"
+        }
+        onContentChange(updated)
+    }
+
+    fun insertBacklink(targetNoteTitle: String) {
+        insertMarkdown("[[$targetNoteTitle]] ")
+    }
+
     private fun scheduleAutoSave() {
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
@@ -573,11 +673,15 @@ class NoteEditorViewModel(
             drawingPath = state.drawingPath,
             audioPath = state.audioPath,
             reminderTime = state.reminderTime,
+            icon = state.icon,
+            coverUrl = state.coverUrl,
+            kanbanColumn = state.kanbanColumn,
             updatedAt = System.currentTimeMillis()
         )
         val savedId = repository.saveNote(note)
         if (state.noteId == 0L && savedId > 0) {
             _uiState.update { it.copy(noteId = savedId) }
+            loadBacklinks(state.title)
         }
     }
 

@@ -139,13 +139,28 @@ fun NoteGalleryCard(
                         contentScale = ContentScale.Crop
                     )
                 }
+            } ?: run {
+                // Cover thumbnail if present and no drawing
+                note.coverUrl?.let { cover ->
+                    Spacer(modifier = Modifier.height(8.dp))
+                    AsyncImage(
+                        model = cover,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(75.dp)
+                            .clip(RoundedCornerShape(10.dp)),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             // Title
+            val prefix = note.icon?.let { "$it " } ?: ""
             Text(
-                text = if (note.isLocked) "🔒 Kilitli Not" else note.title.ifBlank { "Başlıksız Not" },
+                text = if (note.isLocked) "🔒 Kilitli Not" else "$prefix${note.title.ifBlank { "Başlıksız Not" }}",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp

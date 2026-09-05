@@ -20,7 +20,10 @@ data class NoteEntity(
     val tags: List<String> = emptyList(),
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
-    val summary: String? = null
+    val summary: String? = null,
+    val icon: String? = null,
+    val coverUrl: String? = null,
+    val kanbanColumn: String? = null
 ) {
     fun toDomain(folderName: String? = null): Note = Note(
         id = id,
@@ -37,7 +40,10 @@ data class NoteEntity(
         tags = tags,
         createdAt = createdAt,
         updatedAt = updatedAt,
-        summary = summary
+        summary = summary,
+        icon = icon,
+        coverUrl = coverUrl,
+        kanbanColumn = kanbanColumn
     )
 
     companion object {
@@ -55,7 +61,10 @@ data class NoteEntity(
             tags = note.tags,
             createdAt = note.createdAt,
             updatedAt = note.updatedAt,
-            summary = note.summary
+            summary = note.summary,
+            icon = note.icon,
+            coverUrl = note.coverUrl,
+            kanbanColumn = note.kanbanColumn
         )
     }
 }

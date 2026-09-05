@@ -78,6 +78,18 @@ class NoteRepositoryImpl(
         db.noteDao.moveToFolder(noteId, folderId)
     }
 
+    override suspend fun updateKanbanColumn(noteId: Long, column: String) {
+        db.noteDao.updateKanbanColumn(noteId, column)
+    }
+
+    override suspend fun updateNoteIcon(noteId: Long, icon: String?) {
+        db.noteDao.updateNoteIcon(noteId, icon)
+    }
+
+    override suspend fun updateNoteCover(noteId: Long, coverUrl: String?) {
+        db.noteDao.updateNoteCover(noteId, coverUrl)
+    }
+
     override suspend fun emptyTrash() {
         db.noteDao.emptyTrash()
     }

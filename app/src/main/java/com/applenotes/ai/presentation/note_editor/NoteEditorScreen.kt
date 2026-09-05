@@ -37,6 +37,10 @@ import android.Manifest
 import com.applenotes.ai.core.audio.AudioRecorderHelper
 import com.applenotes.ai.core.components.CupertinoTopAppBar
 import com.applenotes.ai.core.components.CupertinoFormatBar
+import com.applenotes.ai.core.components.SlashCommandBottomSheet
+import com.applenotes.ai.core.components.IconPickerBottomSheet
+import com.applenotes.ai.core.components.CoverPickerBottomSheet
+import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -237,6 +241,19 @@ fun NoteEditorScreen(
                                     )
                                 }
 
+                                // Notion Slash Block command shortcut
+                                IconButton(
+                                    onClick = { viewModel.setSlashMenuVisible(true) },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Text(
+                                        text = "/",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 20.sp,
+                                        color = AppleYellow
+                                    )
+                                }
+
                                 // Checklist quick shortcut
                                 IconButton(
                                     onClick = viewModel::applyChecklist,
@@ -352,6 +369,88 @@ fun NoteEditorScreen(
                     .verticalScroll(scrollState)
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
+                // Page Cover Banner
+                uiState.coverUrl?.let { url ->
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .clickable { viewModel.setCoverPickerVisible(true) }
+                    ) {
+                        coil.compose.AsyncImage(
+                            model = url,
+                            contentDescription = "Kapak Görseli",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                        Surface(
+                            color = Color.Black.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = "Kapağı Değiştir",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Action Row: Add Icon / Add Cover / Choose Template
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (uiState.icon != null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7),
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clickable { viewModel.setIconPickerVisible(true) }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Text(text = uiState.icon!!, fontSize = 22.sp)
+                            }
+                        }
+                    } else {
+                        TextButton(
+                            onClick = { viewModel.setIconPickerVisible(true) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("😀 + Simge Ekle", color = textSecondary, fontSize = 12.sp)
+                        }
+                    }
+
+                    if (uiState.coverUrl == null) {
+                        TextButton(
+                            onClick = { viewModel.setCoverPickerVisible(true) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("🖼️ + Kapak Ekle", color = textSecondary, fontSize = 12.sp)
+                        }
+                    }
+
+                    if (uiState.content.isBlank()) {
+                        TextButton(
+                            onClick = { viewModel.setTemplatePickerVisible(true) },
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("✨ Şablon Seç", color = AppleYellow, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
                 // Title Field
                 Box(
                     modifier = Modifier.fillMaxWidth(),
@@ -648,6 +747,71 @@ fun NoteEditorScreen(
                     }
                 }
 
+                // Backlinks Section (Bi-directional links)
+                if (uiState.backlinks.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                        shadowElevation = 1.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.Link,
+                                    contentDescription = null,
+                                    tint = AppleYellow,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Bu Nota Bağlanan Notlar (${uiState.backlinks.size})",
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            uiState.backlinks.forEach { linkNote ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = linkNote.icon ?: "📝",
+                                        fontSize = 16.sp,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = linkNote.title.ifBlank { "Başlıksız Not" },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textPrimary
+                                        )
+                                        if (linkNote.content.isNotBlank()) {
+                                            Text(
+                                                text = linkNote.content.take(60),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = textSecondary,
+                                                maxLines = 1
+                                            )
+                                        }
+                                    }
+                                }
+                                HorizontalDivider(
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                                    thickness = 0.5.dp
+                                )
+                            }
+                        }
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(40.dp))
             }
 
@@ -883,6 +1047,40 @@ fun NoteEditorScreen(
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    // Slash Command Bottom Sheet
+    if (uiState.isSlashMenuVisible) {
+        SlashCommandBottomSheet(
+            onDismiss = { viewModel.setSlashMenuVisible(false) },
+            onSelectCommand = viewModel::insertSlashCommand
+        )
+    }
+
+    // Icon Picker Bottom Sheet
+    if (uiState.isIconPickerVisible) {
+        IconPickerBottomSheet(
+            currentIcon = uiState.icon,
+            onDismiss = { viewModel.setIconPickerVisible(false) },
+            onSelectIcon = viewModel::setIcon
+        )
+    }
+
+    // Cover Picker Bottom Sheet
+    if (uiState.isCoverPickerVisible) {
+        CoverPickerBottomSheet(
+            currentCoverUrl = uiState.coverUrl,
+            onDismiss = { viewModel.setCoverPickerVisible(false) },
+            onSelectCover = viewModel::setCoverUrl
+        )
+    }
+
+    // Template Picker Bottom Sheet
+    if (uiState.isTemplatePickerVisible) {
+        TemplatePickerBottomSheet(
+            onDismiss = { viewModel.setTemplatePickerVisible(false) },
+            onSelectTemplate = viewModel::applyTemplate
+        )
     }
 }
 
