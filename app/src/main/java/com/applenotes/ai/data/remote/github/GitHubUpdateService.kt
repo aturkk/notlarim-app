@@ -1,10 +1,8 @@
 package com.applenotes.ai.data.remote.github
 
-import android.app.DownloadManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Environment
 import androidx.core.content.FileProvider
 import com.applenotes.ai.BuildConfig
@@ -24,6 +22,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import java.io.File
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
@@ -145,106 +145,83 @@ class GitHubUpdateService(
 
     private suspend fun checkUpdateViaWebFallback(owner: String, repo: String, currentVersion: String): Result<AppUpdateInfo> {
         return try {
-            val webUrl = "https://github.com/$owner/$repo/releases/latest"
-            val response = httpClient.get(webUrl) {
-                header("User-Agent", "Mozilla/5.0 (Linux; Android)")
-            }
+            withContext(Dispatchers.IO) {
+                // Use OkHttp directly so we can read the final URL after redirects.
+                // Ktor's response.call.request.url returns the ORIGINAL url, not the redirected one.
+                val okClient = okhttp3.OkHttpClient.Builder()
+                    .followRedirects(true)
+                    .followSslRedirects(true)
+                    .build()
 
-            val finalUrl = response.call.request.url.toString()
-            val tagMatch = Regex(".*/releases/tag/([^/?#]+)").find(finalUrl)
-            val tagName = tagMatch?.groupValues?.getOrNull(1)
+                val webUrl = "https://github.com/$owner/$repo/releases/latest"
+                val request = okhttp3.Request.Builder()
+                    .url(webUrl)
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android)")
+                    .build()
 
-            if (tagName != null) {
-                val latestVersion = tagName.removePrefix("v").trim()
-                val isNewer = isVersionNewer(latest = latestVersion, current = currentVersion)
-                val downloadUrl = "https://github.com/$owner/$repo/releases/download/$tagName/app-release.apk"
+                val response = okClient.newCall(request).execute()
+                val finalUrl = response.request.url.toString()
+                response.close()
 
-                Result.success(
-                    AppUpdateInfo(
-                        currentVersion = currentVersion,
-                        latestVersion = tagName,
-                        releaseTitle = "Yeni Sürüm $tagName",
-                        changelog = "GitHub üzerinden yeni sürüm mevcut.",
-                        downloadUrl = downloadUrl,
-                        isUpdateAvailable = isNewer
-                    )
-                )
-            } else {
-                // Check /tags web page directly
-                val tagsWebUrl = "https://github.com/$owner/$repo/tags"
-                val tagsWebResponse = httpClient.get(tagsWebUrl) {
-                    header("User-Agent", "Mozilla/5.0 (Linux; Android)")
-                }
-                val tagsWebBody = tagsWebResponse.bodyAsText()
-                val webTagMatch = Regex("""/releases/tag/([^"'>]+)""").find(tagsWebBody)
-                    ?: Regex("""/tree/([^"'>]+)""").find(tagsWebBody)
-                val webTag = webTagMatch?.groupValues?.getOrNull(1)
+                // After redirect, finalUrl should look like .../releases/tag/v1.5.0
+                val tagMatch = Regex(".*/releases/tag/([^/?#]+)").find(finalUrl)
+                val tagName = tagMatch?.groupValues?.getOrNull(1)
 
-                if (webTag != null && webTag.startsWith("v")) {
-                    val latestVersion = webTag.removePrefix("v").trim()
+                if (tagName != null) {
+                    val latestVersion = tagName.removePrefix("v").trim()
                     val isNewer = isVersionNewer(latest = latestVersion, current = currentVersion)
-                    val downloadUrl = "https://github.com/$owner/$repo/releases/download/$webTag/app-release.apk"
-
-                    Result.success(
+                    val downloadUrl = "https://github.com/$owner/$repo/releases/download/$tagName/app-release.apk"
+                    return@withContext Result.success(
                         AppUpdateInfo(
                             currentVersion = currentVersion,
-                            latestVersion = webTag,
-                            releaseTitle = "Yeni Sürüm $webTag",
+                            latestVersion = tagName,
+                            releaseTitle = "Yeni Sürüm $tagName",
                             changelog = "GitHub üzerinden yeni sürüm mevcut.",
                             downloadUrl = downloadUrl,
                             isUpdateAvailable = isNewer
                         )
                     )
-                } else {
-                    // Check raw build.gradle.kts on main branch as ultimate fallback
-                    val rawGradleUrl = "https://raw.githubusercontent.com/$owner/$repo/main/app/build.gradle.kts"
-                    val gradleResponse = httpClient.get(rawGradleUrl) {
-                        header("User-Agent", "Mozilla/5.0 (Linux; Android)")
-                    }
-                    if (gradleResponse.status.value in 200..299) {
-                        val gradleContent = gradleResponse.bodyAsText()
-                        val versionMatch = Regex("""versionName\s*=\s*"([^"]+)"""").find(gradleContent)
-                        val rawVersion = versionMatch?.groupValues?.getOrNull(1)
-
-                        if (rawVersion != null) {
-                            val isNewer = isVersionNewer(latest = rawVersion, current = currentVersion)
-                            val downloadUrl = "https://github.com/$owner/$repo/releases/download/v$rawVersion/app-release.apk"
-
-                            Result.success(
-                                AppUpdateInfo(
-                                    currentVersion = currentVersion,
-                                    latestVersion = "v$rawVersion",
-                                    releaseTitle = "Yeni Sürüm v$rawVersion",
-                                    changelog = "GitHub üzerinden yeni sürüm mevcut.",
-                                    downloadUrl = downloadUrl,
-                                    isUpdateAvailable = isNewer
-                                )
-                            )
-                        } else {
-                            Result.success(
-                                AppUpdateInfo(
-                                    currentVersion = currentVersion,
-                                    latestVersion = currentVersion,
-                                    releaseTitle = "Güncel",
-                                    changelog = "Uygulamanız en güncel sürümde.",
-                                    downloadUrl = "",
-                                    isUpdateAvailable = false
-                                )
-                            )
-                        }
-                    } else {
-                        Result.success(
-                            AppUpdateInfo(
-                                currentVersion = currentVersion,
-                                latestVersion = currentVersion,
-                                releaseTitle = "Güncel",
-                                changelog = "Uygulamanız en güncel sürümde.",
-                                downloadUrl = "",
-                                isUpdateAvailable = false
-                            )
-                        )
-                    }
                 }
+
+                // Fallback: parse raw build.gradle.kts from main branch
+                val rawGradleUrl = "https://raw.githubusercontent.com/$owner/$repo/main/app/build.gradle.kts"
+                val gradleRequest = okhttp3.Request.Builder()
+                    .url(rawGradleUrl)
+                    .header("User-Agent", "Mozilla/5.0 (Linux; Android)")
+                    .build()
+                val gradleResponse = okClient.newCall(gradleRequest).execute()
+                val gradleContent = if (gradleResponse.isSuccessful) gradleResponse.body?.string() else null
+                gradleResponse.close()
+
+                val rawVersion = gradleContent?.let {
+                    Regex("""versionName\s*=\s*"([^"]+)"""").find(it)?.groupValues?.getOrNull(1)
+                }
+
+                if (rawVersion != null) {
+                    val isNewer = isVersionNewer(latest = rawVersion, current = currentVersion)
+                    val downloadUrl = "https://github.com/$owner/$repo/releases/download/v$rawVersion/app-release.apk"
+                    return@withContext Result.success(
+                        AppUpdateInfo(
+                            currentVersion = currentVersion,
+                            latestVersion = "v$rawVersion",
+                            releaseTitle = "Yeni Sürüm v$rawVersion",
+                            changelog = "GitHub üzerinden yeni sürüm mevcut.",
+                            downloadUrl = downloadUrl,
+                            isUpdateAvailable = isNewer
+                        )
+                    )
+                }
+
+                Result.success(
+                    AppUpdateInfo(
+                        currentVersion = currentVersion,
+                        latestVersion = currentVersion,
+                        releaseTitle = "Güncel",
+                        changelog = "Uygulamanız en güncel sürümde.",
+                        downloadUrl = "",
+                        isUpdateAvailable = false
+                    )
+                )
             }
         } catch (e: Exception) {
             Result.failure(Exception("Güncelleme denetimi yapılamadı: ${e.localizedMessage ?: e.message}"))

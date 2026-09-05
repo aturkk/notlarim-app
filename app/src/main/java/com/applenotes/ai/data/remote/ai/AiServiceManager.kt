@@ -18,6 +18,20 @@ class AiServiceManager(
     private val claudeClient = ClaudeApiClient()
     val onDeviceClient = OnDeviceAiClient(context)
 
+    init {
+        // Try to initialize on-device model if a path is already stored
+        val savedPath = prefs.onDeviceModelPath
+        if (savedPath.isNotBlank()) {
+            onDeviceClient.initialize(savedPath)
+        }
+    }
+
+    /** Call this when user updates the model path in settings */
+    fun initializeOnDeviceModel(modelPath: String): Boolean {
+        prefs.onDeviceModelPath = modelPath
+        return onDeviceClient.initialize(modelPath)
+    }
+
     suspend fun executeAction(action: AiAction, noteContent: String): Result<String> {
         if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
             return when (action) {

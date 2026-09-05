@@ -1,191 +1,217 @@
 package com.applenotes.ai.data.remote.ai
 
 import android.content.Context
-import com.applenotes.ai.domain.model.ChatMessage
+import android.util.Log
 import com.applenotes.ai.domain.model.Note
 import com.applenotes.ai.domain.model.TitleAndTagsResult
+import com.google.mediapipe.tasks.genai.llminference.LlmInference
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import java.io.File
+import kotlin.coroutines.resume
 
+private const val TAG = "OnDeviceAiClient"
+
+/**
+ * On-device AI client using MediaPipe LLM Inference API (tasks-genai).
+ * Requires a Gemma model file (.bin) to be present on the device.
+ *
+ * Recommended model: gemma-2b-it-gpu-int4.bin (~1.4 GB) or gemma-2b-it-cpu-int4.bin (~1.4 GB)
+ * Download from: https://huggingface.co/google/gemma-2b-it-gpu-int4
+ * Push to device: adb push gemma-2b-it-gpu-int4.bin /data/local/tmp/llm/
+ */
 class OnDeviceAiClient(private val context: Context) {
 
-    suspend fun summarize(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val sentences = splitSentences(content)
-        if (sentences.isEmpty()) return@withContext Result.success("Özetlenecek içerik bulunamadı.")
+    private var llmInference: LlmInference? = null
+    private var currentModelPath: String = ""
 
-        val count = minOf(3, sentences.size)
-        val selected = sentences.take(count)
-
-        val sb = StringBuilder()
-        sb.append("📱 **Cihaz İçi Akıllı Özet:**\n\n")
-        selected.forEach { s ->
-            val clean = s.trim().removePrefix("- ").removePrefix("• ")
-            sb.append("• ").append(clean).append("\n")
+    /**
+     * Attempts to initialize the MediaPipe LLM engine with the given model path.
+     * Returns true on success, false if model file is not found or initialization fails.
+     */
+    fun initialize(modelPath: String): Boolean {
+        if (modelPath.isBlank()) return false
+        if (!File(modelPath).exists()) {
+            Log.w(TAG, "Model file not found at: $modelPath")
+            return false
         }
-        Result.success(sb.toString().trim())
+        return try {
+            if (modelPath == currentModelPath && llmInference != null) return true
+            llmInference?.close()
+            val options = LlmInference.LlmInferenceOptions.builder()
+                .setModelPath(modelPath)
+                .setMaxTokens(512)
+                .setMaxTopK(40)
+                .build()
+            llmInference = LlmInference.createFromOptions(context, options)
+            currentModelPath = modelPath
+            Log.i(TAG, "MediaPipe LLM initialized with: $modelPath")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "LLM init failed: ${e.message}", e)
+            llmInference = null
+            false
+        }
     }
 
-    suspend fun rewrite(content: String, tone: String): Result<String> = withContext(Dispatchers.Default) {
-        val clean = content.trim()
-        val result = when (tone.lowercase()) {
-            "professional" -> {
-                "Saygılarımla bilgilerinize sunarım;\n\n" + clean.replace("merhaba", "İyi çalışmalar dilerim,")
+    fun isInitialized(): Boolean = llmInference != null
+
+    fun close() {
+        llmInference?.close()
+        llmInference = null
+    }
+
+    // ─── Core inference ───────────────────────────────────────────────────────
+
+    private suspend fun infer(prompt: String): Result<String> = withContext(Dispatchers.IO) {
+        val engine = llmInference
+            ?: return@withContext Result.failure(Exception(
+                "Cihaz içi AI modeli yüklü değil. Lütfen Ayarlar > Gemini Nano bölümünden model dosyası yolunu girin."
+            ))
+        return@withContext try {
+            val result = suspendCancellableCoroutine<String> { cont ->
+                val sb = StringBuilder()
+                engine.generateResponseAsync(prompt) { partialResult, done ->
+                    if (partialResult != null) sb.append(partialResult)
+                    if (done) cont.resume(sb.toString().trim())
+                }
             }
-            "casual" -> {
-                "Selamlar! Şöyle özetleyebilirim:\n\n" + clean
+            if (result.isBlank()) {
+                Result.failure(Exception("Model boş yanıt döndürdü."))
+            } else {
+                Result.success(result)
             }
-            "concise" -> {
-                val sentences = splitSentences(clean)
-                sentences.take(minOf(2, sentences.size)).joinToString(" ")
-            }
-            else -> clean
+        } catch (e: Exception) {
+            Result.failure(Exception("Cihaz içi AI Hatası: ${e.localizedMessage ?: e.message}"))
         }
-        Result.success(result)
     }
 
-    suspend fun extractActions(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val lines = content.lines().filter { it.isNotBlank() }
-        val actionKeywords = listOf("yap", "et", "ara", "gönder", "hazırla", "tamamla", "öde", "incele", "görüş", "toplantı", "al", "kontrol", "rapor", "mail", "teslim", "araştır")
-        
-        val actions = lines.filter { line ->
-            actionKeywords.any { kw -> line.lowercase().contains(kw) } || line.trim().startsWith("-") || line.trim().startsWith("•")
+    // ─── Public AI methods ────────────────────────────────────────────────────
+
+    suspend fun summarize(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir not asistanısın. Türkçe, kısa ve madde imli (• ile) özetler yazarsın.",
+            user = "Aşağıdaki notu özetle:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun rewrite(content: String, tone: String): Result<String> {
+        val toneDesc = when (tone.lowercase()) {
+            "professional" -> "resmi, kurumsal ve profesyonel"
+            "casual" -> "samimi, sıcak ve konuşma diline yakın"
+            "concise" -> "kısa, öz ve gereksiz tekrarsız"
+            else -> tone
         }
+        val prompt = buildPrompt(
+            system = "Sen bir metin düzenleme asistanısın. Verilen metni belirtilen üslupta yeniden yazarsın.",
+            user = "Aşağıdaki metni $toneDesc üslupta yeniden yaz. Sadece yeniden yazılmış metni ver:\n\n$content"
+        )
+        return infer(prompt)
+    }
 
-        val listToUse = if (actions.isNotEmpty()) actions else lines.take(4)
-        val sb = StringBuilder()
-        listToUse.forEach { item ->
-            val clean = item.trim().removePrefix("- ").removePrefix("• ").removePrefix("[ ] ")
-            sb.append("- [ ] ").append(clean).append("\n")
+    suspend fun extractActions(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir görev yöneticisisin. Metinlerden yapılacak işleri Markdown todo listesi (- [ ] Görev) olarak çıkarırsın.",
+            user = "Aşağıdaki metinden yapılacak işleri çıkar:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun suggestTitleAndTags(content: String): Result<TitleAndTagsResult> {
+        val prompt = buildPrompt(
+            system = "Format kesinlikle şöyle olmalıdır:\nÖrnek Başlık\n#etiket1 #etiket2\nBaşka hiçbir şey yazma.",
+            user = "Bu not için 1 başlık ve 2-4 etiket öner:\n\n$content"
+        )
+        return infer(prompt).map { rawText ->
+            val lines = rawText.lines().map { it.trim() }.filter { it.isNotBlank() }
+            val title = lines.firstOrNull()?.removePrefix("Başlık:")?.trim() ?: "Yeni Not"
+            val tagsLine = lines.getOrNull(1)?.removePrefix("Etiketler:")?.trim() ?: ""
+            val tags = tagsLine.split(" ", ",")
+                .map { it.trim().removePrefix("#") }
+                .filter { it.isNotBlank() }
+                .distinct()
+            TitleAndTagsResult(title = title, tags = tags)
         }
-        Result.success(sb.toString().trim())
     }
 
-    suspend fun suggestTitleAndTags(content: String): Result<TitleAndTagsResult> = withContext(Dispatchers.Default) {
-        val lines = content.lines().filter { it.isNotBlank() }
-        val firstLine = lines.firstOrNull() ?: "Yeni Not"
-        val cleanTitle = firstLine.take(35).trim().removePrefix("#").trim()
-
-        val stopwords = setOf("için", "gibi", "kadar", "daha", "olan", "veya", "ancak", "bunu", "şunu", "ve", "ile", "bir", "bu", "şu", "da", "de", "ise")
-        val words = content.split(Regex("""\s+"""))
-            .map { it.lowercase().replace(Regex("""[^a-zA-Z0-9çğıöşüÇĞİÖŞÜ]"""), "") }
-            .filter { it.length > 3 && it !in stopwords }
-            .distinct()
-            .take(4)
-
-        val tags = if (words.isNotEmpty()) words else listOf("not", "önemli")
-        Result.success(TitleAndTagsResult(title = cleanTitle, tags = tags))
+    suspend fun fixGrammar(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir Türkçe dil editörüsün. Yazım, gramer ve noktalama hatalarını düzeltirsin.",
+            user = "Aşağıdaki metindeki hataları düzelt. Sadece düzeltilmiş metni ver:\n\n$content"
+        )
+        return infer(prompt)
     }
 
-    suspend fun fixGrammar(content: String): Result<String> = withContext(Dispatchers.Default) {
-        var fixed = content
-            .replace(" ,", ",")
-            .replace(" .", ".")
-            .replace(" !", "!")
-            .replace(" ?", "?")
-            .replace(Regex("""\s+"""), " ")
-            .trim()
+    suspend fun translate(content: String, targetLang: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen profesyonel bir çevirmensin. Doğal ve akıcı çeviriler yaparsın.",
+            user = "Aşağıdaki metni $targetLang diline çevir. Sadece çeviriyi ver:\n\n$content"
+        )
+        return infer(prompt)
+    }
 
-        fixed = splitSentences(fixed).joinToString(" ") { sentence ->
-            val trimmed = sentence.trim()
-            if (trimmed.isNotEmpty()) trimmed.substring(0, 1).uppercase() + trimmed.substring(1) else trimmed
+    suspend fun continueWriting(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen yaratıcı bir yazar asistanısın. Verilen metnin devamını aynı üslupta yazarsın.",
+            user = "Aşağıdaki metnin devamını yaz:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun generateFlashcards(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir öğretmensin. Notlardan 3-5 adet soru-cevap flashcard oluşturursun.",
+            user = "Aşağıdaki nottan flashcard oluştur:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun generateMindmap(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir zihin haritası uzmanısın. Hiyerarşik, girintili liste formatında zihin haritası oluşturursun.",
+            user = "Aşağıdaki nottan zihin haritası oluştur:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun extractReminders(content: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir takvim asistanısın. Metinlerdeki tarih, saat ve randevuları listeleyerek çıkarırsın.",
+            user = "Aşağıdaki metindeki tarih/saat/randevu bilgilerini çıkar:\n\n$content"
+        )
+        return infer(prompt)
+    }
+
+    suspend fun chatWithNote(noteContent: String, question: String): Result<String> {
+        val prompt = buildPrompt(
+            system = "Sen bir not asistanısın. Kullanıcının notuna dayanarak soruları Türkçe yanıtlarsın.\n\nNot içeriği:\n---\n$noteContent\n---",
+            user = question
+        )
+        return infer(prompt)
+    }
+
+    suspend fun chatWithAllNotes(allNotes: List<Note>, question: String): Result<String> {
+        val notesContext = allNotes.take(10).joinToString("\n\n---\n") { note ->
+            "Başlık: ${note.title}\nİçerik: ${note.content.take(400)}"
         }
-        Result.success(fixed)
+        val prompt = buildPrompt(
+            system = "Sen kullanıcının tüm notlarını bilen bir kişisel asistansın. Notlara dayanarak soruları Türkçe yanıtlarsın.\n\nNotlar:\n====================\n$notesContext\n====================",
+            user = question
+        )
+        return infer(prompt)
     }
 
-    suspend fun translate(content: String, targetLang: String): Result<String> = withContext(Dispatchers.Default) {
-        Result.success("[$targetLang Çevirisi - Cihaz İçi Çevrimdışı]\n\n$content")
-    }
+    suspend fun generateText(prompt: String): Result<String> = infer(prompt)
 
-    suspend fun continueWriting(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val lastSentence = splitSentences(content).lastOrNull() ?: content
-        val continuation = "Bu konuyla ilgili detaylar ve sonraki adımlar üzerinde çalışmalar devam etmektedir."
-        Result.success(continuation)
-    }
+    // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    suspend fun generateFlashcards(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val sentences = splitSentences(content)
-        val sb = StringBuilder()
-        sb.append("📚 **Çalışma Kartları (Flashcards):**\n\n")
-
-        sentences.take(3).forEachIndexed { i, s ->
-            val clean = s.trim().removePrefix("- ").removePrefix("• ")
-            val questionTopic = clean.take(25)
-            sb.append("Soru ${i + 1}: $questionTopic... hakkında ne biliyorsunuz?\n")
-            sb.append("Cevap ${i + 1}: $clean\n\n")
-        }
-        Result.success(sb.toString().trim())
-    }
-
-    suspend fun generateMindmap(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val lines = content.lines().filter { it.isNotBlank() }
-        val mainTopic = lines.firstOrNull()?.take(30) ?: "Ana Fikir"
-        val subTopics = lines.drop(1).take(4)
-
-        val sb = StringBuilder()
-        sb.append("🌳 **Zihin Haritası:**\n\n")
-        sb.append("📁 [Ana Konu] ").append(mainTopic).append("\n")
-        subTopics.forEachIndexed { i, sub ->
-            sb.append("  ├── 📌 Alt Konu ${i + 1}: ").append(sub.trim()).append("\n")
-        }
-        Result.success(sb.toString().trim())
-    }
-
-    suspend fun extractReminders(content: String): Result<String> = withContext(Dispatchers.Default) {
-        val timeRegex = Regex("""(\d{1,2}[:.]\d{2}|\d{1,2}\s+(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)|yarın|pazartesi|salı|çarşamba|perşembe|cuma|cumartesi|pazar)""", RegexOption.IGNORE_CASE)
-        val matches = timeRegex.findAll(content).map { it.value }.distinct().toList()
-
-        val text = if (matches.isNotEmpty()) {
-            matches.joinToString("\n") { "• $it - Randevu/Görev" }
-        } else {
-            "• Belirli bir tarih bulunamadı (Tüm gün hatırlatıcı önerilir)."
-        }
-        Result.success(text)
-    }
-
-    suspend fun chatWithNote(noteContent: String, question: String): Result<String> = withContext(Dispatchers.Default) {
-        val qWords = question.lowercase().split(Regex("""\s+""")).filter { it.length > 2 }
-        val sentences = splitSentences(noteContent)
-
-        val bestSentence = sentences.maxByOrNull { sentence ->
-            val sLower = sentence.lowercase()
-            qWords.count { kw -> sLower.contains(kw) }
-        }
-
-        val reply = if (bestSentence != null && bestSentence.isNotBlank()) {
-            "📱 **Not İçi Yanıt:**\n\n\"${bestSentence.trim()}\""
-        } else {
-            "📱 Notunuz incelendi: Not içeriğinde sorunuzla ilgili temel bilgiler yer almaktadır."
-        }
-        Result.success(reply)
-    }
-
-    suspend fun chatWithAllNotes(allNotes: List<Note>, question: String): Result<String> = withContext(Dispatchers.Default) {
-        val qWords = question.lowercase().split(Regex("""\s+""")).filter { it.length > 2 }
-
-        val matchingNotes = allNotes.filter { note ->
-            val combined = (note.title + " " + note.content + " " + note.tags.joinToString(" ")).lowercase()
-            qWords.any { kw -> combined.contains(kw) }
-        }
-
-        val reply = if (matchingNotes.isNotEmpty()) {
-            val sb = StringBuilder()
-            sb.append("📱 **Eşleşen Notlarınız:**\n\n")
-            matchingNotes.take(3).forEach { note ->
-                sb.append("📌 **${note.title.ifBlank { "Başlıksız Not" }}**\n")
-                sb.append("${note.content.take(120)}...\n\n")
-            }
-            sb.toString().trim()
-        } else {
-            "📱 Aradığınız soruyla ilgili ${allNotes.size} notunuz tarandı, ancak doğrudan bir eşleşme bulunamadı."
-        }
-        Result.success(reply)
-    }
-
-    suspend fun generateText(prompt: String): Result<String> = withContext(Dispatchers.Default) {
-        summarize(prompt)
-    }
-
-    private fun splitSentences(text: String): List<String> {
-        return text.split(Regex("""(?<=[.!?])\s+|\n+""")).filter { it.isNotBlank() }
+    /**
+     * Builds a simple system+user prompt in Gemma chat template format:
+     * <start_of_turn>system\n...<end_of_turn>\n<start_of_turn>user\n...<end_of_turn>\n<start_of_turn>model\n
+     */
+    private fun buildPrompt(system: String, user: String): String {
+        return "<start_of_turn>system\n$system<end_of_turn>\n<start_of_turn>user\n$user<end_of_turn>\n<start_of_turn>model\n"
     }
 }

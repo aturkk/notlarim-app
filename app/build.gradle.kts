@@ -14,8 +14,8 @@ android {
         applicationId = "com.applenotes.ai"
         minSdk = 26
         targetSdk = 35
-        versionCode = 8
-        versionName = "1.4.3"
+        versionCode = 9
+        versionName = "1.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -25,6 +25,11 @@ android {
         // Room schema export
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
+        }
+
+        // MediaPipe LLM requires ARM64 or x86_64; exclude arm32 to avoid packaging issues
+        ndk {
+            abiFilters += setOf("arm64-v8a", "x86_64")
         }
     }
 
@@ -105,4 +110,7 @@ dependencies {
 
     // Coil for media
     implementation(libs.coil.compose)
+
+    // MediaPipe LLM Inference (On-Device Gemma 2B/3B)
+    implementation(libs.mediapipe.tasks.genai)
 }

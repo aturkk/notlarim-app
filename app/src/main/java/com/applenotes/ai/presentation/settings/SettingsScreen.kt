@@ -122,26 +122,57 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         if (uiState.activeProvider == AiProvider.GEMINI_NANO) {
+                            // Status card
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = AppleYellow.copy(alpha = 0.12f),
+                                color = if (uiState.onDeviceModelStatus.startsWith("✅"))
+                                    AppleYellow.copy(alpha = 0.12f)
+                                else
+                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.25f),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(12.dp)) {
                                     Text(
-                                        text = "⚡ %100 Çevrimdışı & Donanımsal Yapay Zeka",
+                                        text = "📱 Cihaz İçi LLM (MediaPipe + Gemma)",
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.Bold,
                                         color = AppleYellow
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "Bu modda notlarınız internete veya bulut sunucularına gönderilmez. Android 14+ (Pixel, Galaxy S24 vb.) cihazların NPU çipinde yerel olarak işlenir. API anahtarı veya kredi kartı gerekmez.",
+                                        text = uiState.onDeviceModelStatus,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = textPrimary
                                     )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Gerçek cihaz içi AI için Gemma 2B model dosyasını (.bin) cihazınıza indirmeniz gerekir. Önerilen model (~1.4 GB):\nhttps://huggingface.co/google/gemma-2b-it-gpu-int4\n\nİndirdikten sonra dosya yolunu aşağıya girin.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = textSecondary
+                                    )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Model path input
+                            Text(
+                                text = "Model Dosyası Yolu (.bin)",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.height(6.dp))
+                            OutlinedTextField(
+                                value = uiState.onDeviceModelPath,
+                                onValueChange = viewModel::onDeviceModelPathChange,
+                                placeholder = { Text("/data/local/tmp/llm/gemma-2b-it-gpu-int4.bin") },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = AppleYellow,
+                                    cursorColor = AppleYellow
+                                ),
+                                singleLine = true
+                            )
                             Spacer(modifier = Modifier.height(12.dp))
                         } else {
                             if (uiState.activeProvider == AiProvider.VERTEX_AI) {

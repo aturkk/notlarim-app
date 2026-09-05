@@ -93,6 +93,11 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getString(KEY_GROQ_MODEL, "llama-3.3-70b-versatile") ?: "llama-3.3-70b-versatile"
         set(value) = sharedPreferences.edit().putString(KEY_GROQ_MODEL, value.trim()).apply()
 
+    // On-Device LLM (MediaPipe) Model Path
+    var onDeviceModelPath: String
+        get() = sharedPreferences.getString(KEY_ON_DEVICE_MODEL_PATH, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_ON_DEVICE_MODEL_PATH, value.trim()).apply()
+
     // Active AI Provider
     fun getActiveAiProvider(): AiProvider {
         val name = sharedPreferences.getString(KEY_ACTIVE_PROVIDER, AiProvider.GROQ.name) ?: AiProvider.GROQ.name
@@ -140,6 +145,7 @@ class SecurePreferences(context: Context) {
         private const val KEY_OPENROUTER_MODEL = "openrouter_model"
         private const val KEY_GROQ_KEY = "groq_api_key"
         private const val KEY_GROQ_MODEL = "groq_model"
+        private const val KEY_ON_DEVICE_MODEL_PATH = "on_device_model_path"
         private const val KEY_ACTIVE_PROVIDER = "active_ai_provider"
         private const val KEY_GITHUB_OWNER = "github_owner"
         private const val KEY_GITHUB_REPO = "github_repo"

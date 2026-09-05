@@ -31,6 +31,8 @@ data class SettingsUiState(
     val openRouterModel: String = "google/gemini-2.0-flash-exp:free",
     val groqApiKey: String = "",
     val groqModel: String = "llama3-8b-8192",
+    val onDeviceModelPath: String = "",
+    val onDeviceModelStatus: String = "",
     val githubOwner: String = "aturkk",
     val githubRepo: String = "notlarim-app",
     val autoCheckUpdates: Boolean = true,
@@ -67,6 +69,8 @@ class SettingsViewModel(
             openRouterModel = prefs.openRouterModel,
             groqApiKey = prefs.groqApiKey,
             groqModel = prefs.groqModel,
+            onDeviceModelPath = prefs.onDeviceModelPath,
+            onDeviceModelStatus = if (prefs.onDeviceModelPath.isNotBlank()) "✅ Model yüklü: ${prefs.onDeviceModelPath}" else "⚠️ Model dosyası seçilmedi",
             githubOwner = prefs.githubOwner,
             githubRepo = prefs.githubRepo,
             autoCheckUpdates = prefs.autoCheckUpdates
@@ -147,6 +151,18 @@ class SettingsViewModel(
     fun onGroqModelChange(model: String) {
         prefs.groqModel = model
         _uiState.update { it.copy(groqModel = model) }
+    }
+
+    fun onDeviceModelPathChange(path: String) {
+        val success = aiServiceManager.initializeOnDeviceModel(path)
+        val status = if (success) {
+            "✅ Model başarıyla yüklendi!"
+        } else if (path.isBlank()) {
+            "⚠️ Model dosyası seçilmedi"
+        } else {
+            "❌ Model yüklenemedi. Dosya yolu doğru mu? (.bin dosyası olmalı)"
+        }
+        _uiState.update { it.copy(onDeviceModelPath = path, onDeviceModelStatus = status) }
     }
 
     fun onGithubOwnerChange(owner: String) {
