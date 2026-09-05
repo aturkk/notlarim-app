@@ -274,4 +274,49 @@ class AiServiceManager(
             }
         }
     }
+
+    suspend fun transcribeAudio(audioFile: java.io.File): Result<String> {
+        val activeProvider = prefs.getActiveAiProvider()
+        return when {
+            activeProvider == AiProvider.GROQ || (activeProvider != AiProvider.OPENAI && activeProvider != AiProvider.GEMINI && prefs.groqApiKey.isNotBlank()) -> {
+                openAiClient.transcribeAudio(
+                    apiKey = prefs.groqApiKey,
+                    audioFile = audioFile,
+                    baseUrl = "https://api.groq.com/openai/v1/audio/transcriptions",
+                    model = "whisper-large-v3"
+                )
+            }
+            activeProvider == AiProvider.OPENAI || prefs.openAiApiKey.isNotBlank() -> {
+                openAiClient.transcribeAudio(
+                    apiKey = prefs.openAiApiKey,
+                    audioFile = audioFile,
+                    baseUrl = "https://api.openai.com/v1/audio/transcriptions",
+                    model = "whisper-1"
+                )
+            }
+            activeProvider == AiProvider.GEMINI || prefs.geminiApiKey.isNotBlank() -> {
+                geminiClient.transcribeAudio(
+                    apiKey = prefs.geminiApiKey,
+                    audioBytes = audioFile.readBytes(),
+                    mimeType = "audio/mp4"
+                )
+            }
+            else -> Result.failure(IllegalStateException("Ses transkripsiyonu için Gemini, Groq veya OpenAI API anahtarı gereklidir."))
+        }
+    }
+
+    suspend fun extractTextFromImage(imageBytes: ByteArray): Result<String> {
+        val activeProvider = prefs.getActiveAiProvider()
+        return when {
+            activeProvider == AiProvider.GEMINI || prefs.geminiApiKey.isNotBlank() -> {
+                geminiClient.extractTextFromImage(
+                    apiKey = prefs.geminiApiKey,
+                    imageBytes = imageBytes,
+                    mimeType = "image/jpeg"
+                )
+            }
+            else -> Result.failure(IllegalStateException("Belgeden/Görselden metin çıkarma (OCR) için Google Gemini API anahtarı gereklidir. Lütfen Ayarlar bölümünden anahtarınızı kaydedin."))
+        }
+    }
 }
+

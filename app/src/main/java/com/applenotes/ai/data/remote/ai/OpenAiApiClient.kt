@@ -9,9 +9,14 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
+import io.ktor.client.request.forms.formData
+import io.ktor.client.request.forms.submitFormWithBinaryData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.io.File
 
 @Serializable
 private data class OpenAiChatRequest(
@@ -41,6 +46,12 @@ private data class OpenAiChoice(
 private data class OpenAiError(
     val message: String? = null,
     val type: String? = null
+)
+
+@Serializable
+private data class OpenAiTranscriptionResponse(
+    val text: String? = null,
+    val error: OpenAiError? = null
 )
 
 class OpenAiApiClient {
@@ -101,6 +112,48 @@ class OpenAiApiClient {
             }
         } catch (e: Exception) {
             Result.failure(Exception("Bağlantı Hatası: ${e.localizedMessage ?: e.message}"))
+        }
+    }
+
+    suspend fun transcribeAudio(
+        apiKey: String,
+        audioFile: File,
+        baseUrl: String = "https://api.openai.com/v1/audio/transcriptions",
+        model: String = "whisper-1"
+    ): Result<String> {
+        if (apiKey.isBlank()) {
+            return Result.failure(IllegalStateException("API anahtarı girilmemiş."))
+        }
+
+        return try {
+            val response = httpClient.submitFormWithBinaryData(
+                url = baseUrl,
+                formData = formData {
+                    append("model", model)
+                    append("file", audioFile.readBytes(), Headers.build {
+                        append(HttpHeaders.ContentType, "audio/m4a")
+                        append(HttpHeaders.ContentDisposition, "filename=\"${audioFile.name}\"")
+                    })
+                }
+            ) {
+                header("Authorization", "Bearer $apiKey")
+            }
+            val body = response.bodyAsText()
+            val parsed = try {
+                json.decodeFromString<OpenAiTranscriptionResponse>(body)
+            } catch (e: Exception) {
+                null
+            }
+
+            if (parsed?.error != null) {
+                Result.failure(Exception("Whisper Hatası: ${parsed.error.message}"))
+            } else if (!parsed?.text.isNullOrBlank()) {
+                Result.success(parsed!!.text!!.trim())
+            } else {
+                Result.failure(Exception("Transkript yanıtı alınamadı."))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Transkript Bağlantı Hatası: ${e.localizedMessage ?: e.message}"))
         }
     }
 }

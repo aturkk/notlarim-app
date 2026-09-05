@@ -74,6 +74,10 @@ class NoteRepositoryImpl(
         db.noteDao.toggleLock(noteId)
     }
 
+    override suspend fun moveToFolder(noteId: Long, folderId: Long?) {
+        db.noteDao.moveToFolder(noteId, folderId)
+    }
+
     override suspend fun emptyTrash() {
         db.noteDao.emptyTrash()
     }

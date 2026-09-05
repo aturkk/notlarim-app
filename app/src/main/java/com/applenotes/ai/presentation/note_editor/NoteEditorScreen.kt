@@ -13,6 +13,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.Redo
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -26,7 +28,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.CircleShape
+import androidx.core.content.ContextCompat
+import android.Manifest
+import com.applenotes.ai.core.audio.AudioRecorderHelper
 import com.applenotes.ai.core.components.CupertinoTopAppBar
+import com.applenotes.ai.core.components.CupertinoFormatBar
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -47,6 +57,44 @@ fun NoteEditorScreen(
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
+    val audioHelper = remember { AudioRecorderHelper(context) }
+    var isShareSheetOpen by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            audioHelper.stopPlaying()
+            if (uiState.isRecordingAudio) {
+                audioHelper.stopRecording()
+            }
+        }
+    }
+
+    val audioPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            viewModel.setAudioRecording(true)
+            audioHelper.startRecording()
+        }
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            coroutineScope.launch {
+                try {
+                    val bytes = context.contentResolver.openInputStream(it)?.use { s -> s.readBytes() }
+                    if (bytes != null) {
+                        viewModel.processImageOcr(bytes)
+                    }
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
+    }
+
     Scaffold(
         topBar = {
             CupertinoTopAppBar(
@@ -61,6 +109,26 @@ fun NoteEditorScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = viewModel::undo,
+                        enabled = uiState.canUndo
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = "Geri Al",
+                            tint = if (uiState.canUndo) AppleYellow else textSecondary.copy(alpha = 0.35f)
+                        )
+                    }
+                    IconButton(
+                        onClick = viewModel::redo,
+                        enabled = uiState.canRedo
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Redo,
+                            contentDescription = "İleri Al",
+                            tint = if (uiState.canRedo) AppleYellow else textSecondary.copy(alpha = 0.35f)
+                        )
+                    }
                     IconButton(onClick = { viewModel.setChatSheetVisible(true) }) {
                         Icon(
                             imageVector = Icons.Default.ChatBubbleOutline,
@@ -89,26 +157,10 @@ fun NoteEditorScreen(
                             tint = if (uiState.isPinned) AppleYellow else textSecondary
                         )
                     }
-                    IconButton(onClick = {
-                        viewModel.exportToPdf(context)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.PictureAsPdf,
-                            contentDescription = "PDF Dışa Aktar",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = {
-                        val shareIntent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_SUBJECT, uiState.title)
-                            putExtra(Intent.EXTRA_TEXT, "${uiState.title}\n\n${uiState.content}")
-                        }
-                        context.startActivity(Intent.createChooser(shareIntent, "Notu Paylaş"))
-                    }) {
+                    IconButton(onClick = { isShareSheetOpen = true }) {
                         Icon(
                             imageVector = Icons.Default.Share,
-                            contentDescription = "Paylaş",
+                            contentDescription = "Paylaş ve Dışa Aktar",
                             tint = AppleYellow
                         )
                     }
@@ -125,67 +177,163 @@ fun NoteEditorScreen(
             )
         },
         bottomBar = {
-            Surface(
-                color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
-                tonalElevation = 0.dp
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .navigationBarsPadding()
-                ) {
-                    HorizontalDivider(
-                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
-                        thickness = 0.5.dp
+                AnimatedVisibility(visible = uiState.isFormatBarVisible) {
+                    CupertinoFormatBar(
+                        canUndo = uiState.canUndo,
+                        canRedo = uiState.canRedo,
+                        onUndo = viewModel::undo,
+                        onRedo = viewModel::redo,
+                        onBoldClick = { viewModel.insertMarkdown("**", "**") },
+                        onItalicClick = { viewModel.insertMarkdown("*", "*") },
+                        onStrikeClick = { viewModel.insertMarkdown("~~", "~~") },
+                        onH1Click = { viewModel.applyHeader(1) },
+                        onH2Click = { viewModel.applyHeader(2) },
+                        onChecklistClick = viewModel::applyChecklist,
+                        onBulletClick = viewModel::applyBulletList,
+                        onNumberedClick = viewModel::applyNumberedList,
+                        onQuoteClick = viewModel::applyQuote,
+                        onCodeClick = viewModel::applyCodeBlock,
+                        onLinkClick = { viewModel.insertMarkdown("[[", "]]") }
                     )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp)
-                            .padding(horizontal = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // Markdown shortcuts
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            IconButton(onClick = { viewModel.insertMarkdown("### ") }) {
-                                Icon(Icons.Default.Title, contentDescription = "Başlık", tint = textSecondary)
-                            }
-                            IconButton(onClick = { viewModel.insertMarkdown("**", "**") }) {
-                                Icon(Icons.Default.FormatBold, contentDescription = "Kalın", tint = textSecondary)
-                            }
-                            IconButton(onClick = { viewModel.insertMarkdown("*", "*") }) {
-                                Icon(Icons.Default.FormatItalic, contentDescription = "İtalik", tint = textSecondary)
-                            }
-                            IconButton(onClick = { viewModel.insertMarkdown("- [ ] ") }) {
-                                Icon(Icons.Default.CheckBox, contentDescription = "Yapılacak", tint = textSecondary)
-                            }
-                            IconButton(onClick = { viewModel.insertMarkdown("- ") }) {
-                                Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = "Liste", tint = textSecondary)
-                            }
-                        }
+                }
 
-                        // AI Assistant Button
-                        Button(
-                            onClick = { viewModel.setAiSheetVisible(true) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = AppleYellow,
-                                contentColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                Surface(
+                    color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                    tonalElevation = 0.dp
+                ) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        HorizontalDivider(
+                            color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                            thickness = 0.5.dp
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp)
+                                .padding(horizontal = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Yapay Zeka",
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                                fontWeight = FontWeight.SemiBold
-                            )
+                            // Quick Action Icons (Apple Notes Style)
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // "Aa" Format bar toggle
+                                IconButton(
+                                    onClick = viewModel::toggleFormatBar,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Text(
+                                        text = "Aa",
+                                        fontWeight = FontWeight.ExtraBold,
+                                        fontSize = 17.sp,
+                                        color = if (uiState.isFormatBarVisible) AppleYellow else textSecondary
+                                    )
+                                }
+
+                                // Checklist quick shortcut
+                                IconButton(
+                                    onClick = viewModel::applyChecklist,
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckBox,
+                                        contentDescription = "Kontrol Listesi",
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                // Camera / Document Scan OCR shortcut
+                                IconButton(
+                                    onClick = { photoPickerLauncher.launch("image/*") },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PhotoCamera,
+                                        contentDescription = "Belge veya Görsel Tara",
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+
+                                // Drawing quick shortcut
+                                IconButton(
+                                    onClick = { viewModel.setDrawingDialogOpen(true) },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Brush,
+                                        contentDescription = "Çizim Ekle",
+                                        tint = textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Audio Voice Memo shortcut
+                                IconButton(
+                                    onClick = {
+                                        if (uiState.isRecordingAudio) {
+                                            val path = audioHelper.stopRecording()
+                                            viewModel.setAudioRecording(false)
+                                            if (path != null) {
+                                                viewModel.setAudioPath(path)
+                                            }
+                                        } else {
+                                            val hasPermission = ContextCompat.checkSelfPermission(
+                                                context,
+                                                Manifest.permission.RECORD_AUDIO
+                                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                                            if (hasPermission) {
+                                                viewModel.setAudioRecording(true)
+                                                audioHelper.startRecording()
+                                            } else {
+                                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(if (uiState.isRecordingAudio) iOSRed.copy(alpha = 0.15f) else Color.Transparent)
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.isRecordingAudio) Icons.Default.Stop else Icons.Default.Mic,
+                                        contentDescription = if (uiState.isRecordingAudio) "Kaydı Bitir" else "Ses Kaydet",
+                                        tint = if (uiState.isRecordingAudio) iOSRed else textSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            // AI Assistant Button
+                            Button(
+                                onClick = { viewModel.setAiSheetVisible(true) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = AppleYellow,
+                                    contentColor = Color.White
+                                ),
+                                shape = RoundedCornerShape(16.dp),
+                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AutoAwesome,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "Yapay Zeka",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }
@@ -290,6 +438,163 @@ fun NoteEditorScreen(
                                     .height(180.dp)
                                     .clip(RoundedCornerShape(8.dp)),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                            )
+                        }
+                    }
+                }
+
+                // Audio Attachment Card
+                uiState.audioPath?.let { audioPath ->
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                        shadowElevation = 2.dp,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (uiState.isPlayingAudio) {
+                                        audioHelper.stopPlaying()
+                                        viewModel.setAudioPlaying(false)
+                                    } else {
+                                        viewModel.setAudioPlaying(true)
+                                        audioHelper.playAudio(audioPath) {
+                                            viewModel.setAudioPlaying(false)
+                                        }
+                                    }
+                                },
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(AppleYellow)
+                            ) {
+                                Icon(
+                                    imageVector = if (uiState.isPlayingAudio) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                    contentDescription = if (uiState.isPlayingAudio) "Duraklat" else "Oynat",
+                                    tint = Color.White
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "🎙️ Ses Kaydı",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimary
+                                )
+                                Text(
+                                    text = if (uiState.isPlayingAudio) "Oynatılıyor..." else "Dokun ve dinle",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = textSecondary
+                                )
+                            }
+                            // Transcribe Button
+                            FilledTonalButton(
+                                onClick = { viewModel.transcribeAudioFile(audioPath) },
+                                enabled = !uiState.isTranscribingAudio,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                            ) {
+                                if (uiState.isTranscribingAudio) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(14.dp),
+                                        strokeWidth = 2.dp,
+                                        color = AppleYellow
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp),
+                                        tint = AppleYellow
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Yazıya Dök",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textPrimary
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            IconButton(
+                                onClick = {
+                                    audioHelper.stopPlaying()
+                                    viewModel.setAudioPlaying(false)
+                                    viewModel.setAudioPath(null)
+                                },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Ses Kaydını Sil",
+                                    tint = iOSRed,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // Active Recording Banner
+                if (uiState.isRecordingAudio) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = iOSRed.copy(alpha = 0.12f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .clip(CircleShape)
+                                    .background(iOSRed)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = "Ses kaydediliyor... Bitirmek için mikrofon simgesine tekrar dokunun.",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = iOSRed,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // OCR Processing Banner
+                if (uiState.isOcrLoading) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = AppleYellow.copy(alpha = 0.15f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(18.dp),
+                                color = AppleYellow,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Text(
+                                text = "Belge taranıyor ve yapay zeka ile metne dönüştürülüyor...",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = AppleYellowDark
                             )
                         }
                     }
@@ -485,6 +790,99 @@ fun NoteEditorScreen(
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
         )
+    }
+
+    // Share & Export Bottom Sheet
+    if (isShareSheetOpen) {
+        ModalBottomSheet(
+            onDismissRequest = { isShareSheetOpen = false },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+            tonalElevation = 0.dp
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = "Dışa Aktar ve Paylaş",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // PDF Export
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            isShareSheetOpen = false
+                            viewModel.exportToPdf(context)
+                        }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.PictureAsPdf, contentDescription = null, tint = AppleYellow)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(text = "PDF Belgesi Olarak Dışa Aktar", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Apple Notes formatında şık PDF oluşturur", style = MaterialTheme.typography.bodySmall, color = textSecondary)
+                    }
+                }
+
+                HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight, thickness = 0.5.dp)
+
+                // Image Card Export
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            isShareSheetOpen = false
+                            viewModel.exportToImageCard(context)
+                        }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.Image, contentDescription = null, tint = AppleYellow)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(text = "Sosyal Paylaşım Kartı (Görsel)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Sosyal medyada paylaşmak için estetik PNG kartı", style = MaterialTheme.typography.bodySmall, color = textSecondary)
+                    }
+                }
+
+                HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight, thickness = 0.5.dp)
+
+                // Plain Text Share
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            isShareSheetOpen = false
+                            val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_SUBJECT, uiState.title)
+                                putExtra(Intent.EXTRA_TEXT, "${uiState.title}\n\n${uiState.content}")
+                            }
+                            context.startActivity(Intent.createChooser(shareIntent, "Notu Paylaş"))
+                        }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.Share, contentDescription = null, tint = AppleYellow)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(text = "Düz Metin Olarak Paylaş", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Mesaj veya e-posta olarak gönder", style = MaterialTheme.typography.bodySmall, color = textSecondary)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
     }
 }
 

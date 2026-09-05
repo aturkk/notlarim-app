@@ -34,7 +34,14 @@ data class NoteEditorUiState(
     val flashcardsResult: String? = null,
     val chatMessages: List<ChatMessage> = emptyList(),
     val isChatLoading: Boolean = false,
-    val shareText: String? = null
+    val shareText: String? = null,
+    val canUndo: Boolean = false,
+    val canRedo: Boolean = false,
+    val isFormatBarVisible: Boolean = false,
+    val isRecordingAudio: Boolean = false,
+    val isPlayingAudio: Boolean = false,
+    val isTranscribingAudio: Boolean = false,
+    val isOcrLoading: Boolean = false
 )
 
 class NoteEditorViewModel(
@@ -74,14 +81,91 @@ class NoteEditorViewModel(
         }
     }
 
+    private val undoStack = ArrayDeque<String>()
+    private val redoStack = ArrayDeque<String>()
+    private var lastSnapshotTime: Long = 0L
+
     fun onTitleChange(newTitle: String) {
         _uiState.update { it.copy(title = newTitle) }
         scheduleAutoSave()
     }
 
-    fun onContentChange(newContent: String) {
-        _uiState.update { it.copy(content = newContent) }
+    fun onContentChange(newContent: String, saveToHistory: Boolean = true) {
+        val current = _uiState.value.content
+        if (saveToHistory && newContent != current) {
+            val now = System.currentTimeMillis()
+            // Group typing changes within 1 second or push distinct snapshots
+            if (now - lastSnapshotTime > 800L || undoStack.isEmpty()) {
+                if (undoStack.size >= 60) {
+                    undoStack.removeFirst()
+                }
+                undoStack.addLast(current)
+                lastSnapshotTime = now
+            }
+            redoStack.clear()
+        }
+
+        _uiState.update {
+            it.copy(
+                content = newContent,
+                canUndo = undoStack.isNotEmpty(),
+                canRedo = redoStack.isNotEmpty()
+            )
+        }
         scheduleAutoSave()
+    }
+
+    fun undo() {
+        if (undoStack.isNotEmpty()) {
+            val current = _uiState.value.content
+            val previous = undoStack.removeLast()
+            redoStack.addLast(current)
+            _uiState.update {
+                it.copy(
+                    content = previous,
+                    canUndo = undoStack.isNotEmpty(),
+                    canRedo = true
+                )
+            }
+            scheduleAutoSave()
+        }
+    }
+
+    fun redo() {
+        if (redoStack.isNotEmpty()) {
+            val current = _uiState.value.content
+            val next = redoStack.removeLast()
+            undoStack.addLast(current)
+            _uiState.update {
+                it.copy(
+                    content = next,
+                    canUndo = true,
+                    canRedo = redoStack.isNotEmpty()
+                )
+            }
+            scheduleAutoSave()
+        }
+    }
+
+    fun toggleFormatBar() {
+        _uiState.update { it.copy(isFormatBarVisible = !it.isFormatBarVisible) }
+    }
+
+    fun toggleChecklistLine(lineIndex: Int) {
+        val lines = _uiState.value.content.lines().toMutableList()
+        if (lineIndex in lines.indices) {
+            val line = lines[lineIndex]
+            val updatedLine = when {
+                line.trimStart().startsWith("- [ ]") -> line.replaceFirst("- [ ]", "- [x]")
+                line.trimStart().startsWith("- [x]") -> line.replaceFirst("- [x]", "- [ ]")
+                line.trimStart().startsWith("- [X]") -> line.replaceFirst("- [X]", "- [ ]")
+                else -> line
+            }
+            if (updatedLine != line) {
+                lines[lineIndex] = updatedLine
+                onContentChange(lines.joinToString("\n"))
+            }
+        }
     }
 
     fun insertMarkdown(prefix: String, suffix: String = "") {
@@ -94,6 +178,31 @@ class NoteEditorViewModel(
             "$current\n$prefix$suffix"
         }
         onContentChange(updated)
+    }
+
+    fun applyHeader(level: Int) {
+        val prefix = "#".repeat(level) + " "
+        insertMarkdown(prefix)
+    }
+
+    fun applyChecklist() {
+        insertMarkdown("- [ ] ")
+    }
+
+    fun applyBulletList() {
+        insertMarkdown("• ")
+    }
+
+    fun applyNumberedList() {
+        insertMarkdown("1. ")
+    }
+
+    fun applyQuote() {
+        insertMarkdown("> ")
+    }
+
+    fun applyCodeBlock() {
+        insertMarkdown("```\n", "\n```")
     }
 
     fun togglePin() {
@@ -249,6 +358,77 @@ class NoteEditorViewModel(
         com.applenotes.ai.core.export.NoteExporter.shareFile(context, file, "application/pdf")
     }
 
+    fun exportToImageCard(context: android.content.Context) {
+        val currentNote = Note(
+            id = _uiState.value.noteId,
+            title = _uiState.value.title,
+            content = _uiState.value.content,
+            tags = _uiState.value.tags,
+            updatedAt = System.currentTimeMillis()
+        )
+        val file = com.applenotes.ai.core.export.NoteExporter.exportToImageCard(context, currentNote)
+        com.applenotes.ai.core.export.NoteExporter.shareFile(context, file, "image/png")
+    }
+
+    fun setAudioRecording(recording: Boolean) {
+        _uiState.update { it.copy(isRecordingAudio = recording) }
+    }
+
+    fun setAudioPlaying(playing: Boolean) {
+        _uiState.update { it.copy(isPlayingAudio = playing) }
+    }
+
+    fun transcribeAudioFile(audioFilePath: String) {
+        val file = java.io.File(audioFilePath)
+        if (!file.exists()) return
+
+        _uiState.update { it.copy(isTranscribingAudio = true, aiErrorMessage = null) }
+        viewModelScope.launch {
+            val result = aiServiceManager.transcribeAudio(file)
+            result.onSuccess { transcript ->
+                val current = _uiState.value.content
+                val updated = if (current.isNotBlank()) {
+                    "$current\n\n### 🎙️ Ses Kaydı Transkripti\n$transcript"
+                } else {
+                    "### 🎙️ Ses Kaydı Transkripti\n$transcript"
+                }
+                onContentChange(updated)
+                _uiState.update { it.copy(isTranscribingAudio = false) }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isTranscribingAudio = false,
+                        aiErrorMessage = "Transkripsiyon Hatası: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun processImageOcr(imageBytes: ByteArray) {
+        _uiState.update { it.copy(isOcrLoading = true, aiErrorMessage = null) }
+        viewModelScope.launch {
+            val result = aiServiceManager.extractTextFromImage(imageBytes)
+            result.onSuccess { text ->
+                val current = _uiState.value.content
+                val updated = if (current.isNotBlank()) {
+                    "$current\n\n### 📄 Taranan Belge Metni\n$text"
+                } else {
+                    "### 📄 Taranan Belge Metni\n$text"
+                }
+                onContentChange(updated)
+                _uiState.update { it.copy(isOcrLoading = false) }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isOcrLoading = false,
+                        aiErrorMessage = "Belge Okuma Hatası: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
     fun translateNote(targetLanguage: String = "İngilizce") {
         val content = _uiState.value.content
         if (content.isBlank()) {
@@ -389,6 +569,10 @@ class NoteEditorViewModel(
             content = state.content,
             tags = state.tags,
             isPinned = state.isPinned,
+            isLocked = state.isLocked,
+            drawingPath = state.drawingPath,
+            audioPath = state.audioPath,
+            reminderTime = state.reminderTime,
             updatedAt = System.currentTimeMillis()
         )
         val savedId = repository.saveNote(note)

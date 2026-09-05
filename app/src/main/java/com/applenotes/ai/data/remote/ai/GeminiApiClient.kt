@@ -26,8 +26,15 @@ private data class GeminiContent(
 )
 
 @Serializable
+private data class GeminiInlineData(
+    val mimeType: String,
+    val data: String
+)
+
+@Serializable
 private data class GeminiPart(
-    val text: String
+    val text: String? = null,
+    val inlineData: GeminiInlineData? = null
 )
 
 @Serializable
@@ -118,6 +125,98 @@ class GeminiApiClient {
             }
         } catch (e: Exception) {
             Result.failure(Exception("Bağlantı Hatası (Gemini): ${e.localizedMessage ?: e.message}"))
+        }
+    }
+
+    suspend fun transcribeAudio(
+        apiKey: String,
+        audioBytes: ByteArray,
+        mimeType: String = "audio/mp4"
+    ): Result<String> {
+        val trimmedKey = apiKey.trim()
+        if (trimmedKey.isBlank()) {
+            return Result.failure(IllegalStateException("Google Gemini API anahtarı girilmemiş."))
+        }
+
+        val base64Data = android.util.Base64.encodeToString(audioBytes, android.util.Base64.NO_WRAP)
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$trimmedKey"
+
+        val contents = listOf(
+            GeminiContent(
+                role = "user",
+                parts = listOf(
+                    GeminiPart(inlineData = GeminiInlineData(mimeType = mimeType, data = base64Data)),
+                    GeminiPart(text = "Lütfen bu ses kaydını eksiksiz, pürüzsüz ve temiz bir şekilde Türkçeye transkribe et (yazıya dök). Konuşulanları aynen aktar, ek yorum yapma.")
+                )
+            )
+        )
+
+        return try {
+            val response = httpClient.post(url) {
+                contentType(ContentType.Application.Json)
+                setBody(GeminiRequest(contents = contents))
+            }
+            val body = response.bodyAsText()
+            val parsed = try { json.decodeFromString<GeminiResponse>(body) } catch (e: Exception) { null }
+
+            if (parsed?.error != null) {
+                Result.failure(Exception("Gemini Transkript Hatası: ${parsed.error.message}"))
+            } else {
+                val answer = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                if (!answer.isNullOrBlank()) {
+                    Result.success(answer.trim())
+                } else {
+                    Result.failure(Exception("Transkript oluşturulamadı veya boş yanıt döndü."))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Transkript Bağlantı Hatası: ${e.message}"))
+        }
+    }
+
+    suspend fun extractTextFromImage(
+        apiKey: String,
+        imageBytes: ByteArray,
+        mimeType: String = "image/jpeg"
+    ): Result<String> {
+        val trimmedKey = apiKey.trim()
+        if (trimmedKey.isBlank()) {
+            return Result.failure(IllegalStateException("Google Gemini API anahtarı girilmemiş."))
+        }
+
+        val base64Data = android.util.Base64.encodeToString(imageBytes, android.util.Base64.NO_WRAP)
+        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=$trimmedKey"
+
+        val contents = listOf(
+            GeminiContent(
+                role = "user",
+                parts = listOf(
+                    GeminiPart(inlineData = GeminiInlineData(mimeType = mimeType, data = base64Data)),
+                    GeminiPart(text = "Lütfen bu belgedeki veya görseldeki tüm yazıları, notları ve metinleri eksiksiz bir şekilde oku ve Markdown formatında düzenli olarak çıkar (OCR). Ek açıklama yapma, yalnızca belgedeki metni ver.")
+                )
+            )
+        )
+
+        return try {
+            val response = httpClient.post(url) {
+                contentType(ContentType.Application.Json)
+                setBody(GeminiRequest(contents = contents))
+            }
+            val body = response.bodyAsText()
+            val parsed = try { json.decodeFromString<GeminiResponse>(body) } catch (e: Exception) { null }
+
+            if (parsed?.error != null) {
+                Result.failure(Exception("Gemini OCR Hatası: ${parsed.error.message}"))
+            } else {
+                val answer = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                if (!answer.isNullOrBlank()) {
+                    Result.success(answer.trim())
+                } else {
+                    Result.failure(Exception("Görselden metin çıkarılamadı."))
+                }
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("OCR Bağlantı Hatası: ${e.message}"))
         }
     }
 }

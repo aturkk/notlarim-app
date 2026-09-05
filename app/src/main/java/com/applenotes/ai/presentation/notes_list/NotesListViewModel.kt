@@ -27,7 +27,18 @@ data class NotesListUiState(
     val isShowingFolderSheet: Boolean = false,
     val isGlobalAiChatVisible: Boolean = false,
     val globalChatMessages: List<ChatMessage> = emptyList(),
-    val isGlobalAiLoading: Boolean = false
+    val isGlobalAiLoading: Boolean = false,
+    val isGridView: Boolean = false,
+    val isSelectionMode: Boolean = false,
+    val selectedNoteIds: Set<Long> = emptySet(),
+    val isMoveFolderDialogOpen: Boolean = false
+)
+
+private data class SelectionState(
+    val isGridView: Boolean = false,
+    val isSelectionMode: Boolean = false,
+    val selectedNoteIds: Set<Long> = emptySet(),
+    val isMoveFolderDialogOpen: Boolean = false
 )
 
 private data class FilterParams(
@@ -52,6 +63,7 @@ class NotesListViewModel(
     private val _isGlobalAiChatVisible = MutableStateFlow(false)
     private val _globalChatMessages = MutableStateFlow<List<ChatMessage>>(emptyList())
     private val _isGlobalAiLoading = MutableStateFlow(false)
+    private val _selectionState = MutableStateFlow(SelectionState())
 
     private val filterParams: Flow<FilterParams> = combine(
         _searchQuery,
@@ -81,8 +93,9 @@ class NotesListViewModel(
         },
         repository.getAllFolders(),
         _isShowingFolderSheet,
-        _updateInfo
-    ) { (params, notes), folders, isSheet, updateInfo ->
+        _updateInfo,
+        _selectionState
+    ) { (params, notes), folders, isSheet, updateInfo, sel ->
         NotesListUiState(
             notes = notes,
             folders = folders,
@@ -91,7 +104,11 @@ class NotesListViewModel(
             selectedTag = params.tag,
             isLoading = false,
             updateInfo = updateInfo,
-            isShowingFolderSheet = isSheet
+            isShowingFolderSheet = isSheet,
+            isGridView = sel.isGridView,
+            isSelectionMode = sel.isSelectionMode,
+            selectedNoteIds = sel.selectedNoteIds,
+            isMoveFolderDialogOpen = sel.isMoveFolderDialogOpen
         )
     }.stateIn(
         scope = viewModelScope,
@@ -160,6 +177,82 @@ class NotesListViewModel(
                 _globalChatMessages.value = _globalChatMessages.value + errorMsg
                 _isGlobalAiLoading.value = false
             }
+        }
+    }
+
+    fun toggleGridView() {
+        _selectionState.value = _selectionState.value.copy(
+            isGridView = !_selectionState.value.isGridView
+        )
+    }
+
+    fun setSelectionMode(enabled: Boolean) {
+        _selectionState.value = _selectionState.value.copy(
+            isSelectionMode = enabled,
+            selectedNoteIds = if (enabled) _selectionState.value.selectedNoteIds else emptySet()
+        )
+    }
+
+    fun toggleSelectNote(noteId: Long) {
+        val current = _selectionState.value.selectedNoteIds.toMutableSet()
+        if (current.contains(noteId)) {
+            current.remove(noteId)
+        } else {
+            current.add(noteId)
+        }
+        _selectionState.value = _selectionState.value.copy(
+            isSelectionMode = true,
+            selectedNoteIds = current
+        )
+    }
+
+    fun selectAllNotes() {
+        val allIds = uiState.value.notes.map { it.id }.toSet()
+        _selectionState.value = _selectionState.value.copy(
+            isSelectionMode = true,
+            selectedNoteIds = allIds
+        )
+    }
+
+    fun clearSelection() {
+        _selectionState.value = _selectionState.value.copy(
+            isSelectionMode = false,
+            selectedNoteIds = emptySet(),
+            isMoveFolderDialogOpen = false
+        )
+    }
+
+    fun deleteSelectedNotes() {
+        val ids = _selectionState.value.selectedNoteIds.toList()
+        viewModelScope.launch {
+            ids.forEach { id ->
+                repository.moveToTrash(id)
+            }
+            clearSelection()
+        }
+    }
+
+    fun togglePinSelectedNotes() {
+        val ids = _selectionState.value.selectedNoteIds.toList()
+        viewModelScope.launch {
+            ids.forEach { id ->
+                repository.togglePin(id)
+            }
+            clearSelection()
+        }
+    }
+
+    fun setMoveFolderDialogOpen(open: Boolean) {
+        _selectionState.value = _selectionState.value.copy(isMoveFolderDialogOpen = open)
+    }
+
+    fun moveSelectedNotesToFolder(folderId: Long?) {
+        val ids = _selectionState.value.selectedNoteIds.toList()
+        viewModelScope.launch {
+            ids.forEach { id ->
+                repository.moveToFolder(id, folderId)
+            }
+            clearSelection()
         }
     }
 

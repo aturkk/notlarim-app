@@ -42,6 +42,9 @@ interface NoteDao {
     @Query("UPDATE notes SET isLocked = NOT isLocked WHERE id = :noteId")
     suspend fun toggleLock(noteId: Long)
 
+    @Query("UPDATE notes SET folderId = :folderId WHERE id = :noteId")
+    suspend fun moveToFolder(noteId: Long, folderId: Long?)
+
     @Query("DELETE FROM notes WHERE isDeleted = 1")
     suspend fun emptyTrash()
 }

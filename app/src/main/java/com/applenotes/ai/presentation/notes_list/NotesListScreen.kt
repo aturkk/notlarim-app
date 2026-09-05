@@ -44,6 +44,7 @@ fun NotesListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val isDark = isSystemInDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
+    val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
 
     var isCreatingFolder by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
@@ -76,12 +77,82 @@ fun NotesListScreen(
 
     Scaffold(
         bottomBar = {
-            CupertinoBottomBar(
-                noteCountText = "${uiState.notes.size} Not",
-                onFolderClick = { viewModel.setFolderSheetVisible(true) },
-                onNewNoteClick = onNewNoteClick,
-                onSettingsClick = onSettingsClick
-            )
+            if (uiState.isSelectionMode) {
+                Surface(
+                    color = if (isDark) iOSBlurOverlayDark else iOSBlurOverlayLight,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .navigationBarsPadding()
+                    ) {
+                        HorizontalDivider(
+                            color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                            thickness = 0.5.dp
+                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(54.dp)
+                                .padding(horizontal = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            TextButton(onClick = viewModel::clearSelection) {
+                                Text(
+                                    text = "Vazgeç",
+                                    color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                                )
+                            }
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IconButton(
+                                    onClick = { viewModel.setMoveFolderDialogOpen(true) },
+                                    enabled = uiState.selectedNoteIds.isNotEmpty()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.DriveFileMove,
+                                        contentDescription = "Klasöre Taşı",
+                                        tint = if (uiState.selectedNoteIds.isNotEmpty()) AppleYellow else Color.Gray.copy(alpha = 0.4f)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = viewModel::togglePinSelectedNotes,
+                                    enabled = uiState.selectedNoteIds.isNotEmpty()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PushPin,
+                                        contentDescription = "Sabitle",
+                                        tint = if (uiState.selectedNoteIds.isNotEmpty()) AppleYellow else Color.Gray.copy(alpha = 0.4f)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = viewModel::deleteSelectedNotes,
+                                    enabled = uiState.selectedNoteIds.isNotEmpty()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Sil",
+                                        tint = if (uiState.selectedNoteIds.isNotEmpty()) iOSRed else Color.Gray.copy(alpha = 0.4f)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                CupertinoBottomBar(
+                    noteCountText = "${uiState.notes.size} Not",
+                    onFolderClick = { viewModel.setFolderSheetVisible(true) },
+                    onNewNoteClick = onNewNoteClick,
+                    onSettingsClick = onSettingsClick
+                )
+            }
         },
         containerColor = bgColor
     ) { paddingValues ->
@@ -104,21 +175,79 @@ fun NotesListScreen(
                     ) {
                         Box(modifier = Modifier.weight(1f)) {
                             CupertinoLargeHeader(
-                                title = currentFolderTitle,
-                                subtitle = if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
+                                title = if (uiState.isSelectionMode) "${uiState.selectedNoteIds.size} Not Seçildi" else currentFolderTitle,
+                                subtitle = if (uiState.isSelectionMode) "İşlem yapmak için notları seçin" else if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
                             )
                         }
-                        IconButton(
-                            onClick = { viewModel.setGlobalAiChatVisible(true) },
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AppleYellow.copy(alpha = 0.15f))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Psychology,
-                                contentDescription = "Global AI Asistan",
-                                tint = AppleYellow
-                            )
+                            if (uiState.isSelectionMode) {
+                                TextButton(onClick = {
+                                    if (uiState.selectedNoteIds.size == uiState.notes.size) {
+                                        viewModel.clearSelection()
+                                    } else {
+                                        viewModel.selectAllNotes()
+                                    }
+                                }) {
+                                    Text(
+                                        text = if (uiState.selectedNoteIds.size == uiState.notes.size) "Kaldır" else "Tümü",
+                                        color = AppleYellow,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+                                TextButton(onClick = viewModel::clearSelection) {
+                                    Text(
+                                        text = "Bitti",
+                                        color = AppleYellow,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                // Grid / List View Toggle
+                                IconButton(
+                                    onClick = viewModel::toggleGridView,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                ) {
+                                    Icon(
+                                        imageVector = if (uiState.isGridView) Icons.Default.ViewAgenda else Icons.Default.GridView,
+                                        contentDescription = if (uiState.isGridView) "Liste Görünümü" else "Galeri Görünümü",
+                                        tint = if (uiState.isGridView) AppleYellow else textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Global AI Chat
+                                IconButton(
+                                    onClick = { viewModel.setGlobalAiChatVisible(true) },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(AppleYellow.copy(alpha = 0.15f))
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Psychology,
+                                        contentDescription = "Global AI Asistan",
+                                        tint = AppleYellow,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Select button
+                                if (uiState.notes.isNotEmpty()) {
+                                    TextButton(onClick = { viewModel.setSelectionMode(true) }) {
+                                        Text(
+                                            text = "Seç",
+                                            color = AppleYellow,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -146,7 +275,7 @@ fun NotesListScreen(
                                     onClick = { viewModel.onSelectTag(tag) },
                                     label = {
                                         Text(
-                                            text = "#",
+                                            text = "#$tag",
                                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)
                                         )
                                     },
@@ -194,36 +323,160 @@ fun NotesListScreen(
                     }
                 }
 
-                if (pinnedNotes.isNotEmpty()) {
-                    item {
-                        InsetGroupedSection(title = "Sabitlenenler") {
-                            pinnedNotes.forEachIndexed { index, note ->
-                                SwipeableNoteCard(
-                                    note = note,
-                                    onClick = { handleNoteClick(note) },
-                                    onTogglePin = { viewModel.togglePin(note.id) },
-                                    onDelete = { viewModel.moveToTrash(note.id) }
+                // ─── GALLERY (GRID) VIEW ──────────────────────────────────────
+                if (uiState.isGridView && uiState.notes.isNotEmpty()) {
+                    if (pinnedNotes.isNotEmpty()) {
+                        item {
+                            Text(
+                                text = "SABİTLENENLER",
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.sp
+                                ),
+                                color = textSecondary,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+                        }
+                        pinnedNotes.chunked(2).forEach { pair ->
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    pair.forEach { note ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            NoteGalleryCard(
+                                                note = note,
+                                                isSelected = uiState.selectedNoteIds.contains(note.id),
+                                                isSelectionMode = uiState.isSelectionMode,
+                                                onClick = {
+                                                    if (uiState.isSelectionMode) {
+                                                        viewModel.toggleSelectNote(note.id)
+                                                    } else {
+                                                        handleNoteClick(note)
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                }
+                                            )
+                                        }
+                                    }
+                                    if (pair.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (unpinnedNotes.isNotEmpty()) {
+                        if (pinnedNotes.isNotEmpty()) {
+                            item {
+                                Text(
+                                    text = "NOTLAR",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        letterSpacing = 1.sp
+                                    ),
+                                    color = textSecondary,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                                 )
-                                if (index < pinnedNotes.lastIndex) {
-                                    InsetDivider(startIndent = 16.dp)
+                            }
+                        }
+                        unpinnedNotes.chunked(2).forEach { pair ->
+                            item {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    pair.forEach { note ->
+                                        Box(modifier = Modifier.weight(1f)) {
+                                            NoteGalleryCard(
+                                                note = note,
+                                                isSelected = uiState.selectedNoteIds.contains(note.id),
+                                                isSelectionMode = uiState.isSelectionMode,
+                                                onClick = {
+                                                    if (uiState.isSelectionMode) {
+                                                        viewModel.toggleSelectNote(note.id)
+                                                    } else {
+                                                        handleNoteClick(note)
+                                                    }
+                                                },
+                                                onLongClick = {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                }
+                                            )
+                                        }
+                                    }
+                                    if (pair.size == 1) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
                                 }
                             }
                         }
                     }
                 }
 
-                if (unpinnedNotes.isNotEmpty()) {
-                    item {
-                        InsetGroupedSection(title = if (pinnedNotes.isNotEmpty()) "Notlar" else null) {
-                            unpinnedNotes.forEachIndexed { index, note ->
-                                SwipeableNoteCard(
-                                    note = note,
-                                    onClick = { handleNoteClick(note) },
-                                    onTogglePin = { viewModel.togglePin(note.id) },
-                                    onDelete = { viewModel.moveToTrash(note.id) }
-                                )
-                                if (index < unpinnedNotes.lastIndex) {
-                                    InsetDivider(startIndent = 16.dp)
+                // ─── CLASSIC LIST VIEW ────────────────────────────────────────
+                if (!uiState.isGridView && uiState.notes.isNotEmpty()) {
+                    if (pinnedNotes.isNotEmpty()) {
+                        item {
+                            InsetGroupedSection(title = "Sabitlenenler") {
+                                pinnedNotes.forEachIndexed { index, note ->
+                                    SwipeableNoteCard(
+                                        note = note,
+                                        isSelected = uiState.selectedNoteIds.contains(note.id),
+                                        isSelectionMode = uiState.isSelectionMode,
+                                        onClick = {
+                                            if (uiState.isSelectionMode) {
+                                                viewModel.toggleSelectNote(note.id)
+                                            } else {
+                                                handleNoteClick(note)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            viewModel.toggleSelectNote(note.id)
+                                        },
+                                        onTogglePin = { viewModel.togglePin(note.id) },
+                                        onDelete = { viewModel.moveToTrash(note.id) }
+                                    )
+                                    if (index < pinnedNotes.lastIndex) {
+                                        InsetDivider(startIndent = 16.dp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (unpinnedNotes.isNotEmpty()) {
+                        item {
+                            InsetGroupedSection(title = if (pinnedNotes.isNotEmpty()) "Notlar" else null) {
+                                unpinnedNotes.forEachIndexed { index, note ->
+                                    SwipeableNoteCard(
+                                        note = note,
+                                        isSelected = uiState.selectedNoteIds.contains(note.id),
+                                        isSelectionMode = uiState.isSelectionMode,
+                                        onClick = {
+                                            if (uiState.isSelectionMode) {
+                                                viewModel.toggleSelectNote(note.id)
+                                            } else {
+                                                handleNoteClick(note)
+                                            }
+                                        },
+                                        onLongClick = {
+                                            viewModel.toggleSelectNote(note.id)
+                                        },
+                                        onTogglePin = { viewModel.togglePin(note.id) },
+                                        onDelete = { viewModel.moveToTrash(note.id) }
+                                    )
+                                    if (index < unpinnedNotes.lastIndex) {
+                                        InsetDivider(startIndent = 16.dp)
+                                    }
                                 }
                             }
                         }
@@ -382,4 +635,103 @@ fun NotesListScreen(
             onDismiss = { viewModel.setGlobalAiChatVisible(false) }
         )
     }
+
+    // Move to Folder Dialog
+    if (uiState.isMoveFolderDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { viewModel.setMoveFolderDialogOpen(false) },
+            title = {
+                Text(
+                    text = "Klasöre Taşı",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    Text(
+                        text = "${uiState.selectedNoteIds.size} not taşınacak:",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    // Root / No folder option
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable { viewModel.moveSelectedNotesToFolder(null) }
+                            .padding(vertical = 10.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Notes,
+                            contentDescription = null,
+                            tint = AppleYellow,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Tüm Notlar (Klasörsüz)",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                    }
+
+                    HorizontalDivider(
+                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    )
+
+                    // Folder list
+                    if (uiState.folders.isEmpty()) {
+                        Text(
+                            text = "Henüz özel bir klasör oluşturulmadı.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    } else {
+                        uiState.folders.forEach { folder ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.moveSelectedNotesToFolder(folder.id) }
+                                    .padding(vertical = 10.dp, horizontal = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Folder,
+                                    contentDescription = null,
+                                    tint = AppleYellow,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = folder.name,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { viewModel.setMoveFolderDialogOpen(false) }) {
+                    Text(
+                        text = "Vazgeç",
+                        color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                    )
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
 }
+

@@ -15,7 +15,7 @@ class AudioRecorderHelper(private val context: Context) {
     fun startRecording(): File {
         val dir = File(context.filesDir, "audio_notes")
         if (!dir.exists()) dir.mkdirs()
-        val file = File(dir, "audio_.m4a")
+        val file = File(dir, "audio_${System.currentTimeMillis()}.m4a")
         currentRecordingFile = file
 
         recorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -73,4 +73,16 @@ class AudioRecorderHelper(private val context: Context) {
     }
 
     fun isPlaying(): Boolean = player?.isPlaying == true
+
+    fun getAudioDuration(filePath: String): Long {
+        return try {
+            val mmr = android.media.MediaMetadataRetriever()
+            mmr.setDataSource(filePath)
+            val durationStr = mmr.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)
+            mmr.release()
+            durationStr?.toLongOrNull() ?: 0L
+        } catch (e: Exception) {
+            0L
+        }
+    }
 }
