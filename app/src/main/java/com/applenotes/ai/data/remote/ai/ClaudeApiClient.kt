@@ -12,6 +12,8 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import io.ktor.client.plugins.HttpTimeout
+import java.util.concurrent.TimeUnit
 
 @Serializable
 private data class ClaudeRequest(
@@ -52,6 +54,19 @@ class ClaudeApiClient {
     }
 
     private val httpClient = HttpClient(OkHttp) {
+        engine {
+            config {
+                connectTimeout(30, TimeUnit.SECONDS)
+                readTimeout(90, TimeUnit.SECONDS)
+                writeTimeout(90, TimeUnit.SECONDS)
+                callTimeout(90, TimeUnit.SECONDS)
+            }
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 90_000L
+            connectTimeoutMillis = 30_000L
+            socketTimeoutMillis = 90_000L
+        }
         install(ContentNegotiation) {
             json(json)
         }

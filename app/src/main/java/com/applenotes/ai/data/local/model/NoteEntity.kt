@@ -23,7 +23,10 @@ data class NoteEntity(
     val summary: String? = null,
     val icon: String? = null,
     val coverUrl: String? = null,
-    val kanbanColumn: String? = null
+    val kanbanColumn: String? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val progress: Int? = null
 ) {
     fun toDomain(folderName: String? = null): Note = Note(
         id = id,
@@ -43,7 +46,10 @@ data class NoteEntity(
         summary = summary,
         icon = icon,
         coverUrl = coverUrl,
-        kanbanColumn = kanbanColumn
+        kanbanColumn = kanbanColumn,
+        priority = priority,
+        status = status,
+        progress = progress
     )
 
     companion object {
@@ -64,7 +70,10 @@ data class NoteEntity(
             summary = note.summary,
             icon = note.icon,
             coverUrl = note.coverUrl,
-            kanbanColumn = note.kanbanColumn
+            kanbanColumn = note.kanbanColumn,
+            priority = note.priority,
+            status = note.status,
+            progress = note.progress
         )
     }
 }

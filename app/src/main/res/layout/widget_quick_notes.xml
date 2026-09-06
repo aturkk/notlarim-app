@@ -54,6 +54,8 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
             android:background="#2C2C2E"
             android:layout_marginEnd="6dp"
             android:padding="8dp">
@@ -82,6 +84,8 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
             android:background="#2C2C2E"
             android:layout_marginEnd="6dp"
             android:padding="8dp">
@@ -110,6 +114,8 @@
             android:layout_weight="1"
             android:orientation="vertical"
             android:gravity="center"
+            android:clickable="true"
+            android:focusable="true"
             android:background="#2C2C2E"
             android:padding="8dp">
 

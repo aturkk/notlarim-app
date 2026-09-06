@@ -27,6 +27,7 @@ import java.util.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.draw.clip
 
@@ -209,12 +210,81 @@ fun SwipeableNoteCard(
                 )
             }
 
-            if (note.tags.isNotEmpty()) {
+            // Badges: Tags, Priority, Status, Progress
+            if (note.tags.isNotEmpty() || note.priority != null || note.status != null || note.progress != null) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    note.tags.take(3).forEach { tag ->
+                    // Priority Badge
+                    note.priority?.let { p ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when (p) {
+                                "HIGH" -> iOSRed.copy(alpha = 0.18f)
+                                "MEDIUM" -> AppleYellow.copy(alpha = 0.20f)
+                                else -> Color(0xFF34C759).copy(alpha = 0.18f)
+                            }
+                        ) {
+                            Text(
+                                text = when (p) {
+                                    "HIGH" -> "🔴 Acil"
+                                    "MEDIUM" -> "🟡 Normal"
+                                    else -> "🟢 Düşük"
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (p) {
+                                    "HIGH" -> iOSRed
+                                    "MEDIUM" -> AppleYellowDark
+                                    else -> Color(0xFF248A3D)
+                                },
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    // Status Badge
+                    note.status?.let { s ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when (s) {
+                                "DONE" -> Color(0xFF34C759).copy(alpha = 0.18f)
+                                "IN_PROGRESS" -> Color(0xFF007AFF).copy(alpha = 0.18f)
+                                else -> if (isDark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+                            }
+                        ) {
+                            Text(
+                                text = when (s) {
+                                    "DONE" -> "✓ Bitti"
+                                    "IN_PROGRESS" -> "⏳ Sürüyor"
+                                    else -> "○ Bekliyor"
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = when (s) {
+                                    "DONE" -> Color(0xFF248A3D)
+                                    "IN_PROGRESS" -> Color(0xFF007AFF)
+                                    else -> textSecondary
+                                },
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    // Progress %
+                    note.progress?.let { pr ->
+                        Text(
+                            text = "%$pr",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppleYellow
+                        )
+                    }
+
+                    // Tags
+                    note.tags.take(2).forEach { tag ->
                         Text(
                             text = "#$tag",
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),

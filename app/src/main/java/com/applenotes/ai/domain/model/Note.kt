@@ -18,5 +18,8 @@ data class Note(
     val summary: String? = null,
     val icon: String? = null,
     val coverUrl: String? = null,
-    val kanbanColumn: String? = null
+    val kanbanColumn: String? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val progress: Int? = null
 )

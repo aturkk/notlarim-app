@@ -193,14 +193,51 @@ fun NoteGalleryCard(
                 )
             }
 
-            // Tags chip row
-            if (note.tags.isNotEmpty()) {
+            // Badges row: Priority, Status, Progress, Tags
+            if (note.tags.isNotEmpty() || note.priority != null || note.progress != null) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    note.tags.take(2).forEach { tag ->
+                    note.priority?.let { p ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when (p) {
+                                "HIGH" -> iOSRed.copy(alpha = 0.18f)
+                                "MEDIUM" -> AppleYellow.copy(alpha = 0.20f)
+                                else -> Color(0xFF34C759).copy(alpha = 0.18f)
+                            }
+                        ) {
+                            Text(
+                                text = when (p) {
+                                    "HIGH" -> "Acil"
+                                    "MEDIUM" -> "Normal"
+                                    else -> "Düşük"
+                                },
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = when (p) {
+                                    "HIGH" -> iOSRed
+                                    "MEDIUM" -> AppleYellowDark
+                                    else -> Color(0xFF248A3D)
+                                },
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    note.progress?.let { pr ->
+                        Text(
+                            text = "%$pr",
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = AppleYellow
+                        )
+                    }
+
+                    note.tags.take(1).forEach { tag ->
                         Surface(
                             shape = RoundedCornerShape(8.dp),
                             color = AppleYellow.copy(alpha = 0.12f)
@@ -212,13 +249,6 @@ fun NoteGalleryCard(
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                             )
                         }
-                    }
-                    if (note.tags.size > 2) {
-                        Text(
-                            text = "+${note.tags.size - 2}",
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
-                            color = textSecondary
-                        )
                     }
                 }
             }

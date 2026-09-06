@@ -57,7 +57,12 @@ data class NoteEditorUiState(
     val isVersionHistoryVisible: Boolean = false,
     val isZenModeOpen: Boolean = false,
     val isPomodoroOpen: Boolean = false,
-    val aiPreviewResult: AiPreviewState? = null
+    val aiPreviewResult: AiPreviewState? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val progress: Int? = null,
+    val isTocSheetVisible: Boolean = false,
+    val isMarkdownPreviewVisible: Boolean = false
 )
 
 data class AiPreviewState(
@@ -102,7 +107,10 @@ class NoteEditorViewModel(
                         reminderTime = note.reminderTime,
                         icon = note.icon,
                         coverUrl = note.coverUrl,
-                        kanbanColumn = note.kanbanColumn
+                        kanbanColumn = note.kanbanColumn,
+                        priority = note.priority,
+                        status = note.status,
+                        progress = note.progress
                     )
                 }
                 loadBacklinks(note.title)
@@ -470,6 +478,46 @@ class NoteEditorViewModel(
         }
     }
 
+    fun generateMeetingMinutesFromAudio(audioFilePath: String) {
+        val file = java.io.File(audioFilePath)
+        if (!file.exists()) return
+
+        _uiState.update { it.copy(isTranscribingAudio = true, aiErrorMessage = null) }
+        viewModelScope.launch {
+            val transcribeResult = aiServiceManager.transcribeAudio(file)
+            transcribeResult.onSuccess { transcript ->
+                val minutesResult = aiServiceManager.generateMeetingMinutes(transcript)
+                minutesResult.onSuccess { minutesText ->
+                    _uiState.update { current ->
+                        current.copy(
+                            isTranscribingAudio = false,
+                            aiPreviewResult = AiPreviewState(
+                                title = "📋 Toplantı / Ders Tutanağı",
+                                originalAction = null,
+                                sourceContent = transcript,
+                                generatedText = minutesText
+                            )
+                        )
+                    }
+                }.onFailure { err ->
+                    _uiState.update {
+                        it.copy(
+                            isTranscribingAudio = false,
+                            aiErrorMessage = "Tutanak Oluşturma Hatası: ${err.message}"
+                        )
+                    }
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isTranscribingAudio = false,
+                        aiErrorMessage = "Ses Deşifre Hatası: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
     fun processImageOcr(imageBytes: ByteArray) {
         _uiState.update { it.copy(isOcrLoading = true, aiErrorMessage = null) }
         viewModelScope.launch {
@@ -744,6 +792,9 @@ class NoteEditorViewModel(
             icon = state.icon,
             coverUrl = state.coverUrl,
             kanbanColumn = state.kanbanColumn,
+            priority = state.priority,
+            status = state.status,
+            progress = state.progress,
             updatedAt = System.currentTimeMillis()
         )
         val savedId = repository.saveNote(note)
@@ -836,6 +887,54 @@ class NoteEditorViewModel(
                 }
             }
         }
+    }
+
+    fun setPriority(priority: String?) {
+        _uiState.update { it.copy(priority = priority) }
+        scheduleAutoSave()
+    }
+
+    fun setStatus(status: String?) {
+        _uiState.update { it.copy(status = status) }
+        scheduleAutoSave()
+    }
+
+    fun setProgress(progress: Int?) {
+        _uiState.update { it.copy(progress = progress) }
+        scheduleAutoSave()
+    }
+
+    fun setTocSheetVisible(visible: Boolean) {
+        _uiState.update { it.copy(isTocSheetVisible = visible) }
+    }
+
+    fun setMarkdownPreviewVisible(visible: Boolean) {
+        _uiState.update { it.copy(isMarkdownPreviewVisible = visible) }
+    }
+
+    fun insertTableOfContents() {
+        val content = _uiState.value.content
+        val headerRegex = Regex("""(?m)^(#+)\s+(.*)$""")
+        val headings = content.lines().mapNotNull { line ->
+            val match = headerRegex.find(line)
+            if (match != null) {
+                val level = match.groupValues[1].length
+                val title = match.groupValues[2].trim()
+                if (title.isNotBlank()) Pair(level, title) else null
+            } else null
+        }
+        if (headings.isEmpty()) return
+
+        val tocBuilder = StringBuilder("## 📑 İçindekiler\n\n")
+        headings.forEach { (level, title) ->
+            val indent = "  ".repeat((level - 1).coerceAtLeast(0))
+            tocBuilder.append("$indent- $title\n")
+        }
+        tocBuilder.append("\n---\n\n")
+
+        val newContent = tocBuilder.toString() + content
+        onContentChange(newContent)
+        setTocSheetVisible(false)
     }
 
     override fun onCleared() {

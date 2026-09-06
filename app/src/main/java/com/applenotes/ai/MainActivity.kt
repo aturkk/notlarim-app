@@ -20,9 +20,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
+import com.applenotes.ai.core.web.WebClipperHelper
+import kotlinx.coroutines.withContext
+
 class MainActivity : FragmentActivity() {
 
-    private var initialNoteId by mutableStateOf<Long?>(null)
+    private var pendingNavigationNoteId by mutableStateOf<Long?>(null)
+    private var pendingAutoRecordAudio by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +42,12 @@ class MainActivity : FragmentActivity() {
                     AppNavigation(
                         navController = navController,
                         appContainer = appContainer,
-                        initialNoteId = initialNoteId
+                        initialNoteId = pendingNavigationNoteId,
+                        autoRecordAudio = pendingAutoRecordAudio,
+                        onConsumedNavigation = {
+                            pendingNavigationNoteId = null
+                            pendingAutoRecordAudio = false
+                        }
                     )
                 }
             }
@@ -55,24 +64,27 @@ class MainActivity : FragmentActivity() {
     private fun handleIntent(intent: Intent?, appContainer: AppleNotesApp) {
         if (intent == null) return
         when (intent.action) {
-            QuickNotesWidgetProvider.ACTION_NEW_NOTE,
+            QuickNotesWidgetProvider.ACTION_NEW_NOTE -> {
+                pendingNavigationNoteId = 0L
+                pendingAutoRecordAudio = false
+            }
             QuickNotesWidgetProvider.ACTION_VOICE_NOTE -> {
-                initialNoteId = 0L
+                pendingNavigationNoteId = 0L
+                pendingAutoRecordAudio = true
             }
             Intent.ACTION_SEND -> {
-                if (intent.type?.startsWith("text/") == true) {
-                    val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
-                    val subject = intent.getStringExtra(Intent.EXTRA_SUBJECT) ?: ""
-                    CoroutineScope(Dispatchers.IO).launch {
-                        val newNote = Note(
-                            title = subject.ifBlank { "Web Kırpıntısı" },
-                            content = text,
-                            tags = listOf("Web"),
-                            updatedAt = System.currentTimeMillis()
-                        )
-                        val id = appContainer.noteRepository.saveNote(newNote)
-                        initialNoteId = id
+                val clipped = WebClipperHelper.extractContentFromIntent(intent)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val newNote = WebClipperHelper.fetchMetadataAndBuildNote(
+                        clipped = clipped,
+                        aiServiceManager = appContainer.aiServiceManager
+                    )
+                    val savedId = appContainer.noteRepository.saveNote(newNote)
+                    withContext(Dispatchers.Main) {
+                        pendingNavigationNoteId = savedId
+                        pendingAutoRecordAudio = false
                     }
+                    QuickNotesWidgetProvider.notifyDataChanged(this@MainActivity)
                 }
             }
         }

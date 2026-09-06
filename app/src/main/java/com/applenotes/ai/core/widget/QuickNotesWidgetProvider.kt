@@ -25,6 +25,18 @@ class QuickNotesWidgetProvider : AppWidgetProvider() {
         const val ACTION_NEW_NOTE = "com.applenotes.ai.ACTION_NEW_NOTE"
         const val ACTION_VOICE_NOTE = "com.applenotes.ai.ACTION_VOICE_NOTE"
 
+        fun notifyDataChanged(context: Context) {
+            val intent = Intent(context, QuickNotesWidgetProvider::class.java).apply {
+                action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+                val widgetManager = AppWidgetManager.getInstance(context)
+                val ids = widgetManager.getAppWidgetIds(
+                    android.content.ComponentName(context, QuickNotesWidgetProvider::class.java)
+                )
+                putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
+            }
+            context.sendBroadcast(intent)
+        }
+
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -35,7 +47,8 @@ class QuickNotesWidgetProvider : AppWidgetProvider() {
             // New Note Action
             val newNoteIntent = Intent(context, MainActivity::class.java).apply {
                 action = ACTION_NEW_NOTE
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("trigger_time", System.currentTimeMillis())
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             val newNotePendingIntent = PendingIntent.getActivity(
                 context,
@@ -48,7 +61,9 @@ class QuickNotesWidgetProvider : AppWidgetProvider() {
             // Voice Note Action
             val voiceNoteIntent = Intent(context, MainActivity::class.java).apply {
                 action = ACTION_VOICE_NOTE
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("trigger_time", System.currentTimeMillis())
+                putExtra("auto_record_audio", true)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             val voiceNotePendingIntent = PendingIntent.getActivity(
                 context,
@@ -60,7 +75,8 @@ class QuickNotesWidgetProvider : AppWidgetProvider() {
 
             // All Notes Action
             val allNotesIntent = Intent(context, MainActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+                putExtra("trigger_time", System.currentTimeMillis())
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             }
             val allNotesPendingIntent = PendingIntent.getActivity(
                 context,

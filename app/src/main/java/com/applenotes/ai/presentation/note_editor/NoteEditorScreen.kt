@@ -53,6 +53,7 @@ import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
 @Composable
 fun NoteEditorScreen(
     viewModel: NoteEditorViewModel,
+    autoRecordAudio: Boolean = false,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -83,6 +84,21 @@ fun NoteEditorScreen(
         if (isGranted) {
             viewModel.setAudioRecording(true)
             audioHelper.startRecording()
+        }
+    }
+
+    LaunchedEffect(autoRecordAudio) {
+        if (autoRecordAudio) {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.RECORD_AUDIO
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            if (hasPermission) {
+                viewModel.setAudioRecording(true)
+                audioHelper.startRecording()
+            } else {
+                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
     }
 
@@ -176,6 +192,20 @@ fun NoteEditorScreen(
                         Icon(
                             imageVector = Icons.Default.SelfImprovement,
                             contentDescription = "Zen Daktilo Modu",
+                            tint = AppleYellow
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setTocSheetVisible(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.FormatListNumbered,
+                            contentDescription = "İçindekiler Tablosu",
+                            tint = AppleYellow
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setMarkdownPreviewVisible(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = "Görsel Önizleme",
                             tint = AppleYellow
                         )
                     }
@@ -514,6 +544,18 @@ fun NoteEditorScreen(
                     }
                 }
 
+                // Notion-style Page Properties Bar (Priority, Status, Progress)
+                Spacer(modifier = Modifier.height(10.dp))
+                com.applenotes.ai.presentation.note_editor.components.PagePropertiesBar(
+                    priority = uiState.priority,
+                    status = uiState.status,
+                    progress = uiState.progress,
+                    noteContent = uiState.content,
+                    onPriorityChange = viewModel::setPriority,
+                    onStatusChange = viewModel::setStatus,
+                    onProgressChange = viewModel::setProgress
+                )
+
                 // Drawing Preview Card
                 uiState.drawingPath?.let { path ->
                     Spacer(modifier = Modifier.height(12.dp))
@@ -638,6 +680,21 @@ fun NoteEditorScreen(
                                         color = textPrimary
                                     )
                                 }
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            // Meeting / Lecture Minutes Button
+                            FilledTonalButton(
+                                onClick = { viewModel.generateMeetingMinutesFromAudio(audioPath) },
+                                enabled = !uiState.isAiLoading,
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "🎓 Tutanak",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = AppleYellow
+                                )
                             }
                             Spacer(modifier = Modifier.width(4.dp))
                             IconButton(
@@ -1161,6 +1218,41 @@ fun NoteEditorScreen(
         TemplatePickerBottomSheet(
             onDismiss = { viewModel.setTemplatePickerVisible(false) },
             onSelectTemplate = viewModel::applyTemplate
+        )
+    }
+
+    // AI Preview Result Dialog (Allows reviewing, tone change, regenerating, and inserting)
+    uiState.aiPreviewResult?.let { preview ->
+        AiResultPreviewDialog(
+            title = preview.title,
+            generatedText = preview.generatedText,
+            isRegenerating = preview.isRegenerating,
+            activeTone = preview.activeTone,
+            onApplyAppend = viewModel::applyAiPreviewAppend,
+            onApplyReplace = viewModel::applyAiPreviewReplace,
+            onRegenerate = viewModel::regenerateAiPreview,
+            onDismiss = viewModel::dismissAiPreview
+        )
+    }
+
+    // Table of Contents Bottom Sheet
+    if (uiState.isTocSheetVisible) {
+        com.applenotes.ai.presentation.note_editor.components.TableOfContentsBottomSheet(
+            noteContent = uiState.content,
+            onDismiss = { viewModel.setTocSheetVisible(false) },
+            onSelectHeading = { _ ->
+                viewModel.setTocSheetVisible(false)
+            },
+            onInsertTocToNote = viewModel::insertTableOfContents
+        )
+    }
+
+    // Markdown Visual Preview Bottom Sheet (KaTeX Math & Mermaid Diagrams)
+    if (uiState.isMarkdownPreviewVisible) {
+        com.applenotes.ai.presentation.note_editor.components.MarkdownPreviewBottomSheet(
+            title = uiState.title,
+            content = uiState.content,
+            onDismiss = { viewModel.setMarkdownPreviewVisible(false) }
         )
     }
 }

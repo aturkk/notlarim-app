@@ -17,6 +17,8 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
+import io.ktor.client.plugins.HttpTimeout
+import java.util.concurrent.TimeUnit
 
 @Serializable
 private data class OpenAiChatRequest(
@@ -61,6 +63,19 @@ class OpenAiApiClient {
     }
 
     private val httpClient = HttpClient(OkHttp) {
+        engine {
+            config {
+                connectTimeout(30, TimeUnit.SECONDS)
+                readTimeout(90, TimeUnit.SECONDS)
+                writeTimeout(90, TimeUnit.SECONDS)
+                callTimeout(90, TimeUnit.SECONDS)
+            }
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 90_000L
+            connectTimeoutMillis = 30_000L
+            socketTimeoutMillis = 90_000L
+        }
         install(ContentNegotiation) {
             json(json)
         }

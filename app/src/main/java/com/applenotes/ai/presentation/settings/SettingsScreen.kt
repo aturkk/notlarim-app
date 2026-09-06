@@ -1,10 +1,13 @@
 package com.applenotes.ai.presentation.settings
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -40,6 +43,10 @@ fun SettingsScreen(
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    LaunchedEffect(Unit) {
+        viewModel.loadStorageUsage(context)
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.CreateDocument("application/zip")
@@ -313,8 +320,8 @@ fun SettingsScreen(
                         var expanded by remember { mutableStateOf(false) }
 
                         val availableModels = when (uiState.activeProvider) {
-                            AiProvider.GEMINI -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash")
-                            AiProvider.VERTEX_AI -> listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash")
+                            AiProvider.GEMINI -> listOf("gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash")
+                            AiProvider.VERTEX_AI -> listOf("gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash")
                             AiProvider.OPENAI -> listOf("gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo", "o1-preview", "o1-mini")
                             AiProvider.CLAUDE -> listOf("claude-3-5-sonnet-20241022", "claude-3-5-haiku-20241022", "claude-3-opus-20240229")
                             AiProvider.OPENROUTER -> listOf("google/gemini-2.5-flash", "google/gemini-2.0-flash-001", "meta-llama/llama-3.3-70b-instruct", "openai/gpt-4o-mini", "deepseek/deepseek-chat")
@@ -718,6 +725,158 @@ fun SettingsScreen(
                 }
             }
 
+            // Storage Usage & Cache Management
+            item {
+                InsetGroupedSection(
+                    title = "Depolama & Hafıza Kullanımı",
+                    footer = "Uygulamanın yerel veritabanı, ses/çizim medyaları ve geçici önbellek boyutunu gösterir."
+                ) {
+                    // Storage Header with Total and Apple-style Multi-color Bar
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Uygulamanın Kapladığı Yer",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = com.applenotes.ai.core.storage.StorageHelper.formatBytes(uiState.totalStorageBytes),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = AppleYellow
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // Segmented bar
+                        val total = maxOf(uiState.totalStorageBytes, 1L).toFloat()
+                        val dbRatio = (uiState.databaseSizeBytes.toFloat() / total).coerceIn(0.05f, 1f)
+                        val mediaRatio = (uiState.mediaSizeBytes.toFloat() / total).coerceIn(0.05f, 1f)
+                        val cacheRatio = (uiState.cacheSizeBytes.toFloat() / total).coerceIn(0.05f, 1f)
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA))
+                        ) {
+                            Box(modifier = Modifier.weight(dbRatio).fillMaxHeight().background(AppleYellow))
+                            Box(modifier = Modifier.weight(mediaRatio).fillMaxHeight().background(Color(0xFF007AFF)))
+                            Box(modifier = Modifier.weight(cacheRatio).fillMaxHeight().background(Color(0xFF8E8E93)))
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // Legend
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(AppleYellow))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Veritabanı", fontSize = 11.sp, color = textSecondary)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF007AFF)))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Ses & Çizim", fontSize = 11.sp, color = textSecondary)
+                            }
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF8E8E93)))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Önbellek", fontSize = 11.sp, color = textSecondary)
+                            }
+                        }
+                    }
+
+                    InsetDivider()
+
+                    // Database Size row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("🗄️ Notlar ve Geçmiş Veritabanı", style = MaterialTheme.typography.bodyMedium, color = textPrimary)
+                        Text(com.applenotes.ai.core.storage.StorageHelper.formatBytes(uiState.databaseSizeBytes), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = textSecondary)
+                    }
+
+                    InsetDivider()
+
+                    // Media Size row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("🎙️ Ses Kayıtları & Çizimler", style = MaterialTheme.typography.bodyMedium, color = textPrimary)
+                        Text(com.applenotes.ai.core.storage.StorageHelper.formatBytes(uiState.mediaSizeBytes), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = textSecondary)
+                    }
+
+                    InsetDivider()
+
+                    // Cache Size row
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("🗑️ Geçici Önbellek (Cache)", style = MaterialTheme.typography.bodyMedium, color = textPrimary)
+                        Text(com.applenotes.ai.core.storage.StorageHelper.formatBytes(uiState.cacheSizeBytes), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = textSecondary)
+                    }
+
+                    InsetDivider()
+
+                    // Clear Cache Action
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.clearCache(context) }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CleaningServices,
+                            contentDescription = null,
+                            tint = AppleYellow,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Önbelleği Temizle",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "Geçici dosyaları silerek telefon hafızasını rahatlatır",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                    }
+                }
+            }
+
             // App Info Footer
             item {
                 Column(
@@ -796,14 +955,20 @@ fun SettingsScreen(
     }
 
     // Information Dialogs
-    val alertMessage = uiState.testApiMessage ?: uiState.updateMessage ?: uiState.backupMessage
+    val alertMessage = uiState.testApiMessage ?: uiState.updateMessage ?: uiState.backupMessage ?: uiState.storageCleanMessage
     if (alertMessage != null) {
         AlertDialog(
-            onDismissRequest = viewModel::dismissMessageDialog,
+            onDismissRequest = {
+                viewModel.dismissMessageDialog()
+                viewModel.dismissStorageMessage()
+            },
             title = { Text("Bilgilendirme", fontWeight = FontWeight.Bold) },
             text = { Text(alertMessage) },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissMessageDialog) {
+                TextButton(onClick = {
+                    viewModel.dismissMessageDialog()
+                    viewModel.dismissStorageMessage()
+                }) {
                     Text("Tamam", color = AppleYellow, fontWeight = FontWeight.Bold)
                 }
             },

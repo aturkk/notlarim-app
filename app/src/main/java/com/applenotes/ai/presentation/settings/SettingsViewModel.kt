@@ -47,7 +47,13 @@ data class SettingsUiState(
     val autoBackupFrequency: String = "DAILY",
     val lastBackupTime: Long = 0L,
     val isBackupInProgress: Boolean = false,
-    val backupMessage: String? = null
+    val backupMessage: String? = null,
+    val totalStorageBytes: Long = 0L,
+    val databaseSizeBytes: Long = 0L,
+    val mediaSizeBytes: Long = 0L,
+    val cacheSizeBytes: Long = 0L,
+    val isCalculatingStorage: Boolean = false,
+    val storageCleanMessage: String? = null
 )
 
 class SettingsViewModel(
@@ -335,5 +341,34 @@ class SettingsViewModel(
                 _uiState.update { it.copy(backupMessage = "Hata: ${e.message}") }
             }
         }
+    }
+
+    fun loadStorageUsage(context: android.content.Context) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCalculatingStorage = true) }
+            val breakdown = com.applenotes.ai.core.storage.StorageHelper.getStorageBreakdown(context)
+            _uiState.update {
+                it.copy(
+                    totalStorageBytes = breakdown.totalBytes,
+                    databaseSizeBytes = breakdown.databaseBytes,
+                    mediaSizeBytes = breakdown.mediaBytes,
+                    cacheSizeBytes = breakdown.cacheBytes,
+                    isCalculatingStorage = false
+                )
+            }
+        }
+    }
+
+    fun clearCache(context: android.content.Context) {
+        viewModelScope.launch {
+            val success = com.applenotes.ai.core.storage.StorageHelper.clearCache(context)
+            val msg = if (success) "✅ Geçici önbellek başarıyla temizlendi!" else "❌ Önbellek temizlenirken bir sorun oluştu."
+            _uiState.update { it.copy(storageCleanMessage = msg) }
+            loadStorageUsage(context)
+        }
+    }
+
+    fun dismissStorageMessage() {
+        _uiState.update { it.copy(storageCleanMessage = null) }
     }
 }

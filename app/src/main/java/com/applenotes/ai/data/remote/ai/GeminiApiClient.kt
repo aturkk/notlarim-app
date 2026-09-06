@@ -13,6 +13,9 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
+import io.ktor.client.plugins.HttpTimeout
+import java.util.concurrent.TimeUnit
+
 @Serializable
 private data class GeminiRequest(
     val contents: List<GeminiContent>,
@@ -34,7 +37,8 @@ private data class GeminiInlineData(
 @Serializable
 private data class GeminiPart(
     val text: String? = null,
-    val inlineData: GeminiInlineData? = null
+    val inlineData: GeminiInlineData? = null,
+    val thought: Boolean? = null
 )
 
 @Serializable
@@ -61,6 +65,19 @@ class GeminiApiClient {
     }
 
     private val httpClient = HttpClient(OkHttp) {
+        engine {
+            config {
+                connectTimeout(30, TimeUnit.SECONDS)
+                readTimeout(90, TimeUnit.SECONDS)
+                writeTimeout(90, TimeUnit.SECONDS)
+                callTimeout(90, TimeUnit.SECONDS)
+            }
+        }
+        install(HttpTimeout) {
+            requestTimeoutMillis = 90_000L
+            connectTimeoutMillis = 30_000L
+            socketTimeoutMillis = 90_000L
+        }
         install(ContentNegotiation) {
             json(json)
         }
@@ -116,7 +133,10 @@ class GeminiApiClient {
             } else if (response.status.value !in 200..299) {
                 Result.failure(Exception("Gemini Servis Hatası (${response.status.value}): ${body.take(250)}"))
             } else {
-                val answer = parsed?.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                val parts = parsed?.candidates?.firstOrNull()?.content?.parts
+                val answer = parts?.filter { it.thought != true }?.mapNotNull { it.text }?.joinToString("")?.ifBlank {
+                    parts?.mapNotNull { it.text }?.joinToString("")
+                }
                 if (!answer.isNullOrBlank()) {
                     Result.success(answer.trim())
                 } else {

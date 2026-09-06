@@ -20,11 +20,14 @@ import androidx.compose.runtime.LaunchedEffect
 fun AppNavigation(
     navController: NavHostController,
     appContainer: AppleNotesApp,
-    initialNoteId: Long? = null
+    initialNoteId: Long? = null,
+    autoRecordAudio: Boolean = false,
+    onConsumedNavigation: () -> Unit = {}
 ) {
     LaunchedEffect(initialNoteId) {
         if (initialNoteId != null) {
             navController.navigate(Screen.NoteEditor.createRoute(initialNoteId))
+            onConsumedNavigation()
         }
     }
 
@@ -80,6 +83,7 @@ fun AppNavigation(
             )
             NoteEditorScreen(
                 viewModel = viewModel,
+                autoRecordAudio = autoRecordAudio,
                 onBack = { navController.popBackStack() }
             )
         }

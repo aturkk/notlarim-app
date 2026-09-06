@@ -372,5 +372,21 @@ class AiServiceManager(
         val systemPrompt = "Sen anlamsal zeka arama motorusun (Semantic Search Engine). Kullanıcının sorusunu en alakalı notlarla eşleştirir, cevabı özetler ve kaynak notları gösterirsin."
         return sendPrompt(prompt, systemPrompt)
     }
+
+    suspend fun generateMeetingMinutes(transcription: String): Result<String> {
+        val prompt = "Aşağıdaki ses/konuşma/ders transkripsiyonunu analiz et ve son derece profesyonel, şık ve yapılandırılmış bir 'Toplantı & Ders Tutanağı' hazırla.\n\n" +
+            "TRANSKRİPSİYON:\n$transcription\n\n" +
+            "Tutanağı kesinlikle şu Markdown başlıklarıyla sun:\n" +
+            "# 📋 Toplantı / Ders Tutanağı\n" +
+            "## 🎯 Konu & Amaç\n" +
+            "## 👥 Katılımcılar & Önemli Görüşler\n" +
+            "## 📝 Yönetici Özeti (Executive Summary)\n" +
+            "## 💡 Alınan Temel Kararlar\n" +
+            "## ✅ Aksiyon Planı & Görev Dağılımı (- [ ] formatında)\n" +
+            "## 📅 Bir Sonraki Adımlar / Takvim"
+
+        val systemPrompt = "Sen üst düzey bir kurumsal yönetici asistanı ve akademik raportörsün. Dağınık konuşma kayıtlarını kusursuz, organize ve eyleme dönüştürülebilir tutanaklara dönüştürürsün."
+        return sendPrompt(prompt, systemPrompt)
+    }
 }
 

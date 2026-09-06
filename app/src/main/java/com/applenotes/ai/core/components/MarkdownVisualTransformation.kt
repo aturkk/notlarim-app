@@ -207,6 +207,56 @@ class MarkdownVisualTransformation(
                     addStyle(hiddenSyntaxStyle, innerEnd, end)
                 }
             }
+
+            // ─── LaTeX Display Math: $$...$$ ──────────────────────────────────
+            val displayMathRegex = Regex("""\$\$(.+?)\$\$""", RegexOption.DOT_MATCHES_ALL)
+            displayMathRegex.findAll(raw).forEach { match ->
+                val start = match.range.first
+                val end = match.range.last + 1
+                addStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily.Serif,
+                        fontStyle = FontStyle.Italic,
+                        color = if (isDark) Color(0xFF64D2FF) else Color(0xFF0071A4),
+                        background = if (isDark) Color(0xFF1E2832) else Color(0xFFE8F4F8)
+                    ),
+                    start,
+                    end
+                )
+            }
+
+            // ─── LaTeX Inline Math: $...$ (excluding $$) ─────────────────────
+            val inlineMathRegex = Regex("""(?<!\$)\$(?!\$)(.+?)(?<!\$)\$(?!\$)""")
+            inlineMathRegex.findAll(raw).forEach { match ->
+                val start = match.range.first
+                val end = match.range.last + 1
+                addStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily.Serif,
+                        fontStyle = FontStyle.Italic,
+                        color = if (isDark) Color(0xFF64D2FF) else Color(0xFF0071A4),
+                        fontWeight = FontWeight.Medium
+                    ),
+                    start,
+                    end
+                )
+            }
+
+            // ─── Mermaid Blocks: ```mermaid ... ``` ───────────────────────────
+            val mermaidRegex = Regex("""```mermaid(.*?)```""", RegexOption.DOT_MATCHES_ALL)
+            mermaidRegex.findAll(raw).forEach { match ->
+                val start = match.range.first
+                val end = match.range.last + 1
+                addStyle(
+                    SpanStyle(
+                        fontFamily = FontFamily.Monospace,
+                        color = if (isDark) Color(0xFFBF5AF2) else Color(0xFF8944AB),
+                        background = if (isDark) Color(0xFF2B1D35) else Color(0xFFF6EEFB)
+                    ),
+                    start,
+                    end
+                )
+            }
         }
 
         return TransformedText(annotated, OffsetMapping.Identity)

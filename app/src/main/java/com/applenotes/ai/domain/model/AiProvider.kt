@@ -4,12 +4,12 @@ enum class AiProvider(val displayName: String, val defaultModel: String, val ava
     GEMINI(
         displayName = "Google Gemini (Ücretsiz AI Studio)",
         defaultModel = "gemini-2.5-flash",
-        availableModels = listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash")
+        availableModels = listOf("gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash")
     ),
     VERTEX_AI(
         displayName = "Google Cloud Vertex AI",
         defaultModel = "gemini-2.5-flash",
-        availableModels = listOf("gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash")
+        availableModels = listOf("gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite", "gemini-2.0-flash")
     ),
     OPENAI(
         displayName = "OpenAI (ChatGPT)",
