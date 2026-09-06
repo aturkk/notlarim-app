@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -35,6 +36,7 @@ import com.applenotes.ai.presentation.notes_list.components.GraphViewDialog
 import com.applenotes.ai.presentation.notes_list.components.CalendarView
 import com.applenotes.ai.presentation.notes_list.components.MorningDigestDialog
 import com.applenotes.ai.presentation.notes_list.components.SynthesisDialog
+import com.applenotes.ai.presentation.notes_list.components.AiHubBottomSheet
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,6 +57,8 @@ fun NotesListScreen(
 
     var isCreatingFolder by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
+    var isMoreMenuExpanded by remember { mutableStateOf(false) }
+    var isAiHubSheetVisible by remember { mutableStateOf(false) }
 
     val pinnedNotes = remember(uiState.notes) { uiState.notes.filter { it.isPinned } }
     val unpinnedNotes = remember(uiState.notes) { uiState.notes.filter { !it.isPinned } }
@@ -245,91 +249,6 @@ fun NotesListScreen(
                                     )
                                 }
                             } else {
-                                // View Mode Switcher (List -> Gallery -> Kanban -> Calendar)
-                                IconButton(
-                                    onClick = viewModel::toggleGridView,
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
-                                ) {
-                                    Icon(
-                                        imageVector = when (uiState.viewMode) {
-                                            ViewMode.LIST -> Icons.Default.ViewAgenda
-                                            ViewMode.GALLERY -> Icons.Default.GridView
-                                            ViewMode.KANBAN -> Icons.Default.ViewWeek
-                                            ViewMode.CALENDAR -> Icons.Default.CalendarMonth
-                                        },
-                                        contentDescription = "Görünüm Değiştir",
-                                        tint = if (uiState.viewMode != ViewMode.LIST) AppleYellow else textSecondary,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
-                                // Interactive Knowledge Graph
-                                IconButton(
-                                    onClick = { viewModel.setGraphDialogOpen(true) },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AccountTree,
-                                        contentDescription = "Ağ Görünümü (Graph)",
-                                        tint = textSecondary,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
-                                // Templates Library
-                                IconButton(
-                                    onClick = { viewModel.setTemplateSheetOpen(true) },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PostAdd,
-                                        contentDescription = "Şablonlar",
-                                        tint = textSecondary,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
-                                // Morning Digest (Sabah Brifingi)
-                                IconButton(
-                                    onClick = { viewModel.openMorningDigest() },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.WbSunny,
-                                        contentDescription = "Sabah Brifingi",
-                                        tint = AppleYellow,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
-                                // Global AI Chat
-                                IconButton(
-                                    onClick = { viewModel.setGlobalAiChatVisible(true) },
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(RoundedCornerShape(10.dp))
-                                        .background(AppleYellow.copy(alpha = 0.15f))
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Psychology,
-                                        contentDescription = "Global AI Asistan",
-                                        tint = AppleYellow,
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-
                                 // Select button
                                 if (uiState.notes.isNotEmpty()) {
                                     TextButton(
@@ -344,6 +263,63 @@ fun NotesListScreen(
                                         )
                                     }
                                 }
+
+                                // More Menu (Dropdown for Graph, Templates, New Folder, Settings)
+                                Box {
+                                    IconButton(
+                                        onClick = { isMoreMenuExpanded = true },
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .clip(CircleShape)
+                                            .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.MoreHoriz,
+                                            contentDescription = "Daha Fazla",
+                                            tint = AppleYellow,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = isMoreMenuExpanded,
+                                        onDismissRequest = { isMoreMenuExpanded = false },
+                                        modifier = Modifier.background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Ağ Görünümü (Graph)") },
+                                            leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.setGraphDialogOpen(true)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Şablonlar") },
+                                            leadingIcon = { Icon(Icons.Default.PostAdd, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.setTemplateSheetOpen(true)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Yeni Klasör") },
+                                            leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                isCreatingFolder = true
+                                            }
+                                        )
+                                        HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
+                                        DropdownMenuItem(
+                                            text = { Text("Ayarlar") },
+                                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                onSettingsClick()
+                                            }
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -355,11 +331,57 @@ fun NotesListScreen(
                     )
                 }
 
+                // Apple Intelligence Smart Pill Header (Digest, Global AI, Synthesis Hub)
+                if (!uiState.isSelectionMode && uiState.selectedFolderId == null) {
+                    item {
+                        AiSmartPillHeader(
+                            onClick = { isAiHubSheetVisible = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        )
+                    }
+                }
+
                 item {
                     CupertinoSearchBar(
                         query = uiState.searchQuery,
                         onQueryChange = viewModel::onSearchQueryChange,
                         onCancel = { viewModel.onSearchQueryChange("") }
+                    )
+                }
+
+                // Emil Kowalski Segmented Control for View Modes
+                item {
+                    val segmentItems = remember {
+                        listOf(
+                            SegmentItem("Liste", Icons.Default.ViewAgenda),
+                            SegmentItem("Galeri", Icons.Default.GridView),
+                            SegmentItem("Pano", Icons.Default.ViewWeek),
+                            SegmentItem("Takvim", Icons.Default.CalendarMonth)
+                        )
+                    }
+                    val currentTab = when (uiState.viewMode) {
+                        ViewMode.LIST -> 0
+                        ViewMode.GALLERY -> 1
+                        ViewMode.KANBAN -> 2
+                        ViewMode.CALENDAR -> 3
+                    }
+                    AppleSegmentedControl(
+                        items = segmentItems,
+                        selectedIndex = currentTab,
+                        onIndexSelected = { index ->
+                            val targetMode = when (index) {
+                                0 -> ViewMode.LIST
+                                1 -> ViewMode.GALLERY
+                                2 -> ViewMode.KANBAN
+                                else -> ViewMode.CALENDAR
+                            }
+                            viewModel.setViewMode(targetMode)
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 4.dp)
                     )
                 }
 
@@ -950,6 +972,22 @@ fun NotesListScreen(
             onDismiss = viewModel::closeSynthesis,
             onSaveAsNote = { title, content ->
                 viewModel.saveReportAsNote(title, content, onNoteClick)
+            }
+        )
+    }
+
+    // Apple Intelligence Hub Bottom Sheet
+    if (isAiHubSheetVisible) {
+        AiHubBottomSheet(
+            onDismiss = { isAiHubSheetVisible = false },
+            onMorningDigestClick = { viewModel.openMorningDigest() },
+            onGlobalAiChatClick = { viewModel.setGlobalAiChatVisible(true) },
+            onSynthesisClick = {
+                if (uiState.selectedNoteIds.isNotEmpty()) {
+                    viewModel.openSynthesis()
+                } else {
+                    viewModel.setSelectionMode(true)
+                }
             }
         )
     }

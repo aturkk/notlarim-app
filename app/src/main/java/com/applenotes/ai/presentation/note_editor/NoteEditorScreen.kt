@@ -45,6 +45,7 @@ import com.applenotes.ai.presentation.note_editor.components.VersionHistoryBotto
 import com.applenotes.ai.presentation.note_editor.components.ZenFocusModeDialog
 import com.applenotes.ai.presentation.note_editor.components.PomodoroTimerDialog
 import com.applenotes.ai.presentation.note_editor.components.AiResultPreviewDialog
+import com.applenotes.ai.presentation.note_editor.components.EditorAttachmentBottomSheet
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -68,6 +69,8 @@ fun NoteEditorScreen(
 
     val audioHelper = remember { AudioRecorderHelper(context) }
     var isShareSheetOpen by remember { mutableStateOf(false) }
+    var isMoreMenuOpen by remember { mutableStateOf(false) }
+    var isAttachmentSheetOpen by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -153,77 +156,92 @@ fun NoteEditorScreen(
                             tint = if (uiState.canRedo) AppleYellow else textSecondary.copy(alpha = 0.35f)
                         )
                     }
-                    IconButton(onClick = { viewModel.setChatSheetVisible(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.ChatBubbleOutline,
-                            contentDescription = "Notla Sohbet Et",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = viewModel::toggleLock) {
-                        Icon(
-                            imageVector = if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = "Kilitle",
-                            tint = if (uiState.isLocked) AppleYellow else textSecondary
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setDrawingDialogOpen(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.Brush,
-                            contentDescription = "Çizim Ekle",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = viewModel::togglePin) {
-                        Icon(
-                            imageVector = Icons.Default.PushPin,
-                            contentDescription = "Sabitle",
-                            tint = if (uiState.isPinned) AppleYellow else textSecondary
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setPomodoroOpen(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.Timer,
-                            contentDescription = "Pomodoro Odak Zamanlayıcısı",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setZenModeOpen(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.SelfImprovement,
-                            contentDescription = "Zen Daktilo Modu",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setTocSheetVisible(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.FormatListNumbered,
-                            contentDescription = "İçindekiler Tablosu",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = { viewModel.setMarkdownPreviewVisible(true) }) {
-                        Icon(
-                            imageVector = Icons.Default.Visibility,
-                            contentDescription = "Görsel Önizleme",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = { isShareSheetOpen = true }) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Paylaş ve Dışa Aktar",
-                            tint = AppleYellow
-                        )
-                    }
-                    IconButton(onClick = {
-                        viewModel.deleteCurrentNote(onBack)
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Sil",
-                            tint = iOSRed
-                        )
+
+                    // Overflow More Menu (iOS ⋯ style)
+                    Box {
+                        IconButton(
+                            onClick = { isMoreMenuOpen = true },
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreHoriz,
+                                contentDescription = "Daha Fazla İşlem",
+                                tint = AppleYellow,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = isMoreMenuOpen,
+                            onDismissRequest = { isMoreMenuOpen = false },
+                            modifier = Modifier.background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Paylaş ve Dışa Aktar") },
+                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = AppleYellow) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    isShareSheetOpen = true
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (uiState.isPinned) "Sabitlemeyi Kaldır" else "Başa Sabitle") },
+                                leadingIcon = { Icon(Icons.Default.PushPin, contentDescription = null, tint = if (uiState.isPinned) AppleYellow else textSecondary) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.togglePin()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(if (uiState.isLocked) "Notun Kilidini Aç" else "Notu Kilitle") },
+                                leadingIcon = { Icon(if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = null, tint = if (uiState.isLocked) AppleYellow else textSecondary) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.toggleLock()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Notla Sohbet Et") },
+                                leadingIcon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, tint = AppleYellow) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.setChatSheetVisible(true)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("İçindekiler Tablosu") },
+                                leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = textSecondary) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.setTocSheetVisible(true)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Pomodoro Odak Zamanlayıcısı") },
+                                leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, tint = AppleYellow) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.setPomodoroOpen(true)
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Zen Daktilo Modu") },
+                                leadingIcon = { Icon(Icons.Default.SelfImprovement, contentDescription = null, tint = AppleYellow) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.setZenModeOpen(true)
+                                }
+                            )
+                            HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
+                            DropdownMenuItem(
+                                text = { Text("Notu Sil", color = iOSRed) },
+                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = iOSRed) },
+                                onClick = {
+                                    isMoreMenuOpen = false
+                                    viewModel.deleteCurrentNote(onBack)
+                                }
+                            )
+                        }
                     }
                 }
             )
@@ -276,6 +294,19 @@ fun NoteEditorScreen(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                // "＋" Insert / Attachment Picker
+                                IconButton(
+                                    onClick = { isAttachmentSheetOpen = true },
+                                    modifier = Modifier.size(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Ekle",
+                                        tint = AppleYellow,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+
                                 // "Aa" Format bar toggle
                                 IconButton(
                                     onClick = viewModel::toggleFormatBar,
@@ -286,19 +317,6 @@ fun NoteEditorScreen(
                                         fontWeight = FontWeight.ExtraBold,
                                         fontSize = 17.sp,
                                         color = if (uiState.isFormatBarVisible) AppleYellow else textSecondary
-                                    )
-                                }
-
-                                // Notion Slash Block command shortcut
-                                IconButton(
-                                    onClick = { viewModel.setSlashMenuVisible(true) },
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Text(
-                                        text = "/",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 20.sp,
-                                        color = AppleYellow
                                     )
                                 }
 
@@ -315,89 +333,74 @@ fun NoteEditorScreen(
                                     )
                                 }
 
-                                // Camera / Document Scan OCR shortcut
+                                // Markdown visual preview toggle
                                 IconButton(
-                                    onClick = { photoPickerLauncher.launch("image/*") },
+                                    onClick = { viewModel.setMarkdownPreviewVisible(true) },
                                     modifier = Modifier.size(38.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.PhotoCamera,
-                                        contentDescription = "Belge veya Görsel Tara",
-                                        tint = textSecondary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
-
-                                // Drawing quick shortcut
-                                IconButton(
-                                    onClick = { viewModel.setDrawingDialogOpen(true) },
-                                    modifier = Modifier.size(38.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Brush,
-                                        contentDescription = "Çizim Ekle",
+                                        imageVector = Icons.Default.Visibility,
+                                        contentDescription = "Görsel Önizleme",
                                         tint = textSecondary,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
-
-                                // Audio Voice Memo shortcut
-                                IconButton(
-                                    onClick = {
-                                        if (uiState.isRecordingAudio) {
-                                            val path = audioHelper.stopRecording()
-                                            viewModel.setAudioRecording(false)
-                                            if (path != null) {
-                                                viewModel.setAudioPath(path)
-                                            }
-                                        } else {
-                                            val hasPermission = ContextCompat.checkSelfPermission(
-                                                context,
-                                                Manifest.permission.RECORD_AUDIO
-                                            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
-                                            if (hasPermission) {
-                                                viewModel.setAudioRecording(true)
-                                                audioHelper.startRecording()
-                                            } else {
-                                                audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-                                            }
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .size(38.dp)
-                                        .clip(CircleShape)
-                                        .background(if (uiState.isRecordingAudio) iOSRed.copy(alpha = 0.15f) else Color.Transparent)
-                                ) {
-                                    Icon(
-                                        imageVector = if (uiState.isRecordingAudio) Icons.Default.Stop else Icons.Default.Mic,
-                                        contentDescription = if (uiState.isRecordingAudio) "Kaydı Bitir" else "Ses Kaydet",
-                                        tint = if (uiState.isRecordingAudio) iOSRed else textSecondary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
                             }
 
-                            // AI Assistant Button
-                            Button(
-                                onClick = { viewModel.setAiSheetVisible(true) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = AppleYellow,
-                                    contentColor = Color.White
-                                ),
-                                shape = RoundedCornerShape(16.dp),
-                                contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = "Yapay Zeka",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
-                                    fontWeight = FontWeight.Bold
-                                )
+                            // Right Side: Recording status or AI Assistant button
+                            if (uiState.isRecordingAudio) {
+                                Surface(
+                                    shape = RoundedCornerShape(16.dp),
+                                    color = iOSRed.copy(alpha = 0.15f),
+                                    modifier = Modifier.clickable {
+                                        val path = audioHelper.stopRecording()
+                                        viewModel.setAudioRecording(false)
+                                        if (path != null) {
+                                            viewModel.setAudioPath(path)
+                                        }
+                                    }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Stop,
+                                            contentDescription = "Durdur",
+                                            tint = iOSRed,
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Kaydı Bitir",
+                                            color = iOSRed,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = { viewModel.setAiSheetVisible(true) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = AppleYellow,
+                                        contentColor = Color.White
+                                    ),
+                                    shape = RoundedCornerShape(16.dp),
+                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "Yapay Zeka",
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
                         }
                     }
@@ -1050,6 +1053,36 @@ fun NoteEditorScreen(
                 }
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Editor Attachment Bottom Sheet
+    if (isAttachmentSheetOpen) {
+        EditorAttachmentBottomSheet(
+            onDismiss = { isAttachmentSheetOpen = false },
+            onScanDocumentClick = { photoPickerLauncher.launch("image/*") },
+            onDrawingClick = { viewModel.setDrawingDialogOpen(true) },
+            onVoiceRecordClick = {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.RECORD_AUDIO
+                ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                if (hasPermission) {
+                    viewModel.setAudioRecording(true)
+                    audioHelper.startRecording()
+                } else {
+                    audioPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                }
+            },
+            onInsertTableClick = {
+                viewModel.insertMarkdown("\n| Başlık 1 | Başlık 2 |\n|---|---|\n| Değer 1 | Değer 2 |\n", "")
+            },
+            onInsertFormulaClick = {
+                viewModel.insertMarkdown("$$ ", " $$")
+            },
+            onSlashMenuClick = {
+                viewModel.setSlashMenuVisible(true)
+            }
         )
     }
 

@@ -39,7 +39,7 @@ fun PagePropertiesBar(
     var isPriorityMenuOpen by remember { mutableStateOf(false) }
     var isStatusMenuOpen by remember { mutableStateOf(false) }
     var isProgressSliderOpen by remember { mutableStateOf(false) }
-    var isExpanded by remember { mutableStateOf(true) }
+    var isExpanded by remember { mutableStateOf(false) }
 
     // Calculate auto checklist progress if checklists exist
     val checklistStats = remember(noteContent) {
@@ -56,8 +56,8 @@ fun PagePropertiesBar(
         color = cardBg,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
-            // Title Header with Collapse Toggle
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
+            // Title Header with Collapse Toggle & Inline Preview Chips
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -65,20 +65,68 @@ fun PagePropertiesBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Tune,
                         contentDescription = null,
                         tint = AppleYellow,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(15.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = "Sayfa Özellikleri",
+                        text = "Özellikler",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
                     )
+
+                    // Inline preview when collapsed
+                    if (!isExpanded) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            if (priority != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = when (priority) {
+                                        "HIGH" -> iOSRed.copy(alpha = 0.15f)
+                                        "MEDIUM" -> AppleYellow.copy(alpha = 0.15f)
+                                        else -> Color(0xFF34C759).copy(alpha = 0.15f)
+                                    }
+                                ) {
+                                    Text(
+                                        text = when (priority) {
+                                            "HIGH" -> "🔴 Acil"
+                                            "MEDIUM" -> "🟡 Normal"
+                                            else -> "🟢 Düşük"
+                                        },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            if (status != null) {
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isDark) Color(0xFF3A3A3C) else Color(0xFFE5E5EA)
+                                ) {
+                                    Text(
+                                        text = when (status) {
+                                            "NOT_STARTED" -> "⚪ Başlanmadı"
+                                            "IN_PROGRESS" -> "🔵 Sürüyor"
+                                            else -> "🟢 Tamamlandı"
+                                        },
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
