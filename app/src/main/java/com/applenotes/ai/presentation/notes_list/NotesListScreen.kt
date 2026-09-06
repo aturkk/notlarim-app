@@ -486,23 +486,98 @@ fun NotesListScreen(
                     )
                 }
 
-                if (allTags.isNotEmpty() && uiState.searchQuery.isEmpty()) {
+                if (uiState.searchQuery.isEmpty()) {
                     item {
                         LazyRow(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
+                            // "Tümü" (All) Chip
+                            val isAllSelected = uiState.selectedSmartFolder == null && uiState.selectedTag == null && uiState.selectedFolderId == null
+                            item {
+                                FilterChip(
+                                    selected = isAllSelected,
+                                    onClick = {
+                                        haptic.tick()
+                                        if (uiState.selectedSmartFolder != null) viewModel.onSelectSmartFolder(null)
+                                        if (uiState.selectedTag != null) viewModel.onSelectTag(null)
+                                        if (uiState.selectedFolderId != null) viewModel.onSelectFolder(null)
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "Tümü",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isAllSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppleYellow,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+                                    ),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            }
+
+                            // Smart Folder Quick Filters
+                            val quickSmartFolders = listOf(
+                                SmartFolder.PINNED,
+                                SmartFolder.REMINDERS,
+                                SmartFolder.URGENT,
+                                SmartFolder.ATTACHMENTS,
+                                SmartFolder.LOCKED
+                            )
+                            items(quickSmartFolders) { sf ->
+                                val isSelected = uiState.selectedSmartFolder == sf
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = {
+                                        haptic.tick()
+                                        if (isSelected) {
+                                            viewModel.onSelectSmartFolder(null)
+                                        } else {
+                                            viewModel.onSelectSmartFolder(sf)
+                                        }
+                                    },
+                                    label = {
+                                        Text(
+                                            text = "${sf.icon} ${sf.title}",
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppleYellow,
+                                        selectedLabelColor = Color.White,
+                                        containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+                                    ),
+                                    shape = RoundedCornerShape(16.dp)
+                                )
+                            }
+
+                            // Tags Quick Filters
                             items(allTags) { tag ->
                                 val isSelected = uiState.selectedTag == tag
                                 FilterChip(
                                     selected = isSelected,
-                                    onClick = { viewModel.onSelectTag(tag) },
+                                    onClick = {
+                                        haptic.tick()
+                                        viewModel.onSelectTag(tag)
+                                    },
                                     label = {
                                         Text(
                                             text = "#$tag",
-                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp)
+                                            style = MaterialTheme.typography.labelSmall.copy(
+                                                fontSize = 12.sp,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                            )
                                         )
                                     },
                                     colors = FilterChipDefaults.filterChipColors(

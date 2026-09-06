@@ -1,12 +1,9 @@
 package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -16,6 +13,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.applenotes.ai.core.components.bouncyClickable
@@ -54,212 +52,193 @@ fun EditorAttachmentBottomSheet(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 36.dp)
+                .padding(bottom = 32.dp)
         ) {
-            Text(
-                text = "Nota Ekle",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp
-                ),
-                color = textPrimary,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-
-            AttachmentItemCard(
-                icon = Icons.Default.Link,
-                iconTint = Color(0xFF007AFF),
-                iconBg = Color(0xFF007AFF).copy(alpha = 0.14f),
-                title = "Not Bağlantısı Ekle ([[...]])",
-                subtitle = "Mevcut başka bir notunuza çift yönlü bağlantı kurun",
-                onClick = {
-                    onDismiss()
-                    onAddWikiLinkClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.Collections,
-                iconTint = Color(0xFF34C759),
-                iconBg = Color(0xFF34C759).copy(alpha = 0.14f),
-                title = "Görseller Ekle (Galeri & Lightbox)",
-                subtitle = "Galeriden tek veya çoklu fotoğraf ekleyin",
-                onClick = {
-                    onDismiss()
-                    onAddImagesClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.PictureAsPdf,
-                iconTint = Color(0xFFFF3B30),
-                iconBg = Color(0xFFFF3B30).copy(alpha = 0.14f),
-                title = "PDF Belgesi İliştir & Oku",
-                subtitle = "Uygulama içi yerel okuyucu ile PDF bağlayın",
-                onClick = {
-                    onDismiss()
-                    onAddPdfClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.PhotoCamera,
-                iconTint = Color(0xFF007AFF),
-                iconBg = Color(0xFF007AFF).copy(alpha = 0.14f),
-                title = "Belge & Görsel Tara (OCR)",
-                subtitle = "Fotoğraf yükleyin veya yapay zeka ile metne dönüştürün",
-                onClick = {
-                    onDismiss()
-                    onScanDocumentClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.Brush,
-                iconTint = Color(0xFFFF9500),
-                iconBg = Color(0xFFFF9500).copy(alpha = 0.14f),
-                title = "Çizim Ekle",
-                subtitle = "Serbest çizim, el yazısı veya şema tuvali",
-                onClick = {
-                    onDismiss()
-                    onDrawingClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.Mic,
-                iconTint = Color(0xFFFF3B30),
-                iconBg = Color(0xFFFF3B30).copy(alpha = 0.14f),
-                title = "Sesli Not Kaydet",
-                subtitle = "Ses kaydı başlatın, zaman damgası ekleyin",
-                onClick = {
-                    onDismiss()
-                    onVoiceRecordClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.TableChart,
-                iconTint = Color(0xFF34C759),
-                iconBg = Color(0xFF34C759).copy(alpha = 0.14f),
-                title = "Etkileşimli Tablo Oluştur",
-                subtitle = "Satır/sütun düzenleyici ile görsel Markdown tablosu",
-                onClick = {
-                    onDismiss()
-                    onInsertTableClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.Code,
-                iconTint = Color(0xFFAF52DE),
-                iconBg = Color(0xFFAF52DE).copy(alpha = 0.14f),
-                title = "Matematik Formülü / Kod Bloğu",
-                subtitle = "LaTeX formül veya syntax kod bloğu",
-                onClick = {
-                    onDismiss()
-                    onInsertFormulaClick()
-                }
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            AttachmentItemCard(
-                icon = Icons.Default.MenuBook,
-                iconTint = AppleYellow,
-                iconBg = AppleYellow.copy(alpha = 0.14f),
-                title = "Notion Blok Komutları (/)",
-                subtitle = "Başlıklar, alıntılar, kutular ve ayırıcılar ekleyin",
-                onClick = {
-                    onDismiss()
-                    onSlashMenuClick()
-                }
-            )
-        }
-    }
-}
-
-@Composable
-private fun AttachmentItemCard(
-    icon: ImageVector,
-    iconTint: Color,
-    iconBg: Color,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit
-) {
-    val isDark = isAppDarkTheme()
-    val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
-    val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
-    val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
-
-    Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = cardBg,
-        modifier = Modifier
-            .fillMaxWidth()
-            .bouncyClickable(pressedScale = 0.97f, onClick = onClick)
-    ) {
-        Row(
-            modifier = Modifier
-                .border(
-                    width = 0.5.dp,
-                    color = if (isDark) Color(0xFF38383A) else Color(0xFFE5E5EA),
-                    shape = RoundedCornerShape(14.dp)
-                )
-                .padding(horizontal = 14.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+            Row(
                 modifier = Modifier
-                    .size(38.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(iconBg),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(bottom = 18.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = iconTint,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                    text = "Nota Ekle",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.3).sp
+                    ),
                     color = textPrimary
                 )
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                    text = "9 Araç",
+                    style = MaterialTheme.typography.bodySmall,
                     color = textSecondary
                 )
             }
 
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = textSecondary.copy(alpha = 0.5f),
-                modifier = Modifier.size(16.dp)
+            // 3x3 Apple Action Grid
+            val items = listOf(
+                GridAttachmentItem(
+                    icon = Icons.Default.Collections,
+                    iconBg = Color(0xFF34C759),
+                    title = "Fotoğraflar",
+                    subtitle = "Galeri",
+                    onClick = { onDismiss(); onAddImagesClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.PictureAsPdf,
+                    iconBg = Color(0xFFFF3B30),
+                    title = "PDF Belgesi",
+                    subtitle = "İliştir & Oku",
+                    onClick = { onDismiss(); onAddPdfClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.Brush,
+                    iconBg = Color(0xFFFF9500),
+                    title = "Çizim Tuvali",
+                    subtitle = "El Yazısı / Şema",
+                    onClick = { onDismiss(); onDrawingClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.Mic,
+                    iconBg = Color(0xFFFF2D55),
+                    title = "Ses Kaydı",
+                    subtitle = "Canlı Dalga",
+                    onClick = { onDismiss(); onVoiceRecordClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.TableChart,
+                    iconBg = Color(0xFF007AFF),
+                    title = "Tablo",
+                    subtitle = "Markdown Editör",
+                    onClick = { onDismiss(); onInsertTableClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.Link,
+                    iconBg = Color(0xFF5856D6),
+                    title = "Not Linki",
+                    subtitle = "[[Wiki-Bağlantı]]",
+                    onClick = { onDismiss(); onAddWikiLinkClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.PhotoCamera,
+                    iconBg = Color(0xFF00C7BE),
+                    title = "Metin Tara",
+                    subtitle = "Görsel OCR",
+                    onClick = { onDismiss(); onScanDocumentClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.Code,
+                    iconBg = Color(0xFFAF52DE),
+                    title = "Formül / Kod",
+                    subtitle = "KaTeX Matematik",
+                    onClick = { onDismiss(); onInsertFormulaClick() }
+                ),
+                GridAttachmentItem(
+                    icon = Icons.Default.MenuBook,
+                    iconBg = AppleYellow,
+                    title = "Blok Menüsü",
+                    subtitle = "/ Komutları",
+                    onClick = { onDismiss(); onSlashMenuClick() }
+                )
+            )
+
+            // Render 3 items per row
+            for (rowIndex in items.indices step 3) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    for (colIndex in 0..2) {
+                        val itemIndex = rowIndex + colIndex
+                        if (itemIndex < items.size) {
+                            val item = items[itemIndex]
+                            Box(modifier = Modifier.weight(1f)) {
+                                AttachmentGridTile(
+                                    item = item,
+                                    textPrimary = textPrimary,
+                                    textSecondary = textSecondary,
+                                    isDark = isDark
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class GridAttachmentItem(
+    val icon: ImageVector,
+    val iconBg: Color,
+    val title: String,
+    val subtitle: String,
+    val onClick: () -> Unit
+)
+
+@Composable
+private fun AttachmentGridTile(
+    item: GridAttachmentItem,
+    textPrimary: Color,
+    textSecondary: Color,
+    isDark: Boolean
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7),
+        modifier = Modifier
+            .fillMaxWidth()
+            .bouncyClickable(pressedScale = 0.94f, onClick = item.onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp, horizontal = 6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(46.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(item.iconBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.icon,
+                    contentDescription = item.title,
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 12.sp
+                ),
+                color = textPrimary,
+                textAlign = TextAlign.Center,
+                maxLines = 1
+            )
+
+            Text(
+                text = item.subtitle,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontSize = 10.sp
+                ),
+                color = textSecondary,
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
         }
     }
 }
+

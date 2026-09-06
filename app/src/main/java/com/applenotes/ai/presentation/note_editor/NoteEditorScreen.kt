@@ -449,108 +449,260 @@ fun NoteEditorScreen(
             }
         },
         bottomBar = {
-            Column(
+            Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
+                color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                tonalElevation = 0.dp
             ) {
-                AnimatedVisibility(visible = uiState.isFormatBarVisible) {
-                    CupertinoFormatBar(
-                        canUndo = uiState.canUndo,
-                        canRedo = uiState.canRedo,
-                        onUndo = { haptic.selection(); viewModel.undo() },
-                        onRedo = { haptic.selection(); viewModel.redo() },
-                        onBoldClick = { haptic.selection(); viewModel.insertMarkdown("**", "**") },
-                        onItalicClick = { haptic.selection(); viewModel.insertMarkdown("*", "*") },
-                        onStrikeClick = { haptic.selection(); viewModel.insertMarkdown("~~", "~~") },
-                        onH1Click = { haptic.selection(); viewModel.applyHeader(1) },
-                        onH2Click = { haptic.selection(); viewModel.applyHeader(2) },
-                        onChecklistClick = { haptic.tick(); viewModel.applyChecklist() },
-                        onBulletClick = { haptic.selection(); viewModel.applyBulletList() },
-                        onNumberedClick = { haptic.selection(); viewModel.applyNumberedList() },
-                        onQuoteClick = { haptic.selection(); viewModel.applyQuote() },
-                        onCodeClick = { haptic.selection(); viewModel.applyCodeBlock() },
-                        onLinkClick = { haptic.selection(); viewModel.insertMarkdown("[[", "]]") }
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    HorizontalDivider(
+                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                        thickness = 0.5.dp
                     )
-                }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .padding(horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Left Fixed Action: Attachment Sheet "+"
+                        IconButton(
+                            onClick = {
+                                haptic.tick()
+                                isAttachmentSheetOpen = true
+                            },
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Ekle",
+                                tint = AppleYellow,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
 
-                Surface(
-                    color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
-                    tonalElevation = 0.dp
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        HorizontalDivider(
-                            color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
-                            thickness = 0.5.dp
-                        )
+                        // Format bar toggle "Aa"
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (uiState.isFormatBarVisible) AppleYellow.copy(alpha = 0.18f) else Color.Transparent,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    haptic.selection()
+                                    viewModel.toggleFormatBar()
+                                }
+                        ) {
+                            Box(
+                                modifier = Modifier.size(38.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Aa",
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 17.sp,
+                                    color = if (uiState.isFormatBarVisible) AppleYellow else textSecondary
+                                )
+                            }
+                        }
+
+                        // Middle: Scrollable tools depending on format bar state
                         Row(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(50.dp)
-                                .padding(horizontal = 12.dp),
+                                .weight(1f)
+                                .horizontalScroll(rememberScrollState())
+                                .padding(horizontal = 4.dp),
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            horizontalArrangement = Arrangement.spacedBy(2.dp)
                         ) {
-                            // Quick Action Icons (Apple Notes Style)
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // "＋" Insert / Attachment Picker
+                            if (uiState.isFormatBarVisible) {
+                                // Undo / Redo
                                 IconButton(
-                                    onClick = {
-                                        haptic.tick()
-                                        isAttachmentSheetOpen = true
-                                    },
-                                    modifier = Modifier.size(38.dp)
+                                    onClick = { haptic.selection(); viewModel.undo() },
+                                    enabled = uiState.canUndo,
+                                    modifier = Modifier.size(34.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Ekle",
-                                        tint = AppleYellow,
-                                        modifier = Modifier.size(24.dp)
+                                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                                        contentDescription = "Geri Al",
+                                        tint = if (uiState.canUndo) AppleYellow else textSecondary.copy(alpha = 0.35f),
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
-
-                                // "Aa" Format bar toggle
                                 IconButton(
-                                    onClick = {
-                                        haptic.selection()
-                                        viewModel.toggleFormatBar()
-                                    },
-                                    modifier = Modifier.size(38.dp)
+                                    onClick = { haptic.selection(); viewModel.redo() },
+                                    enabled = uiState.canRedo,
+                                    modifier = Modifier.size(34.dp)
                                 ) {
-                                    Text(
-                                        text = "Aa",
-                                        fontWeight = FontWeight.ExtraBold,
-                                        fontSize = 17.sp,
-                                        color = if (uiState.isFormatBarVisible) AppleYellow else textSecondary
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Redo,
+                                        contentDescription = "İleri Al",
+                                        tint = if (uiState.canRedo) AppleYellow else textSecondary.copy(alpha = 0.35f),
+                                        modifier = Modifier.size(18.dp)
                                     )
                                 }
 
-                                // Checklist quick shortcut
+                                VerticalDivider(
+                                    modifier = Modifier
+                                        .height(20.dp)
+                                        .padding(horizontal = 2.dp),
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight
+                                )
+
+                                // Headers H1 / H2
+                                TextButton(
+                                    onClick = { haptic.selection(); viewModel.applyHeader(1) },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("H1", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AppleYellow)
+                                }
+                                TextButton(
+                                    onClick = { haptic.selection(); viewModel.applyHeader(2) },
+                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text("H2", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = AppleYellow)
+                                }
+
+                                VerticalDivider(
+                                    modifier = Modifier
+                                        .height(20.dp)
+                                        .padding(horizontal = 2.dp),
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight
+                                )
+
+                                // Bold / Italic / Strikethrough
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.insertMarkdown("**", "**") },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.FormatBold, contentDescription = "Kalın", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.insertMarkdown("*", "*") },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.FormatItalic, contentDescription = "İtalik", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.insertMarkdown("~~", "~~") },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.FormatStrikethrough, contentDescription = "Üstü Çizili", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+
+                                VerticalDivider(
+                                    modifier = Modifier
+                                        .height(20.dp)
+                                        .padding(horizontal = 2.dp),
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight
+                                )
+
+                                // Lists: Checklist / Bullet / Numbered
+                                IconButton(
+                                    onClick = { haptic.tick(); viewModel.applyChecklist() },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.CheckBox, contentDescription = "Kontrol Listesi", tint = AppleYellow, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.applyBulletList() },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.AutoMirrored.Filled.FormatListBulleted, contentDescription = "Madde İmli", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.applyNumberedList() },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.FormatListNumbered, contentDescription = "Numaralı", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+
+                                VerticalDivider(
+                                    modifier = Modifier
+                                        .height(20.dp)
+                                        .padding(horizontal = 2.dp),
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight
+                                )
+
+                                // Quote / Code / Link
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.applyQuote() },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.FormatQuote, contentDescription = "Alıntı", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.applyCodeBlock() },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.Code, contentDescription = "Kod", tint = textSecondary, modifier = Modifier.size(18.dp))
+                                }
+                                IconButton(
+                                    onClick = { haptic.selection(); viewModel.insertMarkdown("[[", "]]") },
+                                    modifier = Modifier.size(34.dp)
+                                ) {
+                                    Icon(Icons.Default.Link, contentDescription = "Not Bağlantısı", tint = AppleYellow, modifier = Modifier.size(18.dp))
+                                }
+                            } else {
+                                // Default Quick Actions when formatting bar is closed
                                 IconButton(
                                     onClick = {
                                         haptic.tick()
                                         viewModel.applyChecklist()
                                     },
-                                    modifier = Modifier.size(38.dp)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.CheckBox,
                                         contentDescription = "Kontrol Listesi",
                                         tint = textSecondary,
-                                        modifier = Modifier.size(22.dp)
+                                        modifier = Modifier.size(20.dp)
                                     )
                                 }
 
-                                // Markdown visual preview toggle
+                                IconButton(
+                                    onClick = {
+                                        haptic.selection()
+                                        viewModel.undo()
+                                    },
+                                    enabled = uiState.canUndo,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Undo,
+                                        contentDescription = "Geri Al",
+                                        tint = if (uiState.canUndo) textSecondary else textSecondary.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = {
+                                        haptic.selection()
+                                        viewModel.redo()
+                                    },
+                                    enabled = uiState.canRedo,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.Redo,
+                                        contentDescription = "İleri Al",
+                                        tint = if (uiState.canRedo) textSecondary else textSecondary.copy(alpha = 0.3f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
                                 IconButton(
                                     onClick = {
                                         haptic.tick()
                                         viewModel.setMarkdownPreviewVisible(true)
                                     },
-                                    modifier = Modifier.size(38.dp)
+                                    modifier = Modifier.size(36.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Visibility,
@@ -560,46 +712,63 @@ fun NoteEditorScreen(
                                     )
                                 }
                             }
+                        }
 
-                            // Right Side: Recording status or AI Assistant button
-                            if (uiState.isRecordingAudio) {
-                                Surface(
-                                    shape = RoundedCornerShape(16.dp),
-                                    color = iOSRed.copy(alpha = 0.15f),
-                                    modifier = Modifier.clickable {
-                                        val path = audioHelper.stopRecording()
-                                        viewModel.setAudioRecording(false)
-                                        if (path != null) {
-                                            viewModel.setAudioPath(path)
-                                        }
+                        // Right Side: Recording status or AI Assistant button
+                        if (uiState.isRecordingAudio) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = iOSRed.copy(alpha = 0.15f),
+                                modifier = Modifier.clickable {
+                                    val path = audioHelper.stopRecording()
+                                    viewModel.setAudioRecording(false)
+                                    if (path != null) {
+                                        viewModel.setAudioPath(path)
                                     }
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Row(
-                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Stop,
-                                            contentDescription = "Durdur",
-                                            tint = iOSRed,
-                                            modifier = Modifier.size(16.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        AudioWaveformVisualizer(
-                                            isRecording = true,
-                                            amplitudeProvider = { audioHelper.getMaxAmplitude() },
-                                            barColor = iOSRed,
-                                            barCount = 8,
-                                            maxHeight = 14.dp
-                                        )
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Text(
-                                            text = "Kaydı Bitir",
-                                            color = iOSRed,
-                                            fontWeight = FontWeight.Bold,
-                                            fontSize = 12.sp
-                                        )
-                                    }
+                                    Icon(
+                                        imageVector = Icons.Default.Stop,
+                                        contentDescription = "Durdur",
+                                        tint = iOSRed,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    AudioWaveformVisualizer(
+                                        isRecording = true,
+                                        amplitudeProvider = { audioHelper.getMaxAmplitude() },
+                                        barColor = iOSRed,
+                                        barCount = 6,
+                                        maxHeight = 12.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "Bitir",
+                                        color = iOSRed,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        } else {
+                            if (uiState.isFormatBarVisible) {
+                                IconButton(
+                                    onClick = { viewModel.setAiSheetVisible(true) },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(AppleYellow)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = "Yapay Zeka",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             } else {
                                 Button(
@@ -609,14 +778,14 @@ fun NoteEditorScreen(
                                         contentColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(16.dp),
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AutoAwesome,
                                         contentDescription = null,
-                                        modifier = Modifier.size(16.dp)
+                                        modifier = Modifier.size(15.dp)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
                                     Text(
                                         text = "Yapay Zeka",
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
@@ -680,53 +849,22 @@ fun NoteEditorScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                 }
 
-                // Action Row: Add Icon / Add Cover / Choose Template
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (uiState.icon != null) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7),
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clickable { viewModel.setIconPickerVisible(true) }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(text = uiState.icon!!, fontSize = 22.sp)
-                            }
-                        }
-                    } else {
-                        TextButton(
-                            onClick = { viewModel.setIconPickerVisible(true) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text("😀 + Simge Ekle", color = textSecondary, fontSize = 12.sp)
-                        }
-                    }
-
-                    if (uiState.coverUrl == null) {
-                        TextButton(
-                            onClick = { viewModel.setCoverPickerVisible(true) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text("🖼️ + Kapak Ekle", color = textSecondary, fontSize = 12.sp)
-                        }
-                    }
-
-                    if (uiState.content.isBlank()) {
-                        TextButton(
-                            onClick = { viewModel.setTemplatePickerVisible(true) },
-                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp)
-                        ) {
-                            Text("✨ Şablon Seç", color = AppleYellow, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                // Icon Badge (if selected)
+                if (uiState.icon != null) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7),
+                        modifier = Modifier
+                            .padding(bottom = 6.dp)
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { viewModel.setIconPickerVisible(true) }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text(text = uiState.icon!!, fontSize = 24.sp)
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(6.dp))
 
                 // Title Field
                 Box(
@@ -752,89 +890,208 @@ fun NoteEditorScreen(
                     )
                 }
 
-                // Reminder Badge Pill
-                uiState.reminderTime?.let { timeMillis ->
-                    val reminderDateStr = remember(timeMillis) {
-                        SimpleDateFormat("d MMMM EEEE, HH:mm", Locale("tr")).format(Date(timeMillis))
-                    }
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = AppleYellow.copy(alpha = 0.12f),
-                        modifier = Modifier
-                            .padding(vertical = 4.dp)
-                            .clickable { isReminderPickerOpen = true }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                Spacer(modifier = Modifier.height(10.dp))
+
+                // Unified Progressive Disclosure Metadata Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Icon Action Chip
+                    if (uiState.icon == null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    viewModel.setIconPickerVisible(true)
+                                }
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.NotificationsActive,
-                                contentDescription = null,
-                                tint = AppleYellowDark,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Hatırlatıcı: $reminderDateStr",
-                                color = AppleYellowDark,
+                                text = "😀 Simge",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.SemiBold
+                                color = textSecondary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            IconButton(
-                                onClick = {
-                                    if (uiState.noteId > 0) {
-                                        reminderScheduler.cancelReminder(uiState.noteId)
-                                    }
-                                    viewModel.updateReminder(null)
-                                },
-                                modifier = Modifier.size(20.dp)
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppleYellow.copy(alpha = 0.15f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    viewModel.setIconPickerVisible(true)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Text(text = "${uiState.icon} Değiştir", fontSize = 12.sp, color = AppleYellowDark, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Simgeyi Kaldır",
+                                    tint = AppleYellowDark,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable {
+                                            haptic.tick()
+                                            viewModel.setIcon(null)
+                                        }
+                                )
+                            }
+                        }
+                    }
+
+                    // Cover Action Chip
+                    if (uiState.coverUrl == null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    viewModel.setCoverPickerVisible(true)
+                                }
+                        ) {
+                            Text(
+                                text = "🖼️ Kapak",
+                                fontSize = 12.sp,
+                                color = textSecondary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    } else {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppleYellow.copy(alpha = 0.15f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    viewModel.setCoverPickerVisible(true)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(text = "🖼️ Kapak", fontSize = 12.sp, color = AppleYellowDark, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Kapağı Kaldır",
+                                    tint = AppleYellowDark,
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable {
+                                            haptic.tick()
+                                            viewModel.setCoverUrl(null)
+                                        }
+                                )
+                            }
+                        }
+                    }
+
+                    // Reminder Chip
+                    if (uiState.reminderTime == null) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    isReminderPickerOpen = true
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsNone,
+                                    contentDescription = null,
+                                    tint = textSecondary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Hatırlatıcı",
+                                    fontSize = 12.sp,
+                                    color = textSecondary
+                                )
+                            }
+                        }
+                    } else {
+                        val reminderDateStr = remember(uiState.reminderTime) {
+                            SimpleDateFormat("d MMM, HH:mm", Locale("tr")).format(Date(uiState.reminderTime!!))
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppleYellow.copy(alpha = 0.18f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    isReminderPickerOpen = true
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsActive,
+                                    contentDescription = null,
+                                    tint = AppleYellowDark,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = reminderDateStr,
+                                    color = AppleYellowDark,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
                                     imageVector = Icons.Default.Close,
                                     contentDescription = "Kaldır",
                                     tint = AppleYellowDark,
-                                    modifier = Modifier.size(14.dp)
+                                    modifier = Modifier
+                                        .size(14.dp)
+                                        .clickable {
+                                            haptic.tick()
+                                            if (uiState.noteId > 0) {
+                                                reminderScheduler.cancelReminder(uiState.noteId)
+                                            }
+                                            viewModel.updateReminder(null)
+                                        }
                                 )
                             }
                         }
                     }
-                }
 
-                if (uiState.tags.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        uiState.tags.forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(12.dp),
-                                color = AppleYellow.copy(alpha = 0.15f)
-                            ) {
-                                Text(
-                                    text = "#$tag",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = AppleYellowDark,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Notion-style Page Properties Bar (Priority, Status, Progress) - Progressive Disclosure
-                val hasPageProperties = uiState.priority != null || uiState.status != null || uiState.progress != null
-                if (!hasPageProperties && !isPropertiesManuallyExpanded) {
-                    Spacer(modifier = Modifier.height(6.dp))
+                    // Properties (Notion Details) Chip
+                    val hasProperties = uiState.priority != null || uiState.status != null || uiState.progress != null
                     Surface(
                         shape = RoundedCornerShape(12.dp),
-                        color = (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.7f),
+                        color = if (hasProperties || isPropertiesManuallyExpanded) AppleYellow.copy(alpha = 0.15f) else (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.8f),
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
                             .clickable {
                                 haptic.tick()
-                                isPropertiesManuallyExpanded = true
+                                isPropertiesManuallyExpanded = !isPropertiesManuallyExpanded
                             }
                     ) {
                         Row(
@@ -844,38 +1101,96 @@ fun NoteEditorScreen(
                             Icon(
                                 imageVector = Icons.Default.Tune,
                                 contentDescription = null,
-                                tint = AppleYellow,
-                                modifier = Modifier.size(15.dp)
+                                tint = if (hasProperties || isPropertiesManuallyExpanded) AppleYellowDark else textSecondary,
+                                modifier = Modifier.size(14.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = "+ Detay Ekle (Öncelik, Durum, İlerleme)",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = textSecondary,
-                                fontWeight = FontWeight.Medium
+                                text = when {
+                                    uiState.priority != null -> "Öncelik: ${uiState.priority}"
+                                    uiState.status != null -> "Durum: ${uiState.status}"
+                                    uiState.progress != null -> "İlerleme: %${uiState.progress}"
+                                    else -> "Detaylar"
+                                },
+                                fontSize = 12.sp,
+                                color = if (hasProperties || isPropertiesManuallyExpanded) AppleYellowDark else textSecondary,
+                                fontWeight = if (hasProperties || isPropertiesManuallyExpanded) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(
+                                imageVector = if (isPropertiesManuallyExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = if (hasProperties || isPropertiesManuallyExpanded) AppleYellowDark else textSecondary,
+                                modifier = Modifier.size(14.dp)
                             )
                         }
                     }
-                } else {
-                    Spacer(modifier = Modifier.height(10.dp))
-                    com.applenotes.ai.presentation.note_editor.components.PagePropertiesBar(
-                        priority = uiState.priority,
-                        status = uiState.status,
-                        progress = uiState.progress,
-                        noteContent = uiState.content,
-                        onPriorityChange = {
-                            haptic.selection()
-                            viewModel.setPriority(it)
-                        },
-                        onStatusChange = {
-                            haptic.selection()
-                            viewModel.setStatus(it)
-                        },
-                        onProgressChange = {
-                            haptic.tick()
-                            viewModel.setProgress(it)
+
+                    // Template Chip (only if content is blank)
+                    if (uiState.content.isBlank()) {
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppleYellow.copy(alpha = 0.15f),
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    viewModel.setTemplatePickerVisible(true)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "✨ Şablon",
+                                    fontSize = 12.sp,
+                                    color = AppleYellowDark,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
-                    )
+                    }
+
+                    // Tags
+                    uiState.tags.forEach { tag ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = AppleYellow.copy(alpha = 0.15f)
+                        ) {
+                            Text(
+                                text = "#$tag",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = AppleYellowDark,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                // Collapsible Page Properties Drawer
+                AnimatedVisibility(visible = isPropertiesManuallyExpanded) {
+                    Column {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        com.applenotes.ai.presentation.note_editor.components.PagePropertiesBar(
+                            priority = uiState.priority,
+                            status = uiState.status,
+                            progress = uiState.progress,
+                            noteContent = uiState.content,
+                            onPriorityChange = {
+                                haptic.selection()
+                                viewModel.setPriority(it)
+                            },
+                            onStatusChange = {
+                                haptic.selection()
+                                viewModel.setStatus(it)
+                            },
+                            onProgressChange = {
+                                haptic.tick()
+                                viewModel.setProgress(it)
+                            }
+                        )
+                    }
                 }
 
                 // Drawing Preview Card
