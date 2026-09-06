@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.core.components
+package com.applenotes.ai.core.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -263,13 +263,16 @@ fun AiSmartPillHeader(
 fun SonnerFloatingToast(
     message: String?,
     onDismiss: () -> Unit,
-    durationMs: Long = 2800L
+    durationMs: Long = 2800L,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null
 ) {
     val isDark = isAppDarkTheme()
+    val effectiveDuration = if (actionLabel != null && onAction != null) 4500L else durationMs
 
     LaunchedEffect(message) {
         if (message != null) {
-            delay(durationMs)
+            delay(effectiveDuration)
             onDismiss()
         }
     }
@@ -299,7 +302,6 @@ fun SonnerFloatingToast(
                 modifier = Modifier
                     .wrapContentSize()
                     .padding(horizontal = 24.dp)
-                    .clickable { onDismiss() }
             ) {
                 Row(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
@@ -309,8 +311,25 @@ fun SonnerFloatingToast(
                         text = message ?: "",
                         color = Color.White,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.clickable { onDismiss() }
                     )
+                    if (actionLabel != null && onAction != null) {
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = actionLabel,
+                            color = AppleYellow,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .clickable {
+                                    onAction()
+                                    onDismiss()
+                                }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
+                        )
+                    }
                 }
             }
         }

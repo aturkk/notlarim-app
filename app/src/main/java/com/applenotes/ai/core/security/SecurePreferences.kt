@@ -238,6 +238,10 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getLong(KEY_LAST_CLOUD_SYNC_TIME, 0L)
         set(value) = sharedPreferences.edit().putLong(KEY_LAST_CLOUD_SYNC_TIME, value).apply()
 
+    var hasSeededWelcomeNote: Boolean
+        get() = sharedPreferences.getBoolean(KEY_HAS_SEEDED_WELCOME_NOTE, false)
+        set(value) = sharedPreferences.edit().putBoolean(KEY_HAS_SEEDED_WELCOME_NOTE, value).apply()
+
     companion object {
         private const val KEY_GEMINI_KEY = "gemini_api_key"
         private const val KEY_GEMINI_MODEL = "gemini_model"
@@ -270,5 +274,6 @@ class SecurePreferences(context: Context) {
         private const val KEY_WEBDAV_PASS = "webdav_password"
         private const val KEY_SAF_SYNC_URI = "saf_sync_uri"
         private const val KEY_LAST_CLOUD_SYNC_TIME = "last_cloud_sync_time"
+        private const val KEY_HAS_SEEDED_WELCOME_NOTE = "has_seeded_welcome_note"
     }
 }

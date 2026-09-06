@@ -254,6 +254,43 @@ class NotesListViewModel(
             val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000L)
             repository.cleanupOldTrash(thirtyDaysAgo)
         }
+
+        // First Run Welcome Note Seeding
+        viewModelScope.launch {
+            if (!prefs.hasSeededWelcomeNote) {
+                val currentNotes = repository.getAllNotes().firstOrNull() ?: emptyList()
+                if (currentNotes.isEmpty()) {
+                    val welcomeNote = Note(
+                        title = "Notism'e Hoş Geldiniz! 🚀",
+                        icon = "👋",
+                        content = """
+# Notism'e Hoş Geldiniz! ✨
+
+Notism, Apple Notes estetiğini modern üretkenlik araçlarıyla birleştiren güçlü ve gizlilik odaklı bir not alma uygulamasıdır.
+
+### ⚡ Hızlı İpuçları
+- **Slash Komutları:** Boş bir satırda `/` yazarak başlık, tablo, kontrol listesi veya kod bloğu ekleyin.
+- **Biçimlendirme:** Klavyenin hemen üzerindeki **Aa** butonuna dokunarak zengin metin araçlarına ulaşın.
+- **İki Yönlü Bağlantılar:** Başka bir nota bağlanmak için `[[Not Başlığı]]` yazın.
+- **Görünüm Modları:** Üstteki sekmeden **Liste, Galeri, Kanban Panosu** veya **Takvim** görünümüne geçebilirsiniz.
+
+### ☑️ İlk Görevleriniz
+- [x] Notism'i keşfet
+- [ ] İlk kendi notunu oluştur
+- [ ] Komut paletini dene (Arama çubuğundaki ⚡ simgesi)
+- [ ] Ayarlardan favori vurgu rengini seç
+
+---
+*Keyifli ve verimli not almalar dileriz! 📝*
+                        """.trimIndent(),
+                        tags = listOf("Başlangıç", "İpuçları"),
+                        isPinned = true
+                    )
+                    repository.saveNote(welcomeNote)
+                }
+                prefs.hasSeededWelcomeNote = true
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {
@@ -489,6 +526,11 @@ class NotesListViewModel(
             isSelectionMode = enabled,
             selectedNoteIds = if (enabled) _selectionState.value.selectedNoteIds else emptySet()
         )
+    }
+
+    fun toggleSelectionMode() {
+        val current = _selectionState.value.isSelectionMode
+        setSelectionMode(!current)
     }
 
     fun toggleSelectNote(noteId: Long) {
@@ -762,6 +804,25 @@ class NotesListViewModel(
             closeSynthesis()
             clearSelection()
             onCreated(id)
+        }
+    }
+
+    fun getNoteHistory(noteId: Long): Flow<List<com.applenotes.ai.data.local.model.NoteHistoryEntity>> {
+        return repository.getNoteHistory(noteId)
+    }
+
+    fun restoreVersion(noteId: Long, version: com.applenotes.ai.data.local.model.NoteHistoryEntity) {
+        viewModelScope.launch {
+            val existing = repository.getNoteById(noteId) ?: return@launch
+            // Save current state before restoring
+            repository.saveNoteHistory(noteId, existing.title, existing.content)
+            repository.saveNote(
+                existing.copy(
+                    title = version.title,
+                    content = version.content,
+                    updatedAt = System.currentTimeMillis()
+                )
+            )
         }
     }
 }

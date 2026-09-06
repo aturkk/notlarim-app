@@ -32,6 +32,7 @@ fun NoteContextMenuBottomSheet(
     onSharePdf: () -> Unit,
     onShareImageCard: () -> Unit,
     onMoveToFolder: () -> Unit,
+    onViewVersionHistory: () -> Unit = {},
     onEnterSelectMode: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -226,7 +227,26 @@ fun NoteContextMenuBottomSheet(
                         modifier = Modifier.padding(start = 48.dp)
                     )
 
-                    // 5. Enter Multi-Select Mode
+                    // 7. Sürüm Geçmişi (Zaman Makinesi)
+                    ContextMenuItem(
+                        icon = Icons.Default.History,
+                        label = "Sürüm Geçmişi (Zaman Makinesi)",
+                        iconTint = AppleYellow,
+                        textColor = textPrimary,
+                        onClick = {
+                            haptic.tick()
+                            onViewVersionHistory()
+                            onDismiss()
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(start = 48.dp)
+                    )
+
+                    // 8. Enter Multi-Select Mode
                     ContextMenuItem(
                         icon = Icons.Default.CheckCircleOutline,
                         label = "Çoklu Seçim Modu",

@@ -44,6 +44,7 @@ import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.AnimatedVisibility
 import com.applenotes.ai.presentation.notes_list.components.NoteContextMenuBottomSheet
+import com.applenotes.ai.presentation.note_editor.components.VersionHistoryBottomSheet
 import com.applenotes.ai.core.components.SonnerFloatingToast
 import com.applenotes.ai.core.export.NoteExporter
 import kotlinx.coroutines.launch
@@ -79,6 +80,9 @@ fun NotesListScreen(
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
     var isSortDialogOpen by remember { mutableStateOf(false) }
     var floatingToastMessage by remember { mutableStateOf<String?>(null) }
+    var toastActionLabel by remember { mutableStateOf<String?>(null) }
+    var toastAction by remember { mutableStateOf<(() -> Unit)?>(null) }
+    var noteForVersionHistory by remember { mutableStateOf<Note?>(null) }
     var isAiHubSheetVisible by remember { mutableStateOf(false) }
     var isCommandPaletteVisible by remember { mutableStateOf(false) }
 
@@ -352,6 +356,14 @@ fun NotesListScreen(
                                             }
                                         )
                                         DropdownMenuItem(
+                                            text = { Text(if (uiState.isSelectionMode) "Seçim Modunu Kapat" else "Notları Seç (Çoklu)") },
+                                            leadingIcon = { Icon(Icons.Default.CheckCircleOutline, contentDescription = null, tint = accentColor) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.toggleSelectionMode()
+                                            }
+                                        )
+                                        DropdownMenuItem(
                                             text = { Text("Sırala: ${uiState.sortOrder.displayName}") },
                                             leadingIcon = { Icon(Icons.Default.Sort, contentDescription = null, tint = AppleYellow) },
                                             onClick = {
@@ -593,32 +605,163 @@ fun NotesListScreen(
                 }
 
                 if (uiState.notes.isEmpty() && !uiState.isLoading) {
+                    val isFiltering = uiState.searchQuery.isNotEmpty() || uiState.selectedTag != null || uiState.selectedSmartFolder != null
                     item {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(top = 100.dp),
+                                .padding(horizontal = 24.dp)
+                                .padding(top = 60.dp, bottom = 40.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    imageVector = Icons.Default.Description,
-                                    contentDescription = null,
-                                    tint = if (isDark) iOSTextTertiaryDark else iOSTextTertiaryLight,
-                                    modifier = Modifier.size(64.dp)
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
-                                Text(
-                                    text = if (uiState.searchQuery.isNotEmpty()) "Sonuç bulunamadı" else "Henüz Not Yok",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Yeni bir not eklemek için sağ alttaki simgeye dokunun.",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = if (isDark) iOSTextTertiaryDark else iOSTextTertiaryLight
-                                )
+                            if (isFiltering) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA),
+                                        modifier = Modifier.size(72.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Search,
+                                                contentDescription = null,
+                                                tint = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight,
+                                                modifier = Modifier.size(36.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Arama Sonucu Bulunamadı",
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                        color = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Aradığınız kriterlere uygun not bulunamadı.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                                    )
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = accentColor.copy(alpha = 0.15f),
+                                        modifier = Modifier.bouncyClickable {
+                                            viewModel.onSearchQueryChange("")
+                                            viewModel.onSelectTag(null)
+                                            viewModel.onSelectSmartFolder(null)
+                                        }
+                                    ) {
+                                        Text(
+                                            text = "Filtreleri Temizle",
+                                            color = accentColor,
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                                        )
+                                    }
+                                }
+                            } else {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = accentColor.copy(alpha = 0.15f),
+                                        modifier = Modifier.size(76.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = null,
+                                                tint = accentColor,
+                                                modifier = Modifier.size(38.dp)
+                                            )
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(18.dp))
+                                    Text(
+                                        text = "Fikirlerinizi Özgürce Kaydedin",
+                                        style = MaterialTheme.typography.titleLarge.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            letterSpacing = (-0.3).sp
+                                        ),
+                                        color = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = "Zengin metinler, kontrol listeleri, ses kayıtları ve yapay zeka ile notlar oluşturun.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight,
+                                        modifier = Modifier.padding(horizontal = 16.dp),
+                                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = accentColor,
+                                            modifier = Modifier.bouncyClickable {
+                                                haptic.selection()
+                                                onNewNoteClick()
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Add,
+                                                    contentDescription = null,
+                                                    tint = Color.White,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Yeni Not Oluştur",
+                                                    color = Color.White,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.SemiBold
+                                                )
+                                            }
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(14.dp),
+                                            color = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA),
+                                            modifier = Modifier.bouncyClickable {
+                                                haptic.selection()
+                                                viewModel.setTemplateSheetOpen(true)
+                                            }
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.PostAdd,
+                                                    contentDescription = null,
+                                                    tint = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Şablonla Başla",
+                                                    color = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -788,7 +931,13 @@ fun NotesListScreen(
                                                 }
                                             },
                                             onTogglePin = { viewModel.togglePin(note.id) },
-                                            onDelete = { viewModel.moveToTrash(note.id) },
+                                            onDelete = {
+                                                val noteId = note.id
+                                                viewModel.moveToTrash(noteId)
+                                                toastActionLabel = "Geri Al"
+                                                toastAction = { viewModel.restoreFromTrash(noteId) }
+                                                floatingToastMessage = "Not çöp kutusuna taşındı"
+                                            },
                                             onToggleChecklistItem = viewModel::toggleChecklistItem
                                         )
                                         if (index < pinnedNotes.lastIndex) {
@@ -825,7 +974,13 @@ fun NotesListScreen(
                                                 }
                                             },
                                             onTogglePin = { viewModel.togglePin(note.id) },
-                                            onDelete = { viewModel.moveToTrash(note.id) },
+                                            onDelete = {
+                                                val noteId = note.id
+                                                viewModel.moveToTrash(noteId)
+                                                toastActionLabel = "Geri Al"
+                                                toastAction = { viewModel.restoreFromTrash(noteId) }
+                                                floatingToastMessage = "Not çöp kutusuna taşındı"
+                                            },
                                             onToggleChecklistItem = viewModel::toggleChecklistItem
                                         )
                                         if (index < unpinnedNotes.lastIndex) {
@@ -1142,12 +1297,32 @@ fun NotesListScreen(
                 viewModel.enterSelectionMode(note.id)
                 viewModel.setMoveFolderDialogOpen(true)
             },
+            onViewVersionHistory = {
+                noteForVersionHistory = note
+            },
             onEnterSelectMode = {
                 viewModel.enterSelectionMode(note.id)
             },
             onDelete = {
-                viewModel.moveToTrash(note.id)
+                val noteId = note.id
+                viewModel.moveToTrash(noteId)
+                toastActionLabel = "Geri Al"
+                toastAction = { viewModel.restoreFromTrash(noteId) }
                 floatingToastMessage = "Not çöp kutusuna taşındı"
+            }
+        )
+    }
+
+    // Sürüm Geçmişi (Zaman Makinesi) Modal
+    noteForVersionHistory?.let { note ->
+        val historyList by viewModel.getNoteHistory(note.id).collectAsState(initial = emptyList())
+        VersionHistoryBottomSheet(
+            historyList = historyList,
+            onDismiss = { noteForVersionHistory = null },
+            onRestoreVersion = { version ->
+                viewModel.restoreVersion(note.id, version)
+                noteForVersionHistory = null
+                floatingToastMessage = "Sürüm geri yüklendi: ${version.title}"
             }
         )
     }
@@ -1472,7 +1647,13 @@ fun NotesListScreen(
     // Sonner-Style Floating Feedback Pill
     SonnerFloatingToast(
         message = floatingToastMessage,
-        onDismiss = { floatingToastMessage = null }
+        actionLabel = toastActionLabel,
+        onAction = toastAction,
+        onDismiss = {
+            floatingToastMessage = null
+            toastActionLabel = null
+            toastAction = null
+        }
     )
 }
 

@@ -1497,7 +1497,7 @@ fun NoteEditorScreen(
                 ) {
                     if (uiState.content.isEmpty()) {
                         Text(
-                            text = "Notunuzu yazmaya başlayın...",
+                            text = "Yazmaya başlayın veya araçlar için '/' yazın...",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontSize = 17.sp,
                                 lineHeight = 26.sp

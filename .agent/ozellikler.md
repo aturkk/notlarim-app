@@ -1,5 +1,5 @@
 # Notism (Notlar Uygulaması) - Eksiksiz Özellik & Mimari Kataloğu
-> **Sürüm:** v2.3.0 (versionCode: 25)  
+> **Sürüm:** v2.5.0 (versionCode: 27)  
 > **Paket Adı:** `com.applenotes.ai`  
 > **Hedef Platform:** Android (minSdk 26, targetSdk 35)  
 > **Tasarım Dili:** Apple iOS 18 / macOS Sequoia Cupertino Design Language  

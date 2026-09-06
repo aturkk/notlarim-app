@@ -148,7 +148,8 @@ fun SettingsScreen(
                             uiState = uiState,
                             viewModel = viewModel,
                             accentColor = accentColor,
-                            textPrimary = textPrimary
+                            textPrimary = textPrimary,
+                            textSecondary = textSecondary
                         )
                     }
                     SettingsSubpage.AI -> {
@@ -507,7 +508,8 @@ private fun SettingsAppearancePage(
     uiState: SettingsUiState,
     viewModel: SettingsViewModel,
     accentColor: Color,
-    textPrimary: Color
+    textPrimary: Color,
+    textSecondary: Color
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize()
@@ -594,34 +596,55 @@ private fun SettingsAppearancePage(
         // Vurgu Rengi
         item {
             InsetGroupedSection(
-                title = "Vurgu Rengi",
+                title = "Vurgu Rengi: ${uiState.accentColor.displayName}",
                 footer = "Uygulama butonları, simgeleri ve etkileşimli öğeleri seçilen renge bürünür."
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 14.dp),
+                        .padding(horizontal = 12.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     AppAccentColor.entries.forEach { itemAccent ->
                         val isSelected = uiState.accentColor == itemAccent
-                        Box(
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier
-                                .size(42.dp)
-                                .clip(CircleShape)
-                                .background(itemAccent.primary)
-                                .clickable { viewModel.setAccentColor(itemAccent) },
-                            contentAlignment = Alignment.Center
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable { viewModel.setAccentColor(itemAccent) }
+                                .padding(horizontal = 4.dp, vertical = 2.dp)
                         ) {
-                            if (isSelected) {
-                                Icon(
-                                    imageVector = Icons.Default.Check,
-                                    contentDescription = itemAccent.displayName,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape)
+                                    .background(itemAccent.primary),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = itemAccent.displayName,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = when (itemAccent) {
+                                    AppAccentColor.YELLOW -> "Sarı"
+                                    AppAccentColor.BLUE -> "Mavi"
+                                    AppAccentColor.GREEN -> "Yeşil"
+                                    AppAccentColor.PURPLE -> "Mor"
+                                    AppAccentColor.ORANGE -> "Turuncu"
+                                    AppAccentColor.RED -> "Kırmızı"
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (isSelected) itemAccent.primary else textSecondary
+                            )
                         }
                     }
                 }
