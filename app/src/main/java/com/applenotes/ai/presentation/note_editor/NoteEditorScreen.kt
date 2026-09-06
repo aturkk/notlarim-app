@@ -24,6 +24,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalContext
@@ -82,11 +85,12 @@ fun NoteEditorScreen(
     val allNotes by viewModel.allNotes.collectAsState()
     val isDark = isAppDarkTheme()
     val accentColor = rememberAccentColor()
-    val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
+    val editorBgColor = if (isDark) iOSBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val context = LocalContext.current
     val haptic = rememberHapticFeedbackHelper()
+    val contentFocusRequester = remember { FocusRequester() }
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
@@ -219,6 +223,7 @@ fun NoteEditorScreen(
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             Column(modifier = Modifier.fillMaxWidth()) {
                 CupertinoTopAppBar(
@@ -562,7 +567,7 @@ fun NoteEditorScreen(
                 }
             }
         },
-        containerColor = bgColor
+        containerColor = editorBgColor
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -1096,40 +1101,44 @@ fun NoteEditorScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Content Field
+                // Content Field - Full screen canvas
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f, fill = false),
+                        .defaultMinSize(minHeight = 500.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) {
+                            contentFocusRequester.requestFocus()
+                        },
                     contentAlignment = Alignment.TopStart
                 ) {
                     if (uiState.content.isEmpty()) {
                         Text(
                             text = "Notunuzu yazmaya başlayın...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = textSecondary
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontSize = 17.sp,
+                                lineHeight = 26.sp
+                            ),
+                            color = textSecondary.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(top = 2.dp)
                         )
                     }
                     BasicTextField(
                         value = uiState.content,
-                        onValueChange = { newText ->
-                            val oldLength = uiState.content.length
-                            viewModel.onContentChange(newText)
-                            if (newText.length > oldLength && scrollState.value >= scrollState.maxValue - 450) {
-                                coroutineScope.launch {
-                                    scrollState.animateScrollTo(scrollState.maxValue)
-                                }
-                            }
-                        },
+                        onValueChange = viewModel::onContentChange,
                         visualTransformation = com.applenotes.ai.core.components.MarkdownVisualTransformation(isDark),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = textPrimary,
-                            lineHeight = 24.sp
+                            fontSize = 17.sp,
+                            lineHeight = 26.sp
                         ),
                         cursorBrush = SolidColor(AppleYellow),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .defaultMinSize(minHeight = 300.dp)
+                            .defaultMinSize(minHeight = 500.dp)
+                            .focusRequester(contentFocusRequester)
                     )
                 }
 
@@ -1288,7 +1297,7 @@ fun NoteEditorScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(320.dp))
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
             // AI Loading Overlay
