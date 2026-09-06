@@ -74,7 +74,10 @@ fun AppNavigation(
             NoteEditorScreen(
                 viewModel = viewModel,
                 autoRecordAudio = autoRecordAudio,
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                onNavigateToNote = { targetId ->
+                    navController.navigate(Screen.NoteEditor.createRoute(targetId))
+                }
             )
         }
 

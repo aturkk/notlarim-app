@@ -3,6 +3,8 @@ package com.applenotes.ai.presentation.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.applenotes.ai.core.security.SecurePreferences
+import com.applenotes.ai.core.theme.AppAccentColor
+import com.applenotes.ai.core.theme.AppFontFamily
 import com.applenotes.ai.core.theme.AppThemeMode
 import com.applenotes.ai.data.remote.ai.AiServiceManager
 import com.applenotes.ai.data.remote.github.GitHubUpdateService
@@ -18,6 +20,8 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val themeMode: AppThemeMode = AppThemeMode.LIGHT,
+    val accentColor: AppAccentColor = AppAccentColor.YELLOW,
+    val fontFamily: AppFontFamily = AppFontFamily.SYSTEM,
     val activeProvider: AiProvider = AiProvider.GEMINI,
     val geminiApiKey: String = "",
     val geminiModel: String = "gemini-2.5-flash",
@@ -68,6 +72,8 @@ class SettingsViewModel(
     private val _uiState = MutableStateFlow(
         SettingsUiState(
             themeMode = prefs.getThemeMode(),
+            accentColor = prefs.getAccentColor(),
+            fontFamily = prefs.getFontFamily(),
             activeProvider = prefs.getActiveAiProvider(),
             geminiApiKey = prefs.geminiApiKey,
             geminiModel = prefs.geminiModel,
@@ -98,6 +104,16 @@ class SettingsViewModel(
     fun setThemeMode(mode: AppThemeMode) {
         prefs.setThemeMode(mode)
         _uiState.update { it.copy(themeMode = mode) }
+    }
+
+    fun setAccentColor(color: AppAccentColor) {
+        prefs.setAccentColor(color)
+        _uiState.update { it.copy(accentColor = color) }
+    }
+
+    fun setFontFamily(font: AppFontFamily) {
+        prefs.setFontFamily(font)
+        _uiState.update { it.copy(fontFamily = font) }
     }
 
     fun setActiveProvider(provider: AiProvider) {

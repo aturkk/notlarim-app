@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.notes_list
+package com.applenotes.ai.presentation.notes_list
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -37,6 +37,7 @@ import com.applenotes.ai.presentation.notes_list.components.CalendarView
 import com.applenotes.ai.presentation.notes_list.components.MorningDigestDialog
 import com.applenotes.ai.presentation.notes_list.components.SynthesisDialog
 import com.applenotes.ai.presentation.notes_list.components.AiHubBottomSheet
+import com.applenotes.ai.presentation.notes_list.components.TrashBottomSheet
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,8 +52,11 @@ fun NotesListScreen(
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val uiState by viewModel.uiState.collectAsState()
+    val trashNotes by viewModel.trashNotes.collectAsState()
     val isDark = isAppDarkTheme()
+    val accentColor = rememberAccentColor()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
+    val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
 
     var isCreatingFolder by remember { mutableStateOf(false) }
@@ -303,16 +307,24 @@ fun NotesListScreen(
                                         )
                                         DropdownMenuItem(
                                             text = { Text("Yeni Klasör") },
-                                            leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null, tint = AppleYellow) },
+                                            leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null, tint = accentColor) },
                                             onClick = {
                                                 isMoreMenuExpanded = false
                                                 isCreatingFolder = true
                                             }
                                         )
+                                        DropdownMenuItem(
+                                            text = { Text("Son Silinenler") },
+                                            leadingIcon = { Icon(Icons.Default.DeleteOutline, contentDescription = null, tint = iOSRed) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.setTrashSheetVisible(true)
+                                            }
+                                        )
                                         HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
                                         DropdownMenuItem(
                                             text = { Text("Ayarlar") },
-                                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, tint = AppleYellow) },
+                                            leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null, tint = accentColor) },
                                             onClick = {
                                                 isMoreMenuExpanded = false
                                                 onSettingsClick()
@@ -730,6 +742,45 @@ fun NotesListScreen(
                     }
                 }
 
+                HorizontalDivider(
+                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+
+                // Son Silinenler (Çöp Kutusu)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            viewModel.setFolderSheetVisible(false)
+                            viewModel.setTrashSheetVisible(true)
+                        }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.DeleteOutline,
+                        contentDescription = null,
+                        tint = iOSRed
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "Son Silinenler",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = textPrimary,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (trashNotes.isNotEmpty()) {
+                        Text(
+                            text = "${trashNotes.size}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = textSecondary
+                        )
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -989,6 +1040,17 @@ fun NotesListScreen(
                     viewModel.setSelectionMode(true)
                 }
             }
+        )
+    }
+
+    // Son Silinenler (Çöp Kutusu) Bottom Sheet
+    if (uiState.isTrashSheetOpen) {
+        TrashBottomSheet(
+            deletedNotes = trashNotes,
+            onDismiss = { viewModel.setTrashSheetVisible(false) },
+            onRestoreNote = viewModel::restoreFromTrash,
+            onDeletePermanently = viewModel::deletePermanently,
+            onEmptyTrash = viewModel::emptyTrash
         )
     }
 }

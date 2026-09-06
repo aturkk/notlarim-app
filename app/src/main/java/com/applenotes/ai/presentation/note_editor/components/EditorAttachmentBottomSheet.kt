@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.note_editor.components
+package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,7 +30,8 @@ fun EditorAttachmentBottomSheet(
     onVoiceRecordClick: () -> Unit,
     onInsertTableClick: () -> Unit,
     onInsertFormulaClick: () -> Unit,
-    onSlashMenuClick: () -> Unit
+    onSlashMenuClick: () -> Unit,
+    onAddWikiLinkClick: () -> Unit
 ) {
     val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
@@ -62,6 +63,20 @@ fun EditorAttachmentBottomSheet(
                 color = textPrimary,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
+
+            AttachmentItemCard(
+                icon = Icons.Default.Link,
+                iconTint = Color(0xFF007AFF),
+                iconBg = Color(0xFF007AFF).copy(alpha = 0.14f),
+                title = "Not Bağlantısı Ekle ([[...]])",
+                subtitle = "Mevcut başka bir notunuza çift yönlü bağlantı kurun",
+                onClick = {
+                    onDismiss()
+                    onAddWikiLinkClick()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
 
             AttachmentItemCard(
                 icon = Icons.Default.PhotoCamera,

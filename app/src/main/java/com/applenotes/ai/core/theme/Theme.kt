@@ -19,10 +19,37 @@ enum class AppThemeMode(val displayName: String) {
     SYSTEM("Sistem")
 }
 
+enum class AppAccentColor(
+    val displayName: String,
+    val primary: androidx.compose.ui.graphics.Color,
+    val lightContainer: androidx.compose.ui.graphics.Color,
+    val darkContainer: androidx.compose.ui.graphics.Color
+) {
+    YELLOW("Apple Sarısı", AppleYellow, AppleYellowLight, AppleYellowDark),
+    BLUE("Okyanus Mavisi", iOSBlue, androidx.compose.ui.graphics.Color(0xFF409CFF), androidx.compose.ui.graphics.Color(0xFF0056B3)),
+    GREEN("Zümrüt Yeşili", iOSGreen, androidx.compose.ui.graphics.Color(0xFF5CD67A), androidx.compose.ui.graphics.Color(0xFF248A3D)),
+    PURPLE("Ametist Moru", iOSPurple, androidx.compose.ui.graphics.Color(0xFFC379E6), androidx.compose.ui.graphics.Color(0xFF8933B2)),
+    ORANGE("Gün Batımı Turuncusu", iOSOrange, androidx.compose.ui.graphics.Color(0xFFFFAA4D), androidx.compose.ui.graphics.Color(0xFFCC7700)),
+    RED("Mercan Kırmızı", iOSRed, androidx.compose.ui.graphics.Color(0xFFFF6961), androidx.compose.ui.graphics.Color(0xFFD70015))
+}
+
+enum class AppFontFamily(
+    val displayName: String,
+    val fontFamily: androidx.compose.ui.text.font.FontFamily
+) {
+    SYSTEM("Sistem (Modern)", androidx.compose.ui.text.font.FontFamily.SansSerif),
+    SERIF("Kitap & Edebiyat (Serif)", androidx.compose.ui.text.font.FontFamily.Serif),
+    MONOSPACE("Daktilo & Kod (Monospace)", androidx.compose.ui.text.font.FontFamily.Monospace)
+}
+
 val LocalThemeIsDark = compositionLocalOf { false }
+val LocalAccentColor = compositionLocalOf { AppleYellow }
 
 @Composable
 fun isAppDarkTheme(): Boolean = LocalThemeIsDark.current
+
+@Composable
+fun rememberAccentColor(): androidx.compose.ui.graphics.Color = LocalAccentColor.current
 
 private val DarkColorScheme = darkColorScheme(
     primary = AppleYellow,
@@ -55,6 +82,8 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun AppleNotesTheme(
     themeMode: AppThemeMode = AppThemeMode.LIGHT,
+    accentColor: AppAccentColor = AppAccentColor.YELLOW,
+    fontFamily: AppFontFamily = AppFontFamily.SYSTEM,
     content: @Composable () -> Unit
 ) {
     val systemDark = isSystemInDarkTheme()
@@ -63,16 +92,37 @@ fun AppleNotesTheme(
         AppThemeMode.DARK -> true
         AppThemeMode.SYSTEM -> systemDark
     }
-    AppleNotesTheme(darkTheme = isDark, content = content)
+    AppleNotesTheme(
+        darkTheme = isDark,
+        accentColor = accentColor,
+        fontFamily = fontFamily,
+        content = content
+    )
 }
 
 @Composable
 fun AppleNotesTheme(
     darkTheme: Boolean,
+    accentColor: AppAccentColor = AppAccentColor.YELLOW,
+    fontFamily: AppFontFamily = AppFontFamily.SYSTEM,
     content: @Composable () -> Unit
 ) {
-    CompositionLocalProvider(LocalThemeIsDark provides darkTheme) {
-        val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val activeAccent = accentColor.primary
+    CompositionLocalProvider(
+        LocalThemeIsDark provides darkTheme,
+        LocalAccentColor provides activeAccent
+    ) {
+        val baseDark = DarkColorScheme.copy(
+            primary = activeAccent,
+            primaryContainer = accentColor.darkContainer
+        )
+        val baseLight = LightColorScheme.copy(
+            primary = activeAccent,
+            primaryContainer = accentColor.lightContainer
+        )
+        val colorScheme = if (darkTheme) baseDark else baseLight
+        val typography = getAppleTypography(fontFamily.fontFamily)
+
         val view = LocalView.current
         if (!view.isInEditMode) {
             SideEffect {
@@ -86,7 +136,7 @@ fun AppleNotesTheme(
 
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = AppleTypography,
+            typography = typography,
             content = content
         )
     }

@@ -39,6 +39,7 @@ fun SettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDark = isAppDarkTheme()
+    val accentColor = rememberAccentColor()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -124,7 +125,7 @@ fun SettingsScreen(
                                         .clip(RoundedCornerShape(8.dp))
                                         .background(
                                             when (mode) {
-                                                AppThemeMode.LIGHT -> AppleYellow.copy(alpha = 0.15f)
+                                                AppThemeMode.LIGHT -> accentColor.copy(alpha = 0.15f)
                                                 AppThemeMode.DARK -> Color(0xFF5E5CE6).copy(alpha = 0.15f)
                                                 AppThemeMode.SYSTEM -> Color(0xFF007AFF).copy(alpha = 0.15f)
                                             }
@@ -135,7 +136,7 @@ fun SettingsScreen(
                                         imageVector = icon,
                                         contentDescription = null,
                                         tint = when (mode) {
-                                            AppThemeMode.LIGHT -> AppleYellow
+                                            AppThemeMode.LIGHT -> accentColor
                                             AppThemeMode.DARK -> Color(0xFF5E5CE6)
                                             AppThemeMode.SYSTEM -> Color(0xFF007AFF)
                                         },
@@ -155,12 +156,99 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Seçili",
-                                    tint = AppleYellow
+                                    tint = accentColor
                                 )
                             }
                         }
 
                         if (index < themeOptions.lastIndex) {
+                            InsetDivider()
+                        }
+                    }
+                }
+            }
+
+            // Accent Color Section
+            item {
+                InsetGroupedSection(
+                    title = "Vurgu Rengi",
+                    footer = "Uygulama butonları, simgeleri ve etkileşimli öğeleri seçilen renge bürünür."
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        AppAccentColor.entries.forEach { itemAccent ->
+                            val isSelected = uiState.accentColor == itemAccent
+                            Box(
+                                modifier = Modifier
+                                    .size(42.dp)
+                                    .clip(CircleShape)
+                                    .background(itemAccent.primary)
+                                    .clickable { viewModel.setAccentColor(itemAccent) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isSelected) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = itemAccent.displayName,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Typography / Font Family Section
+            item {
+                InsetGroupedSection(
+                    title = "Yazı Tipi & Tipografi",
+                    footer = "Uygulama başlıklarının ve not metinlerinin yazı tipi stili."
+                ) {
+                    AppFontFamily.entries.forEachIndexed { index, fontItem ->
+                        val isSelected = uiState.fontFamily == fontItem
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setFontFamily(fontItem) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column {
+                                Text(
+                                    text = fontItem.displayName,
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontFamily = fontItem.fontFamily
+                                    ),
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = textPrimary
+                                )
+                                Text(
+                                    text = "Notism ile düşüncelerinizi özgürce not alın.",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontFamily = fontItem.fontFamily
+                                    ),
+                                    color = textSecondary
+                                )
+                            }
+
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Seçili",
+                                    tint = accentColor
+                                )
+                            }
+                        }
+
+                        if (index < AppFontFamily.entries.lastIndex) {
                             InsetDivider()
                         }
                     }

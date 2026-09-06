@@ -38,7 +38,13 @@ class MainActivity : FragmentActivity() {
 
         setContent {
             val themeMode by appContainer.securePreferences.themeModeFlow.collectAsState()
-            AppleNotesTheme(themeMode = themeMode) {
+            val accentColor by appContainer.securePreferences.accentColorFlow.collectAsState()
+            val fontFamily by appContainer.securePreferences.fontFamilyFlow.collectAsState()
+            AppleNotesTheme(
+                themeMode = themeMode,
+                accentColor = accentColor,
+                fontFamily = fontFamily
+            ) {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     val navController = rememberNavController()
                     AppNavigation(

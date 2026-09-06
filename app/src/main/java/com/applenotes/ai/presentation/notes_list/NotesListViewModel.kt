@@ -48,7 +48,8 @@ data class NotesListUiState(
     val isSynthesisLoading: Boolean = false,
     val isDownloadInProgress: Boolean = false,
     val downloadProgress: Int = 0,
-    val updateMessage: String? = null
+    val updateMessage: String? = null,
+    val isTrashSheetOpen: Boolean = false
 )
 
 private data class SelectionState(
@@ -66,7 +67,8 @@ private data class SelectionState(
     val isSynthesisLoading: Boolean = false,
     val isDownloadInProgress: Boolean = false,
     val downloadProgress: Int = 0,
-    val updateMessage: String? = null
+    val updateMessage: String? = null,
+    val isTrashSheetOpen: Boolean = false
 )
 
 private data class FilterParams(
@@ -148,12 +150,19 @@ class NotesListViewModel(
             isSynthesisLoading = sel.isSynthesisLoading,
             isDownloadInProgress = sel.isDownloadInProgress,
             downloadProgress = sel.downloadProgress,
-            updateMessage = sel.updateMessage
+            updateMessage = sel.updateMessage,
+            isTrashSheetOpen = sel.isTrashSheetOpen
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = NotesListUiState()
+    )
+
+    val trashNotes: StateFlow<List<Note>> = repository.getDeletedNotes().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
     )
 
     init {
@@ -363,6 +372,28 @@ class NotesListViewModel(
     fun moveToTrash(noteId: Long) {
         viewModelScope.launch {
             repository.moveToTrash(noteId)
+        }
+    }
+
+    fun setTrashSheetVisible(visible: Boolean) {
+        _selectionState.update { it.copy(isTrashSheetOpen = visible) }
+    }
+
+    fun restoreFromTrash(noteId: Long) {
+        viewModelScope.launch {
+            repository.restoreFromTrash(noteId)
+        }
+    }
+
+    fun deletePermanently(noteId: Long) {
+        viewModelScope.launch {
+            repository.deletePermanently(noteId)
+        }
+    }
+
+    fun emptyTrash() {
+        viewModelScope.launch {
+            repository.emptyTrash()
         }
     }
 

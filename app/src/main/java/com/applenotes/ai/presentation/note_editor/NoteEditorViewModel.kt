@@ -11,8 +11,10 @@ import com.applenotes.ai.domain.repository.NoteRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -82,6 +84,19 @@ class NoteEditorViewModel(
 
     private val _uiState = MutableStateFlow(NoteEditorUiState(noteId = noteId))
     val uiState: StateFlow<NoteEditorUiState> = _uiState.asStateFlow()
+
+    val allNotes: StateFlow<List<Note>> = repository.getAllNotes().stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun insertWikiLink(targetNoteTitle: String) {
+        val linkText = "[[${targetNoteTitle.trim()}]]"
+        val current = _uiState.value.content
+        val newContent = if (current.isBlank()) linkText else "$current $linkText"
+        onContentChange(newContent)
+    }
 
     private var autoSaveJob: Job? = null
 

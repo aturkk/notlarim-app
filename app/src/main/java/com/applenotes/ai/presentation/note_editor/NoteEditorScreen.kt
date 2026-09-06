@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.note_editor
+package com.applenotes.ai.presentation.note_editor
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -11,8 +11,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.*
@@ -55,10 +58,13 @@ import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
 fun NoteEditorScreen(
     viewModel: NoteEditorViewModel,
     autoRecordAudio: Boolean = false,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNote: (Long) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val allNotes by viewModel.allNotes.collectAsState()
     val isDark = isAppDarkTheme()
+    val accentColor = rememberAccentColor()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -71,6 +77,8 @@ fun NoteEditorScreen(
     var isShareSheetOpen by remember { mutableStateOf(false) }
     var isMoreMenuOpen by remember { mutableStateOf(false) }
     var isAttachmentSheetOpen by remember { mutableStateOf(false) }
+    var isWikiLinkPickerOpen by remember { mutableStateOf(false) }
+    var wikiSearchQuery by remember { mutableStateOf("") }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -864,13 +872,14 @@ fun NoteEditorScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .clip(RoundedCornerShape(8.dp))
-                                        .padding(vertical = 6.dp, horizontal = 4.dp),
+                                        .clickable { onNavigateToNote(linkNote.id) }
+                                        .padding(vertical = 8.dp, horizontal = 6.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         text = linkNote.icon ?: "📝",
-                                        fontSize = 16.sp,
-                                        modifier = Modifier.padding(end = 8.dp)
+                                        fontSize = 18.sp,
+                                        modifier = Modifier.padding(end = 10.dp)
                                     )
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
@@ -881,13 +890,19 @@ fun NoteEditorScreen(
                                         )
                                         if (linkNote.content.isNotBlank()) {
                                             Text(
-                                                text = linkNote.content.take(60),
+                                                text = linkNote.content.take(60).replace("\n", " "),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = textSecondary,
                                                 maxLines = 1
                                             )
                                         }
                                     }
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = textSecondary.copy(alpha = 0.5f),
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                                 HorizontalDivider(
                                     color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
@@ -1082,6 +1097,9 @@ fun NoteEditorScreen(
             },
             onSlashMenuClick = {
                 viewModel.setSlashMenuVisible(true)
+            },
+            onAddWikiLinkClick = {
+                isWikiLinkPickerOpen = true
             }
         )
     }
@@ -1294,6 +1312,106 @@ fun NoteEditorScreen(
             title = uiState.title,
             content = uiState.content,
             onDismiss = { viewModel.setMarkdownPreviewVisible(false) }
+        )
+    }
+
+    // Wiki-Link Picker Dialog
+    if (isWikiLinkPickerOpen) {
+        val selectableNotes = allNotes.filter {
+            it.id != uiState.noteId && (wikiSearchQuery.isBlank() || it.title.contains(wikiSearchQuery, ignoreCase = true) || it.content.contains(wikiSearchQuery, ignoreCase = true))
+        }
+        AlertDialog(
+            onDismissRequest = {
+                isWikiLinkPickerOpen = false
+                wikiSearchQuery = ""
+            },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.Link, contentDescription = null, tint = accentColor)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Not Bağlantısı Ekle", fontWeight = FontWeight.Bold)
+                }
+            },
+            text = {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    OutlinedTextField(
+                        value = wikiSearchQuery,
+                        onValueChange = { wikiSearchQuery = it },
+                        placeholder = { Text("Not ara...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                        singleLine = true,
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = textSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = accentColor,
+                            cursorColor = accentColor
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (selectableNotes.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(120.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = if (wikiSearchQuery.isBlank()) "Bağlanacak başka not bulunamadı" else "Aramayla eşleşen not yok",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textSecondary
+                            )
+                        }
+                    } else {
+                        LazyColumn(modifier = Modifier.heightIn(max = 260.dp)) {
+                            items(selectableNotes, key = { it.id }) { targetNote ->
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            viewModel.insertWikiLink(targetNote.title.ifBlank { "Başlıksız Not" })
+                                            isWikiLinkPickerOpen = false
+                                            wikiSearchQuery = ""
+                                        }
+                                        .padding(vertical = 10.dp, horizontal = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(targetNote.icon ?: "📝", fontSize = 18.sp, modifier = Modifier.padding(end = 10.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = targetNote.title.ifBlank { "Başlıksız Not" },
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = textPrimary,
+                                            maxLines = 1
+                                        )
+                                        Text(
+                                            text = targetNote.content.take(50).replace("\n", " "),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = textSecondary,
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                                HorizontalDivider(
+                                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                                    thickness = 0.5.dp
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = {
+                    isWikiLinkPickerOpen = false
+                    wikiSearchQuery = ""
+                }) {
+                    Text("Vazgeç", color = textSecondary)
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
         )
     }
 }

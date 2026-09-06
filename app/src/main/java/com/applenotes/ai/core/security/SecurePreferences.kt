@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.applenotes.ai.core.theme.AppAccentColor
+import com.applenotes.ai.core.theme.AppFontFamily
 import com.applenotes.ai.core.theme.AppThemeMode
 import com.applenotes.ai.domain.model.AiProvider
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +33,12 @@ class SecurePreferences(context: Context) {
 
     private val _themeModeFlow = MutableStateFlow(getThemeMode())
     val themeModeFlow: StateFlow<AppThemeMode> = _themeModeFlow.asStateFlow()
+
+    private val _accentColorFlow = MutableStateFlow(getAccentColor())
+    val accentColorFlow: StateFlow<AppAccentColor> = _accentColorFlow.asStateFlow()
+
+    private val _fontFamilyFlow = MutableStateFlow(getFontFamily())
+    val fontFamilyFlow: StateFlow<AppFontFamily> = _fontFamilyFlow.asStateFlow()
 
     private val _activeProviderFlow = MutableStateFlow(getActiveAiProvider())
     val activeProviderFlow: StateFlow<AiProvider> = _activeProviderFlow.asStateFlow()
@@ -149,6 +157,36 @@ class SecurePreferences(context: Context) {
         _themeModeFlow.value = mode
     }
 
+    // App Accent Color (YELLOW, BLUE, GREEN, PURPLE, ORANGE, RED) - Default is YELLOW
+    fun getAccentColor(): AppAccentColor {
+        val name = sharedPreferences.getString(KEY_ACCENT_COLOR, AppAccentColor.YELLOW.name) ?: AppAccentColor.YELLOW.name
+        return try {
+            AppAccentColor.valueOf(name)
+        } catch (e: Exception) {
+            AppAccentColor.YELLOW
+        }
+    }
+
+    fun setAccentColor(color: AppAccentColor) {
+        sharedPreferences.edit().putString(KEY_ACCENT_COLOR, color.name).apply()
+        _accentColorFlow.value = color
+    }
+
+    // App Typography / Font Family (SYSTEM, SERIF, MONOSPACE) - Default is SYSTEM
+    fun getFontFamily(): AppFontFamily {
+        val name = sharedPreferences.getString(KEY_FONT_FAMILY, AppFontFamily.SYSTEM.name) ?: AppFontFamily.SYSTEM.name
+        return try {
+            AppFontFamily.valueOf(name)
+        } catch (e: Exception) {
+            AppFontFamily.SYSTEM
+        }
+    }
+
+    fun setFontFamily(font: AppFontFamily) {
+        sharedPreferences.edit().putString(KEY_FONT_FAMILY, font.name).apply()
+        _fontFamilyFlow.value = font
+    }
+
     // GitHub Updater Settings
     var githubOwner: String
         get() = sharedPreferences.getString(KEY_GITHUB_OWNER, "aturkk") ?: "aturkk"
@@ -204,5 +242,7 @@ class SecurePreferences(context: Context) {
         private const val KEY_AUTO_BACKUP_FREQ = "auto_backup_freq"
         private const val KEY_LAST_BACKUP_TIME = "last_backup_time"
         private const val KEY_THEME_MODE = "app_theme_mode"
+        private const val KEY_ACCENT_COLOR = "app_accent_color"
+        private const val KEY_FONT_FAMILY = "app_font_family"
     }
 }
