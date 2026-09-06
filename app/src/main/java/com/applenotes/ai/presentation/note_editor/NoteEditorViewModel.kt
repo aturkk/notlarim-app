@@ -56,7 +56,17 @@ data class NoteEditorUiState(
     val historyList: List<com.applenotes.ai.data.local.model.NoteHistoryEntity> = emptyList(),
     val isVersionHistoryVisible: Boolean = false,
     val isZenModeOpen: Boolean = false,
-    val isPomodoroOpen: Boolean = false
+    val isPomodoroOpen: Boolean = false,
+    val aiPreviewResult: AiPreviewState? = null
+)
+
+data class AiPreviewState(
+    val title: String,
+    val originalAction: AiAction? = null,
+    val sourceContent: String,
+    val generatedText: String,
+    val isRegenerating: Boolean = false,
+    val activeTone: String? = null
 )
 
 class NoteEditorViewModel(
@@ -326,11 +336,15 @@ class NoteEditorViewModel(
                     result.onSuccess { output ->
                         _uiState.update { current ->
                             current.copy(
-                                content = "${current.content}\n\n---\n### ⏰ Hatırlatıcılar & Randevular\n$output",
-                                isAiLoading = false
+                                isAiLoading = false,
+                                aiPreviewResult = AiPreviewState(
+                                    title = "⏰ Hatırlatıcılar & Randevular",
+                                    originalAction = action,
+                                    sourceContent = content,
+                                    generatedText = output
+                                )
                             )
                         }
-                        saveNoteImmediately()
                     }.onFailure { err ->
                         _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
                     }
@@ -341,21 +355,25 @@ class NoteEditorViewModel(
                 viewModelScope.launch {
                     val result = aiServiceManager.executeAction(action, content)
                     result.onSuccess { output ->
+                        val actionTitle = when (action) {
+                            AiAction.SUMMARIZE -> "📝 Not Özeti"
+                            AiAction.EXTRACT_ACTIONS -> "✅ Yapılacaklar Listesi"
+                            AiAction.REWRITE_PROFESSIONAL -> "👔 Kurumsal Yeniden Yazım"
+                            AiAction.REWRITE_CASUAL -> "😊 Samimi Yeniden Yazım"
+                            AiAction.REWRITE_CONCISE -> "✂️ Kısa ve Öz Yeniden Yazım"
+                            else -> "✨ Yapay Zeka Yanıtı"
+                        }
                         _uiState.update { current ->
-                            val updatedContent = when (action) {
-                                AiAction.SUMMARIZE -> "$output\n\n---\n$content"
-                                AiAction.EXTRACT_ACTIONS -> "$content\n\n### Yapılacaklar Listesi\n$output"
-                                AiAction.REWRITE_PROFESSIONAL,
-                                AiAction.REWRITE_CASUAL,
-                                AiAction.REWRITE_CONCISE -> output
-                                else -> current.content
-                            }
                             current.copy(
-                                content = updatedContent,
-                                isAiLoading = false
+                                isAiLoading = false,
+                                aiPreviewResult = AiPreviewState(
+                                    title = actionTitle,
+                                    originalAction = action,
+                                    sourceContent = content,
+                                    generatedText = output
+                                )
                             )
                         }
-                        saveNoteImmediately()
                     }.onFailure { err ->
                         _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
                     }
@@ -490,11 +508,15 @@ class NoteEditorViewModel(
             result.onSuccess { output ->
                 _uiState.update { current ->
                     current.copy(
-                        content = "${current.content}\n\n---\n### Çeviri ($targetLanguage)\n$output",
-                        isAiLoading = false
+                        isAiLoading = false,
+                        aiPreviewResult = AiPreviewState(
+                            title = "🌐 Çeviri ($targetLanguage)",
+                            originalAction = AiAction.TRANSLATE,
+                            sourceContent = content,
+                            generatedText = output
+                        )
                     )
                 }
-                saveNoteImmediately()
             }.onFailure { err ->
                 _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
             }
@@ -515,11 +537,15 @@ class NoteEditorViewModel(
             result.onSuccess { output ->
                 _uiState.update { current ->
                     current.copy(
-                        content = output,
-                        isAiLoading = false
+                        isAiLoading = false,
+                        aiPreviewResult = AiPreviewState(
+                            title = "✨ Dilbilgisi ve İmla Düzeltme",
+                            originalAction = AiAction.FIX_GRAMMAR,
+                            sourceContent = content,
+                            generatedText = output
+                        )
                     )
                 }
-                saveNoteImmediately()
             }.onFailure { err ->
                 _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
             }
@@ -539,13 +565,16 @@ class NoteEditorViewModel(
             val result = aiServiceManager.continueWriting(content)
             result.onSuccess { output ->
                 _uiState.update { current ->
-                    val separator = if (current.content.endsWith(" ") || current.content.endsWith("\n")) "" else " "
                     current.copy(
-                        content = current.content + separator + output,
-                        isAiLoading = false
+                        isAiLoading = false,
+                        aiPreviewResult = AiPreviewState(
+                            title = "✍️ Yazmaya Devam Et",
+                            originalAction = AiAction.CONTINUE_WRITING,
+                            sourceContent = content,
+                            generatedText = output
+                        )
                     )
                 }
-                saveNoteImmediately()
             }.onFailure { err ->
                 _uiState.update { it.copy(isAiLoading = false, aiErrorMessage = err.message) }
             }
@@ -739,6 +768,73 @@ class NoteEditorViewModel(
                 repository.moveToTrash(_uiState.value.noteId)
             }
             onDeleted()
+        }
+    }
+
+    fun applyAiPreviewAppend(text: String) {
+        val current = _uiState.value.content
+        val separator = if (current.isBlank() || current.endsWith("\n\n")) "" else if (current.endsWith("\n")) "\n" else "\n\n"
+        onContentChange(current + separator + text)
+        _uiState.update { it.copy(aiPreviewResult = null) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun applyAiPreviewReplace(text: String) {
+        onContentChange(text)
+        _uiState.update { it.copy(aiPreviewResult = null) }
+        viewModelScope.launch { saveNoteImmediately() }
+    }
+
+    fun dismissAiPreview() {
+        _uiState.update { it.copy(aiPreviewResult = null) }
+    }
+
+    fun regenerateAiPreview(tone: String?) {
+        val currentPreview = _uiState.value.aiPreviewResult ?: return
+        val source = currentPreview.sourceContent
+        _uiState.update {
+            it.copy(
+                aiPreviewResult = currentPreview.copy(
+                    isRegenerating = true,
+                    activeTone = tone
+                )
+            )
+        }
+
+        viewModelScope.launch {
+            val result = when (tone) {
+                "Kurumsal" -> aiServiceManager.executeAction(AiAction.REWRITE_PROFESSIONAL, source)
+                "Samimi" -> aiServiceManager.executeAction(AiAction.REWRITE_CASUAL, source)
+                "Gündelik" -> aiServiceManager.chatWithNote(source, "Aşağıdaki metni samimi, akıcı ve günlük Türkçe konuşma dilinde yeniden yaz. Yalnızca metni ver, başka açıklama ekleme:\n\n$source", emptyList())
+                "Kısa & Öz" -> aiServiceManager.executeAction(AiAction.REWRITE_CONCISE, source)
+                "Detaylı" -> aiServiceManager.chatWithNote(source, "Aşağıdaki metni detaylandırarak, zenginleştirerek ve kapsamlı şekilde genişleterek yaz. Yalnızca metni ver, başka açıklama ekleme:\n\n$source", emptyList())
+                else -> {
+                    val action = currentPreview.originalAction
+                    if (action != null) {
+                        aiServiceManager.executeAction(action, source)
+                    } else {
+                        aiServiceManager.continueWriting(source)
+                    }
+                }
+            }
+
+            result.onSuccess { newOutput ->
+                _uiState.update {
+                    it.copy(
+                        aiPreviewResult = it.aiPreviewResult?.copy(
+                            generatedText = newOutput,
+                            isRegenerating = false
+                        )
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        aiErrorMessage = "Yeniden oluşturma hatası: ${err.message}",
+                        aiPreviewResult = it.aiPreviewResult?.copy(isRegenerating = false)
+                    )
+                }
+            }
         }
     }
 

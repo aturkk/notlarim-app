@@ -5,10 +5,11 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,42 +34,68 @@ fun GlobalAiChatBottomSheet(
 ) {
     val isDark = isSystemInDarkTheme()
     var inputQuery by remember { mutableStateOf("") }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
+        sheetState = sheetState,
         containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
-        tonalElevation = 0.dp,
-        modifier = Modifier.fillMaxHeight(0.85f)
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        tonalElevation = 0.dp
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .fillMaxHeight(0.85f)
                 .navigationBarsPadding()
+                .imePadding()
                 .padding(horizontal = 16.dp)
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(bottom = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Icon(
-                    imageVector = Icons.Default.Psychology,
-                    contentDescription = null,
-                    tint = AppleYellow,
-                    modifier = Modifier.size(28.dp)
-                )
-                Spacer(modifier = Modifier.width(10.dp))
-                Column {
-                    Text(
-                        text = "Tüm Notlarla Global AI Asistan",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Psychology,
+                        contentDescription = null,
+                        tint = AppleYellow,
+                        modifier = Modifier.size(28.dp)
                     )
-                    Text(
-                        text = "Tüm veritabanınızda arama ve çapraz sorgu yapın",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = "Global AI Asistan",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
+                        )
+                        Text(
+                            text = "Tüm notlarınız taranarak yanıtlanır",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                        )
+                    }
+                }
+
+                IconButton(onClick = onDismiss) {
+                    Icon(
+                        imageVector = Icons.Default.Close,
+                        contentDescription = "Kapat",
+                        tint = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
                     )
                 }
             }
@@ -80,6 +107,7 @@ fun GlobalAiChatBottomSheet(
 
             // Message list
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
@@ -94,10 +122,10 @@ fun GlobalAiChatBottomSheet(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                text = "Tüm notlarınız üzerinde sorular sorabilirsiniz:\n\n• \"Geçen ay aldığım bütçe notları nelerdi?\"\n• \"Seyahat listemde neler vardı?\"\n• \"Tüm yapılacak işlerimi özetle\"",
+                                text = "Tüm notlarınız hafızada tutuluyor.\nÖrn: \"Geçen ay aldığım kitap notları nelerdi?\"\n\"Tüm yapılacaklarımı listele\"",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight,
-                                lineHeight = 22.sp
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }
@@ -119,8 +147,8 @@ fun GlobalAiChatBottomSheet(
                                 bottomEnd = if (isUser) 4.dp else 16.dp
                             ),
                             color = if (isUser) AppleYellow else if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight,
-                            contentColor = if (isUser) Color.White else if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
-                            modifier = Modifier.widthIn(max = 300.dp)
+                            contentColor = if (isUser) Color.Black else if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
+                            modifier = Modifier.widthIn(max = 290.dp)
                         ) {
                             Text(
                                 text = msg.content,
@@ -144,7 +172,7 @@ fun GlobalAiChatBottomSheet(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Tüm notlar taranıyor...",
+                                text = "Tüm notlar taranıyor ve yanıt üretiliyor...",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
                             )
@@ -157,13 +185,19 @@ fun GlobalAiChatBottomSheet(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                    .padding(vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
                     value = inputQuery,
                     onValueChange = { inputQuery = it },
-                    placeholder = { Text("Tüm notlarda ara veya sor...", fontSize = 14.sp) },
+                    placeholder = {
+                        Text(
+                            text = "Tüm notlarda bir şey arayın veya sorun...",
+                            fontSize = 14.sp,
+                            color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+                        )
+                    },
                     modifier = Modifier
                         .weight(1f)
                         .clip(RoundedCornerShape(24.dp)),
@@ -171,7 +205,11 @@ fun GlobalAiChatBottomSheet(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = AppleYellow,
                         unfocusedBorderColor = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
-                        cursorColor = AppleYellow
+                        focusedTextColor = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
+                        unfocusedTextColor = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,
+                        cursorColor = AppleYellow,
+                        focusedContainerColor = if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight,
+                        unfocusedContainerColor = if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight
                     ),
                     maxLines = 3
                 )
@@ -186,13 +224,14 @@ fun GlobalAiChatBottomSheet(
                         }
                     },
                     modifier = Modifier
+                        .size(48.dp)
                         .clip(RoundedCornerShape(24.dp))
-                        .background(AppleYellow)
+                        .background(if (inputQuery.isNotBlank()) AppleYellow else Color.Gray.copy(alpha = 0.3f))
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Gönder",
-                        tint = Color.White
+                        tint = if (inputQuery.isNotBlank()) Color.Black else Color.White
                     )
                 }
             }

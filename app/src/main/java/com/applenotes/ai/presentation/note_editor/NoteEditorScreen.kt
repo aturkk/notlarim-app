@@ -44,6 +44,7 @@ import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 import com.applenotes.ai.presentation.note_editor.components.VersionHistoryBottomSheet
 import com.applenotes.ai.presentation.note_editor.components.ZenFocusModeDialog
 import com.applenotes.ai.presentation.note_editor.components.PomodoroTimerDialog
+import com.applenotes.ai.presentation.note_editor.components.AiResultPreviewDialog
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -955,6 +956,20 @@ fun NoteEditorScreen(
             isLoading = uiState.isChatLoading,
             onSendMessage = viewModel::sendChatMessage,
             onDismiss = { viewModel.setChatSheetVisible(false) }
+        )
+    }
+
+    // AI Result Preview & Tone Regeneration Dialog
+    uiState.aiPreviewResult?.let { preview ->
+        AiResultPreviewDialog(
+            title = preview.title,
+            generatedText = preview.generatedText,
+            isRegenerating = preview.isRegenerating,
+            activeTone = preview.activeTone,
+            onApplyAppend = viewModel::applyAiPreviewAppend,
+            onApplyReplace = viewModel::applyAiPreviewReplace,
+            onRegenerate = viewModel::regenerateAiPreview,
+            onDismiss = viewModel::dismissAiPreview
         )
     }
 
