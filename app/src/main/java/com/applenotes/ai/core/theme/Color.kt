@@ -10,6 +10,7 @@ val AppleYellowDark = Color(0xFFD49700)
 // Apple System Colors (Light Mode)
 val iOSBackgroundLight = Color(0xFFF2F2F7)
 val iOSCardBackgroundLight = Color(0xFFFFFFFF)
+val iOSCardLight = iOSCardBackgroundLight
 val iOSSecondaryBackgroundLight = Color(0xFFE5E5EA)
 val iOSTextPrimaryLight = Color(0xFF000000)
 val iOSTextSecondaryLight = Color(0xFF8E8E93)
@@ -21,6 +22,7 @@ val iOSBlurOverlayLight = Color(0xE6FFFFFF) // ~90% opacity for frosted glass
 // Apple System Colors (Dark Mode)
 val iOSBackgroundDark = Color(0xFF000000)
 val iOSCardBackgroundDark = Color(0xFF1C1C1E)
+val iOSCardDark = iOSCardBackgroundDark
 val iOSSecondaryBackgroundDark = Color(0xFF2C2C2E)
 val iOSTextPrimaryDark = Color(0xFFFFFFFF)
 val iOSTextSecondaryDark = Color(0xFF8E8E93)

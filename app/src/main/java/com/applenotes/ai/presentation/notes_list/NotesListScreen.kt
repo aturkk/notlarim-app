@@ -71,8 +71,10 @@ fun NotesListScreen(
         uiState.notes.flatMap { it.tags }.distinct()
     }
 
-    val currentFolderTitle = remember(uiState.selectedFolderId, uiState.folders) {
-        if (uiState.selectedFolderId == null) "Notism"
+    val currentFolderTitle = remember(uiState.selectedFolderId, uiState.selectedSmartFolder, uiState.folders) {
+        val sf = uiState.selectedSmartFolder
+        if (sf != null) "${sf.icon} ${sf.title}"
+        else if (uiState.selectedFolderId == null) "Notism"
         else uiState.folders.find { it.id == uiState.selectedFolderId }?.name ?: "Klasör"
     }
 
@@ -201,24 +203,27 @@ fun NotesListScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        if (uiState.selectedFolderId != null) {
+                        if (uiState.selectedFolderId != null || uiState.selectedSmartFolder != null) {
                             Row(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .clickable { viewModel.onSelectFolder(null) }
+                                    .clickable {
+                                        viewModel.onSelectFolder(null)
+                                        viewModel.onSelectSmartFolder(null)
+                                    }
                                     .padding(vertical = 4.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Tüm Notlar",
-                                    tint = AppleYellow,
+                                    contentDescription = "Geri",
+                                    tint = accentColor,
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
                                 Text(
-                                    text = "Klasörler",
-                                    color = AppleYellow,
+                                    text = if (uiState.selectedSmartFolder != null) "Tüm Notlar" else "Klasörler",
+                                    color = accentColor,
                                     fontSize = 17.sp,
                                     fontWeight = FontWeight.Medium
                                 )
@@ -290,8 +295,16 @@ fun NotesListScreen(
                                         modifier = Modifier.background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                     ) {
                                         DropdownMenuItem(
+                                            text = { Text("📅 Günün Notu") },
+                                            leadingIcon = { Icon(Icons.Default.Today, contentDescription = null, tint = accentColor) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.openOrCreateDailyNote(onNoteClick)
+                                            }
+                                        )
+                                        DropdownMenuItem(
                                             text = { Text("Ağ Görünümü (Graph)") },
-                                            leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null, tint = AppleYellow) },
+                                            leadingIcon = { Icon(Icons.Default.AccountTree, contentDescription = null, tint = accentColor) },
                                             onClick = {
                                                 isMoreMenuExpanded = false
                                                 viewModel.setGraphDialogOpen(true)
@@ -359,7 +372,10 @@ fun NotesListScreen(
                     CupertinoSearchBar(
                         query = uiState.searchQuery,
                         onQueryChange = viewModel::onSearchQueryChange,
-                        onCancel = { viewModel.onSearchQueryChange("") }
+                        onCancel = { viewModel.onSearchQueryChange("") },
+                        isAiSearchActive = uiState.isSemanticSearchActive,
+                        onToggleAiSearch = viewModel::toggleSemanticSearch,
+                        isAiSearching = uiState.isSemanticSearching
                     )
                 }
 
@@ -716,6 +732,54 @@ fun NotesListScreen(
                 HorizontalDivider(
                     color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
                     thickness = 0.5.dp
+                )
+
+                // Smart Folders Section
+                Text(
+                    text = "AKILLI KLASÖRLER",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textSecondary,
+                    modifier = Modifier.padding(top = 10.dp, bottom = 4.dp, start = 8.dp)
+                )
+
+                SmartFolder.entries.forEach { sf ->
+                    val isSelected = uiState.selectedSmartFolder == sf
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(10.dp))
+                            .clickable { viewModel.onSelectSmartFolder(sf) }
+                            .padding(vertical = 10.dp, horizontal = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(text = sf.icon, fontSize = 20.sp)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = sf.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            color = if (isSelected) accentColor else textPrimary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (isSelected) {
+                            Icon(Icons.Default.Check, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                }
+
+                HorizontalDivider(
+                    color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                    thickness = 0.5.dp,
+                    modifier = Modifier.padding(vertical = 6.dp)
+                )
+
+                Text(
+                    text = "KLASÖRLERİM",
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = textSecondary,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 4.dp, start = 8.dp)
                 )
 
                 uiState.folders.forEach { folder ->

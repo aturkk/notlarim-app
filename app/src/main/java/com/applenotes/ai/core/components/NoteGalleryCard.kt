@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.core.components
+package com.applenotes.ai.core.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -98,6 +99,14 @@ fun NoteGalleryCard(
                     }
                 } else {
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        if (note.reminderTime != null && note.reminderTime > 0) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = "Hatırlatıcı",
+                                tint = AppleYellow,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                         if (note.isPinned) {
                             Icon(
                                 imageVector = Icons.Default.PushPin,
@@ -193,14 +202,30 @@ fun NoteGalleryCard(
                 )
             }
 
-            // Badges row: Priority, Status, Progress, Tags
-            if (note.tags.isNotEmpty() || note.priority != null || note.progress != null) {
+            // Badges row: Reminder, Priority, Status, Progress, Tags
+            if (note.tags.isNotEmpty() || note.priority != null || note.progress != null || (note.reminderTime != null && note.reminderTime > 0)) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth()
                 ) {
+                    if (note.reminderTime != null && note.reminderTime > 0) {
+                        val sdf = SimpleDateFormat("d MMM, HH:mm", Locale.getDefault())
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = AppleYellow.copy(alpha = 0.20f)
+                        ) {
+                            Text(
+                                text = "🔔 ${sdf.format(Date(note.reminderTime))}",
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AppleYellowDark,
+                                modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
                     note.priority?.let { p ->
                         Surface(
                             shape = RoundedCornerShape(6.dp),

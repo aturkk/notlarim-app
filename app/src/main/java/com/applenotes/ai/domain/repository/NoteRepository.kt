@@ -20,6 +20,7 @@ interface NoteRepository {
     suspend fun updateKanbanColumn(noteId: Long, column: String)
     suspend fun updateNoteIcon(noteId: Long, icon: String?)
     suspend fun updateNoteCover(noteId: Long, coverUrl: String?)
+    suspend fun updateReminderTime(noteId: Long, reminderTime: Long?)
     suspend fun emptyTrash()
 
     fun getAllFolders(): Flow<List<Folder>>

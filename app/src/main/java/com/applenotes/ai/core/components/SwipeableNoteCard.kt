@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.core.components
+package com.applenotes.ai.core.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -157,6 +158,15 @@ fun SwipeableNoteCard(
                 )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (note.reminderTime != null && note.reminderTime > 0) {
+                        Icon(
+                            imageVector = Icons.Default.NotificationsActive,
+                            contentDescription = "Hatırlatıcı",
+                            tint = AppleYellow,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                    }
                     if (note.isLocked) {
                         Icon(
                             imageVector = Icons.Default.Lock,
@@ -210,13 +220,30 @@ fun SwipeableNoteCard(
                 )
             }
 
-            // Badges: Tags, Priority, Status, Progress
-            if (note.tags.isNotEmpty() || note.priority != null || note.status != null || note.progress != null) {
+            // Badges: Reminder, Tags, Priority, Status, Progress
+            if (note.tags.isNotEmpty() || note.priority != null || note.status != null || note.progress != null || (note.reminderTime != null && note.reminderTime > 0)) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Reminder Badge
+                    if (note.reminderTime != null && note.reminderTime > 0) {
+                        val sdf = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = AppleYellow.copy(alpha = 0.20f)
+                        ) {
+                            Text(
+                                text = "🔔 ${sdf.format(Date(note.reminderTime))}",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = AppleYellowDark,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
                     // Priority Badge
                     note.priority?.let { p ->
                         Surface(

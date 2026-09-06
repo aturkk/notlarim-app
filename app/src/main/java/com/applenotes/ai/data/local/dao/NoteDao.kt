@@ -54,6 +54,9 @@ interface NoteDao {
     @Query("UPDATE notes SET coverUrl = :coverUrl WHERE id = :noteId")
     suspend fun updateNoteCover(noteId: Long, coverUrl: String?)
 
+    @Query("UPDATE notes SET reminderTime = :reminderTime WHERE id = :noteId")
+    suspend fun updateReminderTime(noteId: Long, reminderTime: Long?)
+
     @Query("DELETE FROM notes WHERE isDeleted = 1")
     suspend fun emptyTrash()
 }

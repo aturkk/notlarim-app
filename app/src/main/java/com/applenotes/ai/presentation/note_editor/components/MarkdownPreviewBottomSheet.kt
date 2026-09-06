@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.note_editor.components
+package com.applenotes.ai.presentation.note_editor.components
 
 import android.annotation.SuppressLint
 import android.webkit.WebView
@@ -157,6 +157,21 @@ private fun buildHtmlPreview(title: String, content: String, isDark: Boolean): S
             h2 { font-size: 1.25em; }
             h3 { font-size: 1.1em; }
             p { margin: 8px 0; }
+            .collapsible-heading {
+                cursor: pointer;
+                user-select: none;
+                display: flex;
+                align-items: center;
+                transition: opacity 0.2s ease;
+            }
+            .collapsible-heading:active { opacity: 0.7; }
+            .toggle-icon {
+                font-size: 0.65em;
+                margin-right: 8px;
+                color: $accentColor;
+                display: inline-block;
+                width: 14px;
+            }
             code {
                 background: $codeBg;
                 color: $accentColor;
@@ -209,6 +224,33 @@ private fun buildHtmlPreview(title: String, content: String, isDark: Boolean): S
 
                 const target = document.getElementById("render-target");
                 target.innerHTML = parsedHtml;
+
+                // Collapsible Headings
+                const headings = target.querySelectorAll("h1, h2, h3");
+                headings.forEach(h => {
+                    if (h.classList.contains("note-title")) return;
+                    h.classList.add("collapsible-heading");
+                    const iconSpan = document.createElement("span");
+                    iconSpan.className = "toggle-icon";
+                    iconSpan.textContent = "▼";
+                    h.insertBefore(iconSpan, h.firstChild);
+
+                    h.addEventListener("click", function() {
+                        const icon = this.querySelector(".toggle-icon");
+                        let next = this.nextElementSibling;
+                        const myLevel = parseInt(this.tagName.substring(1));
+                        const isCollapsed = this.classList.toggle("collapsed");
+                        if (icon) icon.textContent = isCollapsed ? "▶" : "▼";
+                        while (next) {
+                            if (/^H[1-6]$/.test(next.tagName)) {
+                                const nextLevel = parseInt(next.tagName.substring(1));
+                                if (nextLevel <= myLevel) break;
+                            }
+                            next.style.display = isCollapsed ? "none" : "";
+                            next = next.nextElementSibling;
+                        }
+                    });
+                });
 
                 // Transform ```mermaid blocks into <div class="mermaid">
                 const codeBlocks = target.querySelectorAll("pre code.language-mermaid");

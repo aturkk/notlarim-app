@@ -49,6 +49,22 @@ import com.applenotes.ai.presentation.note_editor.components.ZenFocusModeDialog
 import com.applenotes.ai.presentation.note_editor.components.PomodoroTimerDialog
 import com.applenotes.ai.presentation.note_editor.components.AiResultPreviewDialog
 import com.applenotes.ai.presentation.note_editor.components.EditorAttachmentBottomSheet
+import java.io.File
+import java.util.UUID
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.Date
+import android.widget.Toast
+import androidx.compose.foundation.horizontalScroll
+import com.applenotes.ai.core.reminder.ReminderScheduler
+import com.applenotes.ai.presentation.note_editor.components.ReminderPickerDialog
+import com.applenotes.ai.presentation.note_editor.components.TableEditorDialog
+import com.applenotes.ai.presentation.note_editor.components.PdfViewerBottomSheet
+import com.applenotes.ai.presentation.note_editor.components.MediaLightboxDialog
+import com.applenotes.ai.presentation.note_editor.components.EditorTabsBar
+import com.applenotes.ai.presentation.note_editor.components.EditorTabItem
+import com.applenotes.ai.core.templates.CustomTemplateManager
+import com.applenotes.ai.core.templates.CustomTemplate
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -79,6 +95,26 @@ fun NoteEditorScreen(
     var isAttachmentSheetOpen by remember { mutableStateOf(false) }
     var isWikiLinkPickerOpen by remember { mutableStateOf(false) }
     var wikiSearchQuery by remember { mutableStateOf("") }
+
+    val reminderScheduler = remember { ReminderScheduler(context) }
+    val templateManager = remember { CustomTemplateManager(context) }
+    var isReminderPickerOpen by remember { mutableStateOf(false) }
+    var isTableEditorOpen by remember { mutableStateOf(false) }
+    var viewingPdfPath by remember { mutableStateOf<String?>(null) }
+    var viewingLightboxUrl by remember { mutableStateOf<String?>(null) }
+    var recentTabs by remember { mutableStateOf<List<EditorTabItem>>(emptyList()) }
+
+    LaunchedEffect(uiState.noteId, uiState.title, uiState.icon) {
+        if (uiState.noteId > 0) {
+            val currentItem = EditorTabItem(
+                id = uiState.noteId,
+                title = uiState.title.ifBlank { "Başlıksız Not" },
+                icon = uiState.icon
+            )
+            val filtered = recentTabs.filter { it.id != uiState.noteId }
+            recentTabs = (listOf(currentItem) + filtered).take(6)
+        }
+    }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -130,129 +166,225 @@ fun NoteEditorScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            CupertinoTopAppBar(
-                title = "",
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Geri",
-                            tint = AppleYellow
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(
-                        onClick = viewModel::undo,
-                        enabled = uiState.canUndo
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Undo,
-                            contentDescription = "Geri Al",
-                            tint = if (uiState.canUndo) AppleYellow else textSecondary.copy(alpha = 0.35f)
-                        )
-                    }
-                    IconButton(
-                        onClick = viewModel::redo,
-                        enabled = uiState.canRedo
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Redo,
-                            contentDescription = "İleri Al",
-                            tint = if (uiState.canRedo) AppleYellow else textSecondary.copy(alpha = 0.35f)
-                        )
-                    }
-
-                    // Overflow More Menu (iOS ⋯ style)
-                    Box {
-                        IconButton(
-                            onClick = { isMoreMenuOpen = true },
-                            modifier = Modifier.size(36.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.MoreHoriz,
-                                contentDescription = "Daha Fazla İşlem",
-                                tint = AppleYellow,
-                                modifier = Modifier.size(22.dp)
-                            )
+    val multiImagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            coroutineScope.launch {
+                val mediaDir = File(context.filesDir, "note_media").apply { mkdirs() }
+                val mdList = mutableListOf<String>()
+                uris.forEach { uri ->
+                    try {
+                        val destFile = File(mediaDir, "img_${System.currentTimeMillis()}_${UUID.randomUUID().toString().take(6)}.jpg")
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            destFile.outputStream().use { output ->
+                                input.copyTo(output)
+                            }
                         }
-
-                        DropdownMenu(
-                            expanded = isMoreMenuOpen,
-                            onDismissRequest = { isMoreMenuOpen = false },
-                            modifier = Modifier.background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Paylaş ve Dışa Aktar") },
-                                leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = AppleYellow) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    isShareSheetOpen = true
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(if (uiState.isPinned) "Sabitlemeyi Kaldır" else "Başa Sabitle") },
-                                leadingIcon = { Icon(Icons.Default.PushPin, contentDescription = null, tint = if (uiState.isPinned) AppleYellow else textSecondary) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.togglePin()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(if (uiState.isLocked) "Notun Kilidini Aç" else "Notu Kilitle") },
-                                leadingIcon = { Icon(if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = null, tint = if (uiState.isLocked) AppleYellow else textSecondary) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.toggleLock()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Notla Sohbet Et") },
-                                leadingIcon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, tint = AppleYellow) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.setChatSheetVisible(true)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("İçindekiler Tablosu") },
-                                leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = textSecondary) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.setTocSheetVisible(true)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Pomodoro Odak Zamanlayıcısı") },
-                                leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, tint = AppleYellow) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.setPomodoroOpen(true)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Zen Daktilo Modu") },
-                                leadingIcon = { Icon(Icons.Default.SelfImprovement, contentDescription = null, tint = AppleYellow) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.setZenModeOpen(true)
-                                }
-                            )
-                            HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
-                            DropdownMenuItem(
-                                text = { Text("Notu Sil", color = iOSRed) },
-                                leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = iOSRed) },
-                                onClick = {
-                                    isMoreMenuOpen = false
-                                    viewModel.deleteCurrentNote(onBack)
-                                }
-                            )
-                        }
+                        mdList.add("![](${destFile.absolutePath})")
+                    } catch (e: Exception) {
+                        // ignore
                     }
                 }
-            )
+                if (mdList.isNotEmpty()) {
+                    viewModel.insertContent(mdList.joinToString("\n\n"))
+                }
+            }
+        }
+    }
+
+    val pdfPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        uri?.let {
+            coroutineScope.launch {
+                try {
+                    val pdfDir = File(context.filesDir, "note_pdfs").apply { mkdirs() }
+                    val destFile = File(pdfDir, "doc_${System.currentTimeMillis()}.pdf")
+                    context.contentResolver.openInputStream(it)?.use { input ->
+                        destFile.outputStream().use { output ->
+                            input.copyTo(output)
+                        }
+                    }
+                    val pdfMd = "[📄 PDF Belgesi: ${destFile.name}](${destFile.absolutePath})"
+                    viewModel.insertContent(pdfMd)
+                } catch (e: Exception) {
+                    // ignore
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                CupertinoTopAppBar(
+                    title = "",
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Geri",
+                                tint = AppleYellow
+                            )
+                        }
+                    },
+                    actions = {
+                        IconButton(
+                            onClick = viewModel::undo,
+                            enabled = uiState.canUndo
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Undo,
+                                contentDescription = "Geri Al",
+                                tint = if (uiState.canUndo) AppleYellow else textSecondary.copy(alpha = 0.35f)
+                            )
+                        }
+                        IconButton(
+                            onClick = viewModel::redo,
+                            enabled = uiState.canRedo
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Redo,
+                                contentDescription = "İleri Al",
+                                tint = if (uiState.canRedo) AppleYellow else textSecondary.copy(alpha = 0.35f)
+                            )
+                        }
+
+                        // Overflow More Menu (iOS ⋯ style)
+                        Box {
+                            IconButton(
+                                onClick = { isMoreMenuOpen = true },
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.MoreHoriz,
+                                    contentDescription = "Daha Fazla İşlem",
+                                    tint = AppleYellow,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = isMoreMenuOpen,
+                                onDismissRequest = { isMoreMenuOpen = false },
+                                modifier = Modifier.background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                            ) {
+                                DropdownMenuItem(
+                                    text = { Text("Paylaş ve Dışa Aktar") },
+                                    leadingIcon = { Icon(Icons.Default.Share, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        isShareSheetOpen = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (uiState.reminderTime != null) "Hatırlatıcıyı Düzenle" else "⏰ Hatırlatıcı Kur") },
+                                    leadingIcon = { Icon(Icons.Default.Alarm, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        isReminderPickerOpen = true
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (uiState.isPinned) "Sabitlemeyi Kaldır" else "Başa Sabitle") },
+                                    leadingIcon = { Icon(Icons.Default.PushPin, contentDescription = null, tint = if (uiState.isPinned) AppleYellow else textSecondary) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.togglePin()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text(if (uiState.isLocked) "Notun Kilidini Aç" else "Notu Kilitle") },
+                                    leadingIcon = { Icon(if (uiState.isLocked) Icons.Default.Lock else Icons.Default.LockOpen, contentDescription = null, tint = if (uiState.isLocked) AppleYellow else textSecondary) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.toggleLock()
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("📋 Şablon Olarak Kaydet") },
+                                    leadingIcon = { Icon(Icons.Default.BookmarkAdd, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        if (uiState.title.isBlank() && uiState.content.isBlank()) {
+                                            Toast.makeText(context, "Şablon oluşturmak için başlık veya içerik girin", Toast.LENGTH_SHORT).show()
+                                        } else {
+                                            coroutineScope.launch {
+                                                templateManager.saveTemplate(
+                                                    CustomTemplate(
+                                                        title = uiState.title.ifBlank { "Özel Şablon" },
+                                                        description = "Notism özel şablonu",
+                                                        icon = uiState.icon ?: "📋",
+                                                        content = uiState.content,
+                                                        defaultTags = uiState.tags
+                                                    )
+                                                )
+                                                Toast.makeText(context, "Şablon başarıyla kaydedildi!", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Notla Sohbet Et") },
+                                    leadingIcon = { Icon(Icons.Default.ChatBubbleOutline, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setChatSheetVisible(true)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("İçindekiler Tablosu") },
+                                    leadingIcon = { Icon(Icons.Default.FormatListNumbered, contentDescription = null, tint = textSecondary) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setTocSheetVisible(true)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Pomodoro Odak Zamanlayıcısı") },
+                                    leadingIcon = { Icon(Icons.Default.Timer, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setPomodoroOpen(true)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Zen Daktilo Modu") },
+                                    leadingIcon = { Icon(Icons.Default.SelfImprovement, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setZenModeOpen(true)
+                                    }
+                                )
+                                HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
+                                DropdownMenuItem(
+                                    text = { Text("Notu Sil", color = iOSRed) },
+                                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = iOSRed) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.deleteCurrentNote(onBack)
+                                    }
+                                )
+                            }
+                        }
+                    }
+                )
+                if (recentTabs.size > 1) {
+                    EditorTabsBar(
+                        tabs = recentTabs,
+                        activeNoteId = uiState.noteId,
+                        onSelectTab = { targetId ->
+                            if (targetId != uiState.noteId) {
+                                onNavigateToNote(targetId)
+                            }
+                        },
+                        onCloseTab = { targetId ->
+                            recentTabs = recentTabs.filter { it.id != targetId }
+                        }
+                    )
+                }
+            }
         },
         bottomBar = {
             Column(
@@ -534,6 +666,56 @@ fun NoteEditorScreen(
                     )
                 }
 
+                // Reminder Badge Pill
+                uiState.reminderTime?.let { timeMillis ->
+                    val reminderDateStr = remember(timeMillis) {
+                        SimpleDateFormat("d MMMM EEEE, HH:mm", Locale("tr")).format(Date(timeMillis))
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = AppleYellow.copy(alpha = 0.12f),
+                        modifier = Modifier
+                            .padding(vertical = 4.dp)
+                            .clickable { isReminderPickerOpen = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = AppleYellowDark,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "Hatırlatıcı: $reminderDateStr",
+                                color = AppleYellowDark,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            IconButton(
+                                onClick = {
+                                    if (uiState.noteId > 0) {
+                                        reminderScheduler.cancelReminder(uiState.noteId)
+                                    }
+                                    viewModel.updateReminder(null)
+                                },
+                                modifier = Modifier.size(20.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Kaldır",
+                                    tint = AppleYellowDark,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 if (uiState.tags.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
@@ -622,106 +804,153 @@ fun NoteEditorScreen(
                         shadowElevation = 2.dp,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            IconButton(
-                                onClick = {
-                                    if (uiState.isPlayingAudio) {
-                                        audioHelper.stopPlaying()
-                                        viewModel.setAudioPlaying(false)
-                                    } else {
-                                        viewModel.setAudioPlaying(true)
-                                        audioHelper.playAudio(audioPath) {
+                        Column {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = {
+                                        if (uiState.isPlayingAudio) {
+                                            audioHelper.stopPlaying()
                                             viewModel.setAudioPlaying(false)
+                                        } else {
+                                            viewModel.setAudioPlaying(true)
+                                            audioHelper.playAudio(audioPath) {
+                                                viewModel.setAudioPlaying(false)
+                                            }
                                         }
-                                    }
-                                },
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(AppleYellow)
-                            ) {
-                                Icon(
-                                    imageVector = if (uiState.isPlayingAudio) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                    contentDescription = if (uiState.isPlayingAudio) "Duraklat" else "Oynat",
-                                    tint = Color.White
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "🎙️ Ses Kaydı",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    color = textPrimary
-                                )
-                                Text(
-                                    text = if (uiState.isPlayingAudio) "Oynatılıyor..." else "Dokun ve dinle",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = textSecondary
-                                )
-                            }
-                            // Transcribe Button
-                            FilledTonalButton(
-                                onClick = { viewModel.transcribeAudioFile(audioPath) },
-                                enabled = !uiState.isTranscribingAudio,
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                if (uiState.isTranscribingAudio) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(14.dp),
-                                        strokeWidth = 2.dp,
-                                        color = AppleYellow
-                                    )
-                                } else {
+                                    },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(AppleYellow)
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(14.dp),
-                                        tint = AppleYellow
+                                        imageVector = if (uiState.isPlayingAudio) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                        contentDescription = if (uiState.isPlayingAudio) "Duraklat" else "Oynat",
+                                        tint = Color.White
                                     )
-                                    Spacer(modifier = Modifier.width(4.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Yazıya Dök",
-                                        fontSize = 11.sp,
+                                        text = "🎙️ Ses Kaydı",
+                                        style = MaterialTheme.typography.bodyMedium,
                                         fontWeight = FontWeight.Bold,
                                         color = textPrimary
                                     )
+                                    Text(
+                                        text = if (uiState.isPlayingAudio) "Oynatılıyor..." else "Dokun ve dinle",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = textSecondary
+                                    )
+                                }
+                                // Transcribe Button
+                                FilledTonalButton(
+                                    onClick = { viewModel.transcribeAudioFile(audioPath) },
+                                    enabled = !uiState.isTranscribingAudio,
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                                ) {
+                                    if (uiState.isTranscribingAudio) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(14.dp),
+                                            strokeWidth = 2.dp,
+                                            color = AppleYellow
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.AutoAwesome,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(14.dp),
+                                            tint = AppleYellow
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = "Yazıya Dök",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            color = textPrimary
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                // Meeting / Lecture Minutes Button
+                                FilledTonalButton(
+                                    onClick = { viewModel.generateMeetingMinutesFromAudio(audioPath) },
+                                    enabled = !uiState.isAiLoading,
+                                    shape = RoundedCornerShape(12.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "🎓 Tutanak",
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = AppleYellow
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                IconButton(
+                                    onClick = {
+                                        audioHelper.stopPlaying()
+                                        viewModel.setAudioPlaying(false)
+                                        viewModel.setAudioPath(null)
+                                    },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Ses Kaydını Sil",
+                                        tint = iOSRed,
+                                        modifier = Modifier.size(18.dp)
+                                    )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            // Meeting / Lecture Minutes Button
-                            FilledTonalButton(
-                                onClick = { viewModel.generateMeetingMinutesFromAudio(audioPath) },
-                                enabled = !uiState.isAiLoading,
-                                shape = RoundedCornerShape(12.dp),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "🎓 Tutanak",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = AppleYellow
-                                )
+
+                            // Timestamp Seek Chips
+                            val timestampRegex = remember { Regex("""\[⏱️\s*(\d{1,2}):(\d{2})\]""") }
+                            val timestamps = remember(uiState.content) {
+                                timestampRegex.findAll(uiState.content).mapNotNull { match ->
+                                    val full = match.value
+                                    val mins = match.groupValues[1].toIntOrNull() ?: 0
+                                    val secs = match.groupValues[2].toIntOrNull() ?: 0
+                                    val totalMs = (mins * 60 + secs) * 1000
+                                    Pair(full, totalMs)
+                                }.distinctBy { it.first }.toList()
                             }
-                            Spacer(modifier = Modifier.width(4.dp))
-                            IconButton(
-                                onClick = {
-                                    audioHelper.stopPlaying()
-                                    viewModel.setAudioPlaying(false)
-                                    viewModel.setAudioPath(null)
-                                },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "Ses Kaydını Sil",
-                                    tint = iOSRed,
-                                    modifier = Modifier.size(18.dp)
-                                )
+                            if (timestamps.isNotEmpty()) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(horizontal = 12.dp)
+                                        .padding(bottom = 10.dp)
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    timestamps.forEach { (label, ms) ->
+                                        Surface(
+                                            shape = RoundedCornerShape(8.dp),
+                                            color = AppleYellow.copy(alpha = 0.15f),
+                                            modifier = Modifier.clickable {
+                                                if (!uiState.isPlayingAudio) {
+                                                    viewModel.setAudioPlaying(true)
+                                                    audioHelper.playAudio(audioPath) {
+                                                        viewModel.setAudioPlaying(false)
+                                                    }
+                                                }
+                                                audioHelper.seekTo(ms)
+                                            }
+                                        ) {
+                                            Text(
+                                                text = label,
+                                                color = AppleYellowDark,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -747,12 +976,25 @@ fun NoteEditorScreen(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Ses kaydediliyor... Bitirmek için mikrofon simgesine tekrar dokunun.",
+                                text = "Ses kaydediliyor...",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Medium,
                                 color = iOSRed,
                                 modifier = Modifier.weight(1f)
                             )
+                            FilledTonalButton(
+                                onClick = {
+                                    val sec = audioHelper.getRecordingElapsedSeconds()
+                                    val m = sec / 60
+                                    val s = sec % 60
+                                    val stamp = String.format(Locale.ROOT, "[⏱️ %02d:%02d]", m, s)
+                                    viewModel.insertContent(stamp)
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("⏱️ Damga", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = iOSRed)
+                            }
                         }
                     }
                 }
@@ -838,6 +1080,72 @@ fun NoteEditorScreen(
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                             color = textSecondary
                         )
+                    }
+                }
+
+                // Attached PDFs (Click to open native PDF viewer)
+                val pdfRegex = remember { Regex("""\[📄\s*PDF Belgesi:\s*([^\]]+)\]\(([^)]+)\)""") }
+                val pdfMatches = remember(uiState.content) {
+                    pdfRegex.findAll(uiState.content).map { it.groupValues[1] to it.groupValues[2] }.toList()
+                }
+                if (pdfMatches.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text("📄 Ekli PDF Belgeleri (${pdfMatches.size})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textSecondary)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    pdfMatches.forEach { (pdfName, pdfPath) ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight,
+                            shadowElevation = 1.dp,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clickable { viewingPdfPath = pdfPath }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.PictureAsPdf, contentDescription = null, tint = iOSRed, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(text = pdfName, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, color = textPrimary, maxLines = 1)
+                                    Text(text = "PDF Okuyucu ile Aç", fontSize = 11.sp, color = textSecondary)
+                                }
+                                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = textSecondary)
+                            }
+                        }
+                    }
+                }
+
+                // Attached Images Gallery (Click to open Pinch-to-zoom Lightbox)
+                val imageRegex = remember { Regex("""!\[.*?\]\((file:///[^)]+|/[^)]+|[A-Za-z]:\\[^)]+)\)""") }
+                val imageMatches = remember(uiState.content) {
+                    imageRegex.findAll(uiState.content).map { it.groupValues[1] }.distinct().toList()
+                }
+                if (imageMatches.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Text("🖼️ Not Görselleri (${imageMatches.size})", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = textSecondary)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        imageMatches.forEach { imgPath ->
+                            Box(
+                                modifier = Modifier
+                                    .size(90.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .clickable { viewingLightboxUrl = imgPath }
+                            ) {
+                                coil.compose.AsyncImage(
+                                    model = File(imgPath),
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -1076,6 +1384,14 @@ fun NoteEditorScreen(
         EditorAttachmentBottomSheet(
             onDismiss = { isAttachmentSheetOpen = false },
             onScanDocumentClick = { photoPickerLauncher.launch("image/*") },
+            onAddImagesClick = {
+                isAttachmentSheetOpen = false
+                multiImagePickerLauncher.launch("image/*")
+            },
+            onAddPdfClick = {
+                isAttachmentSheetOpen = false
+                pdfPickerLauncher.launch("application/pdf")
+            },
             onDrawingClick = { viewModel.setDrawingDialogOpen(true) },
             onVoiceRecordClick = {
                 val hasPermission = ContextCompat.checkSelfPermission(
@@ -1090,7 +1406,8 @@ fun NoteEditorScreen(
                 }
             },
             onInsertTableClick = {
-                viewModel.insertMarkdown("\n| Başlık 1 | Başlık 2 |\n|---|---|\n| Değer 1 | Değer 2 |\n", "")
+                isAttachmentSheetOpen = false
+                isTableEditorOpen = true
             },
             onInsertFormulaClick = {
                 viewModel.insertMarkdown("$$ ", " $$")
@@ -1412,6 +1729,61 @@ fun NoteEditorScreen(
                 }
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Reminder Picker Dialog
+    if (isReminderPickerOpen) {
+        ReminderPickerDialog(
+            currentReminderMillis = uiState.reminderTime,
+            onDismissRequest = { isReminderPickerOpen = false },
+            onSetReminder = { timeMillis ->
+                viewModel.updateReminder(timeMillis)
+                if (uiState.noteId > 0) {
+                    reminderScheduler.scheduleReminder(
+                        noteId = uiState.noteId,
+                        title = uiState.title.ifBlank { "Not Hatırlatıcısı" },
+                        snippet = uiState.content.take(80),
+                        triggerTimeMillis = timeMillis
+                    )
+                }
+                isReminderPickerOpen = false
+                Toast.makeText(context, "Hatırlatıcı kuruldu!", Toast.LENGTH_SHORT).show()
+            },
+            onClearReminder = {
+                if (uiState.noteId > 0) {
+                    reminderScheduler.cancelReminder(uiState.noteId)
+                }
+                viewModel.updateReminder(null)
+                isReminderPickerOpen = false
+            }
+        )
+    }
+
+    // Table Editor Dialog
+    if (isTableEditorOpen) {
+        TableEditorDialog(
+            onDismissRequest = { isTableEditorOpen = false },
+            onInsertTable = { mdTable ->
+                viewModel.insertContent(mdTable)
+                isTableEditorOpen = false
+            }
+        )
+    }
+
+    // Native PDF Viewer Bottom Sheet
+    viewingPdfPath?.let { path ->
+        PdfViewerBottomSheet(
+            pdfFilePath = path,
+            onDismiss = { viewingPdfPath = null }
+        )
+    }
+
+    // Media Lightbox Dialog (Pinch-to-zoom)
+    viewingLightboxUrl?.let { url ->
+        MediaLightboxDialog(
+            imageUrl = url,
+            onDismissRequest = { viewingLightboxUrl = null }
         )
     }
 }

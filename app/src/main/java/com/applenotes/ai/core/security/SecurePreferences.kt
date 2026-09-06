@@ -217,6 +217,27 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getLong(KEY_LAST_BACKUP_TIME, 0L)
         set(value) = sharedPreferences.edit().putLong(KEY_LAST_BACKUP_TIME, value).apply()
 
+    // Personal Cloud Sync (WebDAV & SAF)
+    var webDavServerUrl: String
+        get() = sharedPreferences.getString(KEY_WEBDAV_URL, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_WEBDAV_URL, value.trim()).apply()
+
+    var webDavUsername: String
+        get() = sharedPreferences.getString(KEY_WEBDAV_USER, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_WEBDAV_USER, value.trim()).apply()
+
+    var webDavPassword: String
+        get() = sharedPreferences.getString(KEY_WEBDAV_PASS, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_WEBDAV_PASS, value.trim()).apply()
+
+    var safSyncUriString: String
+        get() = sharedPreferences.getString(KEY_SAF_SYNC_URI, "") ?: ""
+        set(value) = sharedPreferences.edit().putString(KEY_SAF_SYNC_URI, value.trim()).apply()
+
+    var lastCloudSyncTime: Long
+        get() = sharedPreferences.getLong(KEY_LAST_CLOUD_SYNC_TIME, 0L)
+        set(value) = sharedPreferences.edit().putLong(KEY_LAST_CLOUD_SYNC_TIME, value).apply()
+
     companion object {
         private const val KEY_GEMINI_KEY = "gemini_api_key"
         private const val KEY_GEMINI_MODEL = "gemini_model"
@@ -244,5 +265,10 @@ class SecurePreferences(context: Context) {
         private const val KEY_THEME_MODE = "app_theme_mode"
         private const val KEY_ACCENT_COLOR = "app_accent_color"
         private const val KEY_FONT_FAMILY = "app_font_family"
+        private const val KEY_WEBDAV_URL = "webdav_server_url"
+        private const val KEY_WEBDAV_USER = "webdav_username"
+        private const val KEY_WEBDAV_PASS = "webdav_password"
+        private const val KEY_SAF_SYNC_URI = "saf_sync_uri"
+        private const val KEY_LAST_CLOUD_SYNC_TIME = "last_cloud_sync_time"
     }
 }

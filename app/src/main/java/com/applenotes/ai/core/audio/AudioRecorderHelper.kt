@@ -11,12 +11,14 @@ class AudioRecorderHelper(private val context: Context) {
     private var recorder: MediaRecorder? = null
     private var player: MediaPlayer? = null
     private var currentRecordingFile: File? = null
+    private var recordingStartTime: Long = 0L
 
     fun startRecording(): File {
         val dir = File(context.filesDir, "audio_notes")
         if (!dir.exists()) dir.mkdirs()
         val file = File(dir, "audio_${System.currentTimeMillis()}.m4a")
         currentRecordingFile = file
+        recordingStartTime = System.currentTimeMillis()
 
         recorder = (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             MediaRecorder(context)
@@ -34,7 +36,12 @@ class AudioRecorderHelper(private val context: Context) {
         return file
     }
 
+    fun getRecordingElapsedSeconds(): Long {
+        return if (recordingStartTime > 0) (System.currentTimeMillis() - recordingStartTime) / 1000 else 0L
+    }
+
     fun stopRecording(): String? {
+        recordingStartTime = 0L
         return try {
             recorder?.apply {
                 stop()
@@ -63,6 +70,16 @@ class AudioRecorderHelper(private val context: Context) {
             onCompletion()
         }
     }
+
+    fun seekTo(positionMs: Int) {
+        try {
+            player?.seekTo(positionMs)
+        } catch (e: Exception) {
+            // Ignore seek errors if player is not ready
+        }
+    }
+
+    fun getCurrentPosition(): Int = player?.currentPosition ?: 0
 
     fun stopPlaying() {
         player?.apply {

@@ -31,7 +31,9 @@ fun EditorAttachmentBottomSheet(
     onInsertTableClick: () -> Unit,
     onInsertFormulaClick: () -> Unit,
     onSlashMenuClick: () -> Unit,
-    onAddWikiLinkClick: () -> Unit
+    onAddWikiLinkClick: () -> Unit,
+    onAddImagesClick: () -> Unit,
+    onAddPdfClick: () -> Unit
 ) {
     val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
@@ -79,6 +81,34 @@ fun EditorAttachmentBottomSheet(
             Spacer(modifier = Modifier.height(10.dp))
 
             AttachmentItemCard(
+                icon = Icons.Default.Collections,
+                iconTint = Color(0xFF34C759),
+                iconBg = Color(0xFF34C759).copy(alpha = 0.14f),
+                title = "Görseller Ekle (Galeri & Lightbox)",
+                subtitle = "Galeriden tek veya çoklu fotoğraf ekleyin",
+                onClick = {
+                    onDismiss()
+                    onAddImagesClick()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            AttachmentItemCard(
+                icon = Icons.Default.PictureAsPdf,
+                iconTint = Color(0xFFFF3B30),
+                iconBg = Color(0xFFFF3B30).copy(alpha = 0.14f),
+                title = "PDF Belgesi İliştir & Oku",
+                subtitle = "Uygulama içi yerel okuyucu ile PDF bağlayın",
+                onClick = {
+                    onDismiss()
+                    onAddPdfClick()
+                }
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            AttachmentItemCard(
                 icon = Icons.Default.PhotoCamera,
                 iconTint = Color(0xFF007AFF),
                 iconBg = Color(0xFF007AFF).copy(alpha = 0.14f),
@@ -111,7 +141,7 @@ fun EditorAttachmentBottomSheet(
                 iconTint = Color(0xFFFF3B30),
                 iconBg = Color(0xFFFF3B30).copy(alpha = 0.14f),
                 title = "Sesli Not Kaydet",
-                subtitle = "Ses kaydı başlatın ve notunuza ekleyin",
+                subtitle = "Ses kaydı başlatın, zaman damgası ekleyin",
                 onClick = {
                     onDismiss()
                     onVoiceRecordClick()
@@ -124,8 +154,8 @@ fun EditorAttachmentBottomSheet(
                 icon = Icons.Default.TableChart,
                 iconTint = Color(0xFF34C759),
                 iconBg = Color(0xFF34C759).copy(alpha = 0.14f),
-                title = "Tablo Ekle",
-                subtitle = "Satır ve sütunlardan oluşan Markdown tablosu",
+                title = "Etkileşimli Tablo Oluştur",
+                subtitle = "Satır/sütun düzenleyici ile görsel Markdown tablosu",
                 onClick = {
                     onDismiss()
                     onInsertTableClick()

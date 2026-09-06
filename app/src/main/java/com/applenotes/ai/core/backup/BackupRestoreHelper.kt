@@ -138,6 +138,17 @@ object BackupRestoreHelper {
                 ?: return Result.failure(IOException("Dosya okunamadı (SAF Uri açılamadı)"))
 
             val bytes = inputStream.use { it.readBytes() }
+            restoreBackupFromBytes(bytes, repository)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun restoreBackupFromBytes(
+        bytes: ByteArray,
+        repository: NoteRepository
+    ): Result<Int> {
+        return try {
             var restoredCount = 0
 
             // Check if it is a ZIP archive

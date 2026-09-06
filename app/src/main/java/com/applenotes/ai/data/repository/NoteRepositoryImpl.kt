@@ -90,6 +90,10 @@ class NoteRepositoryImpl(
         db.noteDao.updateNoteCover(noteId, coverUrl)
     }
 
+    override suspend fun updateReminderTime(noteId: Long, reminderTime: Long?) {
+        db.noteDao.updateReminderTime(noteId, reminderTime)
+    }
+
     override suspend fun emptyTrash() {
         db.noteDao.emptyTrash()
     }

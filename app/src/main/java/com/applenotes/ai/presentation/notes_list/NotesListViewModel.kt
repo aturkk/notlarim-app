@@ -21,13 +21,24 @@ enum class ViewMode {
     LIST, GALLERY, KANBAN, CALENDAR
 }
 
+enum class SmartFolder(val title: String, val icon: String) {
+    REMINDERS("Hatırlatıcılar", "⏰"),
+    PINNED("Sabitlenenler", "⭐"),
+    URGENT("Acil Notlar", "🔴"),
+    ATTACHMENTS("Ekler & Medya", "📎"),
+    LOCKED("Kilitli Kasa", "🔒")
+}
+
 data class NotesListUiState(
     val notes: List<Note> = emptyList(),
     val folders: List<Folder> = emptyList(),
     val selectedFolderId: Long? = null,
+    val selectedSmartFolder: SmartFolder? = null,
     val searchQuery: String = "",
     val selectedTag: String? = null,
     val isLoading: Boolean = true,
+    val isSemanticSearchActive: Boolean = false,
+    val isSemanticSearching: Boolean = false,
     val updateInfo: AppUpdateInfo? = null,
     val isShowingFolderSheet: Boolean = false,
     val isGlobalAiChatVisible: Boolean = false,
@@ -68,13 +79,17 @@ private data class SelectionState(
     val isDownloadInProgress: Boolean = false,
     val downloadProgress: Int = 0,
     val updateMessage: String? = null,
-    val isTrashSheetOpen: Boolean = false
+    val isTrashSheetOpen: Boolean = false,
+    val isSemanticSearchActive: Boolean = false,
+    val isSemanticSearching: Boolean = false
 )
 
 private data class FilterParams(
     val query: String,
     val folderId: Long?,
-    val tag: String?
+    val tag: String?,
+    val smartFolder: SmartFolder?,
+    val semanticMatches: List<Long>?
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -87,7 +102,9 @@ class NotesListViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     private val _selectedFolderId = MutableStateFlow<Long?>(null)
+    private val _selectedSmartFolder = MutableStateFlow<SmartFolder?>(null)
     private val _selectedTag = MutableStateFlow<String?>(null)
+    private val _semanticMatches = MutableStateFlow<List<Long>?>(null)
     private val _isShowingFolderSheet = MutableStateFlow(false)
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
     private val _isGlobalAiChatVisible = MutableStateFlow(false)
@@ -98,9 +115,11 @@ class NotesListViewModel(
     private val filterParams: Flow<FilterParams> = combine(
         _searchQuery,
         _selectedFolderId,
-        _selectedTag
-    ) { query, folderId, tag ->
-        FilterParams(query, folderId, tag)
+        _selectedTag,
+        _selectedSmartFolder,
+        _semanticMatches
+    ) { query, folderId, tag, smartFolder, semanticMatches ->
+        FilterParams(query, folderId, tag, smartFolder, semanticMatches)
     }
 
     val uiState: StateFlow<NotesListUiState> = combine(
@@ -113,10 +132,24 @@ class NotesListViewModel(
                 repository.getAllNotes()
             }
             flow.map { list ->
-                val filtered = if (params.tag != null) {
+                var filtered = if (params.tag != null) {
                     list.filter { it.tags.contains(params.tag) }
                 } else {
                     list
+                }
+                if (params.smartFolder != null) {
+                    filtered = when (params.smartFolder) {
+                        SmartFolder.REMINDERS -> filtered.filter { it.reminderTime != null && it.reminderTime > 0 }
+                        SmartFolder.PINNED -> filtered.filter { it.isPinned }
+                        SmartFolder.URGENT -> filtered.filter { it.priority?.equals("urgent", true) == true || it.priority?.equals("acil", true) == true }
+                        SmartFolder.ATTACHMENTS -> filtered.filter { !it.audioPath.isNullOrBlank() || !it.drawingPath.isNullOrBlank() || it.content.contains("![") || it.content.contains(".pdf") }
+                        SmartFolder.LOCKED -> filtered.filter { it.isLocked }
+                    }
+                }
+                if (params.semanticMatches != null && params.semanticMatches.isNotEmpty()) {
+                    val orderMap = params.semanticMatches.mapIndexed { idx, id -> id to idx }.toMap()
+                    filtered = filtered.filter { orderMap.containsKey(it.id) }
+                        .sortedBy { orderMap[it.id] }
                 }
                 params to filtered
             }
@@ -130,9 +163,12 @@ class NotesListViewModel(
             notes = notes,
             folders = folders,
             selectedFolderId = params.folderId,
+            selectedSmartFolder = params.smartFolder,
             searchQuery = params.query,
             selectedTag = params.tag,
             isLoading = false,
+            isSemanticSearchActive = sel.isSemanticSearchActive,
+            isSemanticSearching = sel.isSemanticSearching,
             updateInfo = updateInfo,
             isShowingFolderSheet = isSheet,
             viewMode = sel.viewMode,
@@ -173,11 +209,107 @@ class NotesListViewModel(
 
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
+        if (_selectionState.value.isSemanticSearchActive && query.isNotBlank()) {
+            performSemanticSearch(query)
+        } else if (query.isBlank()) {
+            _semanticMatches.value = null
+        }
     }
 
     fun onSelectFolder(folderId: Long?) {
         _selectedFolderId.value = folderId
+        _selectedSmartFolder.value = null
         _isShowingFolderSheet.value = false
+    }
+
+    fun onSelectSmartFolder(smartFolder: SmartFolder?) {
+        _selectedSmartFolder.value = smartFolder
+        _selectedFolderId.value = null
+        _isShowingFolderSheet.value = false
+    }
+
+    fun openOrCreateDailyNote(onNoteReady: (Long) -> Unit) {
+        viewModelScope.launch {
+            val sdf = java.text.SimpleDateFormat("d MMMM yyyy, EEEE", java.util.Locale("tr", "TR"))
+            val todayStr = sdf.format(java.util.Date())
+            val todayTitle = "📅 $todayStr"
+
+            val all = repository.getAllNotes().first()
+            val existing = all.firstOrNull { it.title.equals(todayTitle, ignoreCase = true) || it.title.contains(todayStr) }
+            if (existing != null) {
+                onNoteReady(existing.id)
+            } else {
+                val templateContent = """
+# $todayTitle
+> 💡 *"Her gün yeni bir başlangıçtır."*
+
+## 🎯 Bugünün Öncelikli Hedefleri
+- [ ] 1. 
+- [ ] 2. 
+- [ ] 3. 
+
+---
+
+## 📝 Notlar & Gelişmeler
+- 
+
+---
+
+## ✨ Gün Sonu Değerlendirmesi
+- **Bugün ne iyi gitti?**: 
+- **Günün Puanı (1-10)**: 
+                """.trimIndent()
+                val newNote = Note(
+                    title = todayTitle,
+                    content = templateContent,
+                    tags = listOf("gunluk", "ajanda"),
+                    icon = "📅"
+                )
+                val newId = repository.saveNote(newNote)
+                onNoteReady(newId)
+            }
+        }
+    }
+
+    fun toggleSemanticSearch() {
+        val current = _selectionState.value.isSemanticSearchActive
+        _selectionState.update { it.copy(isSemanticSearchActive = !current) }
+        if (current) {
+            _semanticMatches.value = null
+        } else if (_searchQuery.value.isNotBlank()) {
+            performSemanticSearch(_searchQuery.value)
+        }
+    }
+
+    fun performSemanticSearch(query: String) {
+        if (query.isBlank()) {
+            _semanticMatches.value = null
+            return
+        }
+        viewModelScope.launch {
+            _selectionState.update { it.copy(isSemanticSearching = true) }
+            try {
+                val all = repository.getAllNotes().first()
+                if (all.isEmpty()) {
+                    _selectionState.update { it.copy(isSemanticSearching = false) }
+                    return@launch
+                }
+                val promptBuilder = StringBuilder()
+                promptBuilder.append("Aşağıdaki notlar arasından kullanıcının aradığı kavrama en uygun olanların ID'lerini alaka sırasına göre virgülle ayırarak yaz (Sadece ID'leri yaz, örn: 3, 15, 2):\n")
+                promptBuilder.append("Kullanıcı Araması: $query\n\n")
+                all.take(40).forEach { n ->
+                    val snippet = n.content.take(120).replace("\n", " ")
+                    promptBuilder.append("[ID: ${n.id}] Başlık: ${n.title} | İçerik: $snippet\n")
+                }
+                val result = aiServiceManager.generateText(promptBuilder.toString()).getOrNull() ?: ""
+                val ids = Regex("\\d+").findAll(result).mapNotNull { it.value.toLongOrNull() }.toList()
+                _semanticMatches.value = if (ids.isNotEmpty()) ids else null
+            } catch (e: Exception) {
+                _semanticMatches.value = null
+            } finally {
+                _selectionState.update { it.copy(isSemanticSearching = false) }
+            }
+        }
     }
 
     fun onSelectTag(tag: String?) {

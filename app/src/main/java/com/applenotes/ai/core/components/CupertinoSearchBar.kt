@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.core.components
+package com.applenotes.ai.core.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,9 +32,13 @@ fun CupertinoSearchBar(
     onQueryChange: (String) -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
-    placeholder: String = "Ara"
+    placeholder: String = "Ara",
+    isAiSearchActive: Boolean = false,
+    onToggleAiSearch: (() -> Unit)? = null,
+    isAiSearching: Boolean = false
 ) {
     val isDark = isAppDarkTheme()
+    val accentColor = rememberAccentColor()
     val bgColor = if (isDark) iOSSearchBgDark else iOSSearchBgLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -55,7 +61,7 @@ fun CupertinoSearchBar(
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Ara",
-                tint = textSecondary,
+                tint = if (isAiSearchActive) accentColor else textSecondary,
                 modifier = Modifier.size(18.dp)
             )
 
@@ -67,9 +73,9 @@ fun CupertinoSearchBar(
             ) {
                 if (query.isEmpty()) {
                     Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
-                        color = textSecondary
+                        text = if (isAiSearchActive) "✨ Anlamsal AI Arama..." else placeholder,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontSize = 15.sp),
+                        color = if (isAiSearchActive) accentColor.copy(alpha = 0.8f) else textSecondary
                     )
                 }
 
@@ -78,12 +84,34 @@ fun CupertinoSearchBar(
                     onValueChange = onQueryChange,
                     singleLine = true,
                     textStyle = MaterialTheme.typography.bodyLarge.copy(
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         color = textPrimary
                     ),
-                    cursorBrush = SolidColor(AppleYellow),
+                    cursorBrush = SolidColor(accentColor),
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+
+            if (onToggleAiSearch != null) {
+                if (isAiSearching) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp,
+                        color = accentColor
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "AI Arama",
+                        tint = if (isAiSearchActive) accentColor else textSecondary.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onToggleAiSearch() }
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                }
             }
 
             if (query.isNotEmpty()) {

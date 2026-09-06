@@ -204,6 +204,10 @@ class AiServiceManager(
         return sendPrompt(userQuestion, systemPrompt, historyPairs)
     }
 
+    suspend fun generateText(prompt: String, systemPrompt: String? = null): Result<String> {
+        return sendPrompt(prompt, systemPrompt)
+    }
+
     private suspend fun sendPrompt(
         prompt: String,
         systemPrompt: String?,

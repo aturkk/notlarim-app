@@ -29,6 +29,7 @@ import com.applenotes.ai.BuildConfig
 import com.applenotes.ai.core.components.*
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiProvider
+import com.applenotes.ai.presentation.settings.components.CloudSyncDialog
 import com.applenotes.ai.presentation.updater.UpdateDialog
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -66,6 +67,7 @@ fun SettingsScreen(
     }
 
     var showKey by remember { mutableStateOf(false) }
+    var isCloudSyncDialogOpen by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -682,6 +684,44 @@ fun SettingsScreen(
                     title = "Yedekleme & Senkronizasyon (Google Drive / SAF)",
                     footer = "Notlarınız doğrudan cihazınızda saklanır. Google Drive veya yerel klasörlere SAF (Storage Access Framework) ile güvenle yedekleyebilir ve dilediğiniz zaman geri yükleyebilirsiniz."
                 ) {
+                    // 0. Personal Cloud Sync (WebDAV + SAF)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { isCloudSyncDialogOpen = true }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudSync,
+                            contentDescription = null,
+                            tint = accentColor,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Kişisel Bulut Senkronizasyonu",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "WebDAV (Nextcloud / ownCloud) ve Google Drive ile anında eşitle",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                        Icon(
+                            imageVector = Icons.Default.ChevronRight,
+                            contentDescription = null,
+                            tint = textSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+
+                    InsetDivider()
+
                     // 1. Google Drive / SAF Export
                     Row(
                         modifier = Modifier
@@ -1133,6 +1173,14 @@ fun SettingsScreen(
                 }
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    if (isCloudSyncDialogOpen) {
+        CloudSyncDialog(
+            prefs = viewModel.securePrefs,
+            repository = viewModel.noteRepository,
+            onDismissRequest = { isCloudSyncDialogOpen = false }
         )
     }
 }

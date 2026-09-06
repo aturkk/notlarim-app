@@ -69,6 +69,9 @@ class SettingsViewModel(
     private val repository: NoteRepository
 ) : ViewModel() {
 
+    val securePrefs: SecurePreferences get() = prefs
+    val noteRepository: NoteRepository get() = repository
+
     private val _uiState = MutableStateFlow(
         SettingsUiState(
             themeMode = prefs.getThemeMode(),

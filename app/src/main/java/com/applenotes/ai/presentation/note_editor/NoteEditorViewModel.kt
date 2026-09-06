@@ -952,6 +952,31 @@ class NoteEditorViewModel(
         setTocSheetVisible(false)
     }
 
+    fun updateReminder(timeMillis: Long?) {
+        _uiState.update { it.copy(reminderTime = timeMillis) }
+        val id = _uiState.value.noteId
+        if (id > 0) {
+            viewModelScope.launch {
+                repository.updateReminderTime(id, timeMillis)
+            }
+        }
+        scheduleAutoSave()
+    }
+
+    fun insertContent(text: String) {
+        val current = _uiState.value.content
+        val updated = if (current.isBlank()) {
+            text
+        } else if (current.endsWith("\n\n")) {
+            "$current$text"
+        } else if (current.endsWith("\n")) {
+            "$current\n$text"
+        } else {
+            "$current\n\n$text"
+        }
+        onContentChange(updated)
+    }
+
     override fun onCleared() {
         super.onCleared()
         autoSaveJob?.cancel()
