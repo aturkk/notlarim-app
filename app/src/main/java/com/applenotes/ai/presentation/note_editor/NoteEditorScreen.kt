@@ -51,6 +51,7 @@ import com.applenotes.ai.core.components.SlashCommandBottomSheet
 import com.applenotes.ai.core.components.IconPickerBottomSheet
 import com.applenotes.ai.core.components.CoverPickerBottomSheet
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
+import com.applenotes.ai.core.components.SonnerFloatingToast
 import com.applenotes.ai.presentation.note_editor.components.VersionHistoryBottomSheet
 import com.applenotes.ai.presentation.note_editor.components.ZenFocusModeDialog
 import com.applenotes.ai.presentation.note_editor.components.PomodoroTimerDialog
@@ -116,6 +117,8 @@ fun NoteEditorScreen(
     var recentTabs by remember { mutableStateOf<List<EditorTabItem>>(emptyList()) }
     var currentPaperType by remember { mutableStateOf(PaperType.BLANK) }
     var isPaperPickerOpen by remember { mutableStateOf(false) }
+    var markdownPreviewTab by remember { mutableIntStateOf(0) }
+    var floatingToastMessage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState.noteId, uiState.title, uiState.icon) {
         if (uiState.noteId > 0) {
@@ -305,6 +308,31 @@ fun NoteEditorScreen(
                                     }
                                 )
                                 DropdownMenuItem(
+                                    text = { Text("Zaman Makinesi (Sürüm Geçmişi)") },
+                                    leadingIcon = { Icon(Icons.Default.History, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setVersionHistoryVisible(true)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Katlanabilir Başlıklar (Okuma Modu)") },
+                                    leadingIcon = { Icon(Icons.Default.ViewAgenda, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        markdownPreviewTab = 1
+                                        viewModel.setMarkdownPreviewVisible(true)
+                                    }
+                                )
+                                DropdownMenuItem(
+                                    text = { Text("Şablon Uygula / Ekle") },
+                                    leadingIcon = { Icon(Icons.Default.PostAdd, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        viewModel.setTemplatePickerVisible(true)
+                                    }
+                                )
+                                DropdownMenuItem(
                                     text = { Text(if (uiState.reminderTime != null) "Hatırlatıcıyı Düzenle" else "⏰ Hatırlatıcı Kur") },
                                     leadingIcon = { Icon(Icons.Default.Alarm, contentDescription = null, tint = AppleYellow) },
                                     onClick = {
@@ -334,7 +362,7 @@ fun NoteEditorScreen(
                                     onClick = {
                                         isMoreMenuOpen = false
                                         if (uiState.title.isBlank() && uiState.content.isBlank()) {
-                                            Toast.makeText(context, "Şablon oluşturmak için başlık veya içerik girin", Toast.LENGTH_SHORT).show()
+                                            floatingToastMessage = "Şablon oluşturmak için başlık veya içerik girin"
                                         } else {
                                             coroutineScope.launch {
                                                 templateManager.saveTemplate(
@@ -346,7 +374,7 @@ fun NoteEditorScreen(
                                                         defaultTags = uiState.tags
                                                     )
                                                 )
-                                                Toast.makeText(context, "Şablon başarıyla kaydedildi!", Toast.LENGTH_SHORT).show()
+                                                floatingToastMessage = "Şablon başarıyla kaydedildi!"
                                             }
                                         }
                                     }
@@ -1624,28 +1652,6 @@ fun NoteEditorScreen(
                     }
                 }
 
-                HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight, thickness = 0.5.dp)
-
-                // Version History (Time Machine)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable {
-                            isShareSheetOpen = false
-                            viewModel.setVersionHistoryVisible(true)
-                        }
-                        .padding(vertical = 12.dp, horizontal = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(imageVector = Icons.Default.History, contentDescription = null, tint = AppleYellow)
-                    Spacer(modifier = Modifier.width(14.dp))
-                    Column {
-                        Text(text = "Zaman Makinesi (Sürüm Geçmişi)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        Text(text = "Notun önceki düzenlemelerine göz at ve geri yükle", style = MaterialTheme.typography.bodySmall, color = textSecondary)
-                    }
-                }
-
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
@@ -1708,7 +1714,10 @@ fun NoteEditorScreen(
     if (uiState.isTemplatePickerVisible) {
         TemplatePickerBottomSheet(
             onDismiss = { viewModel.setTemplatePickerVisible(false) },
-            onSelectTemplate = viewModel::applyTemplate
+            onSelectTemplate = { template ->
+                viewModel.applyTemplate(template)
+                floatingToastMessage = "✨ ${template.title} uygulandı"
+            }
         )
     }
 
@@ -1738,12 +1747,16 @@ fun NoteEditorScreen(
         )
     }
 
-    // Markdown Visual Preview Bottom Sheet (KaTeX Math & Mermaid Diagrams)
+    // Markdown Visual Preview Bottom Sheet (KaTeX Math & Collapsible Outlines)
     if (uiState.isMarkdownPreviewVisible) {
         com.applenotes.ai.presentation.note_editor.components.MarkdownPreviewBottomSheet(
             title = uiState.title,
             content = uiState.content,
-            onDismiss = { viewModel.setMarkdownPreviewVisible(false) }
+            initialTab = markdownPreviewTab,
+            onDismiss = {
+                viewModel.setMarkdownPreviewVisible(false)
+                markdownPreviewTab = 0
+            }
         )
     }
 
@@ -1863,7 +1876,7 @@ fun NoteEditorScreen(
                     )
                 }
                 isReminderPickerOpen = false
-                Toast.makeText(context, "Hatırlatıcı kuruldu!", Toast.LENGTH_SHORT).show()
+                floatingToastMessage = "⏰ Hatırlatıcı kuruldu!"
             },
             onClearReminder = {
                 if (uiState.noteId > 0) {
@@ -1871,6 +1884,7 @@ fun NoteEditorScreen(
                 }
                 viewModel.updateReminder(null)
                 isReminderPickerOpen = false
+                floatingToastMessage = "Hatırlatıcı kaldırıldı"
             }
         )
     }
@@ -1910,6 +1924,12 @@ fun NoteEditorScreen(
             onDismiss = { isPaperPickerOpen = false }
         )
     }
+
+    // Sonner-Style Floating Feedback Pill
+    SonnerFloatingToast(
+        message = floatingToastMessage,
+        onDismiss = { floatingToastMessage = null }
+    )
 }
 
 @Composable

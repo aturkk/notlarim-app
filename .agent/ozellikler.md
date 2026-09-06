@@ -47,11 +47,20 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
   - **Kart Üzerinde Doğrudan Görev Tikleme (Inline Task Check):** Notun içine girmeye gerek kalmadan, kart üzerindeki `- [ ]` kontrol maddelerine doğrudan dokunarak tik atabilme ve veritabanını anında güncelleme.
   - **Akıllı Web Alan Adı Rozeti (Smart Link Badge):** Notta yer alan web bağlantılarını otomatik tespit edip kartta temiz bir alan adı rozeti (`🔗 github.com`, `🔗 medium.com`) olarak gösterme.
   - **Görsel Önizleme:** Notun kapak görseli, çizimi veya ekli fotoğraflarını kart üzerinde küçük görsel olarak önizleme.
+- **Akıllı Not Sıralama (`NoteSortOrder`):**
+  - Listenin sağ üst `⋯` menüsünden veya komut paletinden seçilebilen 4 sıralama ölçütü:
+    - 🕒 **Son Güncellenen** (Varsayılan)
+    - 📅 **Oluşturulma Tarihi**
+    - 🔤 **Başlığa Göre (A-Z)**
+    - ⚡ **Önceliğe Göre (Acil → Düşük)**
+  - Sabitlenen (Pinned) notlar her sıralamada otomatik olarak listenin en başında tutulur.
 - **Peek & Pop Hızlı Aksiyon Menüsü (Uzun Basış):**
   - Kart üzerine uzun basıldığında açılan alt menü (`NoteContextMenuBottomSheet`):
     - 📌 Başa Sabitle / Kaldır
     - 📋 Notu Çoğalt (Duplicate Note)
     - 🔒 Biyometrik Kilit Ekle / Aç
+    - 📄 **PDF Olarak Paylaş / Dışa Aktar** (Notun içine girmeden anında PDF üretip paylaşma)
+    - 🖼️ **Görsel Kartı (PNG) Paylaş** (Instagram/Twitter için 4:5 sosyal paylaşım kartı üretimi)
     - 📁 Klasöre Taşı
     - ☑️ Çoklu Seçim Modunu Başlat
     - 🗑️ Çöp Kutusuna Gönder
@@ -86,12 +95,19 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
   - Not İçi Bağlantı Ekleme (`[[Not Başlığı]]`)
 - **Slash Komutları Menüsü (`/`):** Not içinde `/` yazıldığında açılan ve başlık, tablo, kod, görev listesi veya ayraç eklemeyi sağlayan Apple tarzı hızlı komut menüsü.
 - **İki Yönlü Not Bağlantıları (Wiki-Links):** `[[` yazılarak diğer notlara bağlantı verme ve tek tıkla bağlı nota atlama.
-- **İçindekiler Tablosu (`TableOfContentsBottomSheet`):** Not içindeki başlıklardan otomatik içindekiler listesi oluşturma ve nota ekleme.
-- **Görsel Markdown Önizleme (`MarkdownPreviewBottomSheet`):** KaTeX matematik formülleri (`$E=mc^2$`), Mermaid akış şemaları ve görsel zengin metin önizleme modalı.
+- **Görsel Markdown & Katlanabilir Başlık Önizleme (`MarkdownPreviewBottomSheet`):**
+  - `AppleSegmentedControl` ile iki güçlü görünüm arasında tek dokunuşla geçiş:
+    - **✨ KaTeX & Şemalar:** KaTeX matematik formülleri (`$E=mc^2$`), Mermaid akış şemaları ve görsel zengin metin önizleme.
+    - **📂 Katlanabilir Başlıklar:** Native Jetpack Compose (`CollapsibleMarkdownView`) tabanlı interaktif akordeon başlık katlama ve odaklı okuma.
+- **Sağ Üst Daha Fazla (`⋯`) Menüsü:**
+  - ⏳ **Zaman Makinesi (Sürüm Geçmişi):** Notun geçmiş sürümlerine göz atma ve tek tıkla geri yükleme (`VersionHistoryBottomSheet`).
+  - 📂 **Katlanabilir Başlıklar (Okuma Modu):** Notu doğrudan katlanabilir başlık modunda açma.
+  - 📋 **Şablon Uygula / Ekle:** Not dolu olsa dahi şablon kütüphanesinden şablon seçip mevcut nota uygulayabilme (`TemplatePickerBottomSheet`).
+  - ⏰ Hatırlatıcı Kur / Düzenle, 📌 Başa Sabitle, 🔒 Notu Kilitle, 📋 Şablon Olarak Kaydet, 💬 Notla Sohbet Et, 📑 İçindekiler Tablosu, ⏱️ Pomodoro Sayacı, 📜 Kağıt Deseni ve 🗑️ Notu Sil.
 - **İnteraktif Tablo Düzenleyici (`TableEditorDialog`):** Satır ve sütun ekleyip çıkarılabilen, hücreleri kolayca doldurulan görsel tablo oluşturucu.
 - **Zen Daktilo Modu (`ZenFocusModeDialog`):** Tüm butonları ve dikkat dağıtıcıları gizleyen, daktilo odaklı tam ekran yazı modu.
 - **Pomodoro Odak Zamanlayıcısı (`PomodoroTimerDialog`):** Not yazarken 25 dakikalık çalışma ve 5 dakikalık mola döngülerini yöneten entegre sayaç.
-- **Sürüm Geçmişi & Geri Alma (`VersionHistoryDialog`):**
+- **Sürüm Geçmişi & Geri Alma:**
   - Anlık Geri Al (`Undo`) ve İleri Al (`Redo`) yığını.
   - Room veritabanında saklanan geçmiş sürümler (`NoteHistoryEntity`) ve tek tıkla önceki sürüme dönebilme.
 - **Karakter, Kelime & Okuma Süresi Sayacı:** Notun başındaki detaylar panelinde anlık istatistikler.
@@ -245,9 +261,10 @@ Uygulamada Emil Kowalski'nin ödüllü hareket tasarımı prensipleri uygulanmı
 - **Depolama Analizi & Temizleme (`StorageHelper`):**
   - Veritabanı (`apple_notes_db`, WAL, SHM), Medya (çizimler, ses kayıtları, ekler) ve Önbellek (`cacheDir`) boyutlarını bayt hassasiyetinde hesaplama.
   - Tek tıkla geçici önbelleği temizleme (`clearCache`).
-- **Çift Yönlü Senkronizasyon (`CloudSyncService`):**
-  - **WebDAV / Nextcloud:** Kendi özel bulut sunucunuzla şifreli iki yönlü senkronizasyon (HTTP PUT/GET).
-  - **SAF (Storage Access Framework) Dizin Senkronizasyonu:** Dahili hafızadaki veya harici SD karttaki özel bir klasörle doğrudan dosya senkronizasyonu.
+- **Yedekleme & Bulut Senkronizasyonu (Mükerrersiz & Sadeleştirilmiş Tasarım):**
+  - **Kişisel Bulut (WebDAV / Nextcloud - `CloudSyncDialog`):** Üçüncü parti sunuculara bağımlı kalmadan Nextcloud, ownCloud veya kişisel WebDAV sunucunuzla şifreli iki yönlü senkronizasyon (HTTP PUT/GET).
+  - **Cihaza & Google Drive'a Yedekle (SAF ZIP):** Android Depolama Erişim Çerçevesi (SAF) üzerinden doğrudan Google Drive veya yerel depolama klasörü seçerek tek dokunuşla tam ZIP yedeği alma.
+  - **Yedekten Geri Yükle (SAF ZIP):** Google Drive veya cihazdaki herhangi bir ZIP yedeğini seçip tüm notları eksiksiz geri yükleme.
 - **Otomatik Arka Plan Yedekleme Zamanlayıcısı (`AutoBackupScheduler`):**
   - Günlük veya haftalık otomatik arka plan yedekleme.
   - Cihaz boştayken (`setAndAllowWhileIdle`) veritabanını şifreli zip/json olarak otomatik yedekler.

@@ -29,6 +29,8 @@ fun NoteContextMenuBottomSheet(
     onTogglePin: () -> Unit,
     onDuplicate: () -> Unit,
     onToggleLock: () -> Unit,
+    onSharePdf: () -> Unit,
+    onShareImageCard: () -> Unit,
     onMoveToFolder: () -> Unit,
     onEnterSelectMode: () -> Unit,
     onDelete: () -> Unit
@@ -167,7 +169,45 @@ fun NoteContextMenuBottomSheet(
                         modifier = Modifier.padding(start = 48.dp)
                     )
 
-                    // 4. Move to Folder
+                    // 4. Share PDF
+                    ContextMenuItem(
+                        icon = Icons.Default.PictureAsPdf,
+                        label = "PDF Olarak Paylaş",
+                        iconTint = AppleYellow,
+                        textColor = textPrimary,
+                        onClick = {
+                            haptic.tick()
+                            onSharePdf()
+                            onDismiss()
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(start = 48.dp)
+                    )
+
+                    // 5. Share Social Media Card
+                    ContextMenuItem(
+                        icon = Icons.Default.Image,
+                        label = "Görsel Kartı (PNG) Paylaş",
+                        iconTint = AppleYellow,
+                        textColor = textPrimary,
+                        onClick = {
+                            haptic.tick()
+                            onShareImageCard()
+                            onDismiss()
+                        }
+                    )
+
+                    HorizontalDivider(
+                        color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
+                        thickness = 0.5.dp,
+                        modifier = Modifier.padding(start = 48.dp)
+                    )
+
+                    // 6. Move to Folder
                     ContextMenuItem(
                         icon = Icons.Default.DriveFileMove,
                         label = "Klasöre Taşı...",

@@ -29,6 +29,13 @@ enum class SmartFolder(val title: String, val icon: String) {
     LOCKED("Kilitli Kasa", "🔒")
 }
 
+enum class NoteSortOrder(val displayName: String, val icon: String) {
+    UPDATED_DESC("Son Güncellenen", "🕒"),
+    CREATED_DESC("Oluşturulma Tarihi", "📅"),
+    TITLE_ASC("Başlığa Göre (A-Z)", "🔤"),
+    PRIORITY_DESC("Önceliğe Göre (Acil → Düşük)", "⚡")
+}
+
 data class NotesListUiState(
     val notes: List<Note> = emptyList(),
     val folders: List<Folder> = emptyList(),
@@ -61,7 +68,8 @@ data class NotesListUiState(
     val downloadProgress: Int = 0,
     val updateMessage: String? = null,
     val isTrashSheetOpen: Boolean = false,
-    val isCompactView: Boolean = false
+    val isCompactView: Boolean = false,
+    val sortOrder: NoteSortOrder = NoteSortOrder.UPDATED_DESC
 )
 
 private data class SelectionState(
@@ -83,7 +91,8 @@ private data class SelectionState(
     val isTrashSheetOpen: Boolean = false,
     val isSemanticSearchActive: Boolean = false,
     val isSemanticSearching: Boolean = false,
-    val isCompactView: Boolean = false
+    val isCompactView: Boolean = false,
+    val sortOrder: NoteSortOrder = NoteSortOrder.UPDATED_DESC
 )
 
 private data class FilterParams(
@@ -161,8 +170,39 @@ class NotesListViewModel(
         _updateInfo,
         _selectionState
     ) { (params, notes), folders, isSheet, updateInfo, sel ->
+        val sortedNotes = if (params.semanticMatches != null && params.semanticMatches.isNotEmpty()) {
+            notes
+        } else {
+            when (sel.sortOrder) {
+                NoteSortOrder.UPDATED_DESC -> notes.sortedWith(
+                    compareByDescending<Note> { it.isPinned }
+                        .thenByDescending { it.updatedAt }
+                )
+                NoteSortOrder.CREATED_DESC -> notes.sortedWith(
+                    compareByDescending<Note> { it.isPinned }
+                        .thenByDescending { it.createdAt }
+                )
+                NoteSortOrder.TITLE_ASC -> notes.sortedWith(
+                    compareByDescending<Note> { it.isPinned }
+                        .thenBy { it.title.lowercase() }
+                )
+                NoteSortOrder.PRIORITY_DESC -> notes.sortedWith(
+                    compareByDescending<Note> { it.isPinned }
+                        .thenBy {
+                            when (it.priority?.lowercase()) {
+                                "urgent", "acil" -> 0
+                                "high", "yüksek" -> 1
+                                "medium", "orta" -> 2
+                                "low", "düşük" -> 3
+                                else -> 4
+                            }
+                        }
+                        .thenByDescending { it.updatedAt }
+                )
+            }
+        }
         NotesListUiState(
-            notes = notes,
+            notes = sortedNotes,
             folders = folders,
             selectedFolderId = params.folderId,
             selectedSmartFolder = params.smartFolder,
@@ -190,7 +230,8 @@ class NotesListViewModel(
             downloadProgress = sel.downloadProgress,
             updateMessage = sel.updateMessage,
             isTrashSheetOpen = sel.isTrashSheetOpen,
-            isCompactView = sel.isCompactView
+            isCompactView = sel.isCompactView,
+            sortOrder = sel.sortOrder
         )
     }.stateIn(
         scope = viewModelScope,
@@ -373,6 +414,10 @@ class NotesListViewModel(
         _selectionState.value = _selectionState.value.copy(viewMode = mode)
     }
 
+    fun setSortOrder(order: NoteSortOrder) {
+        _selectionState.value = _selectionState.value.copy(sortOrder = order)
+    }
+
     fun toggleGridView() {
         val nextMode = when (_selectionState.value.viewMode) {
             ViewMode.LIST -> ViewMode.GALLERY
@@ -493,6 +538,13 @@ class NotesListViewModel(
             }
             clearSelection()
         }
+    }
+
+    fun enterSelectionMode(noteId: Long) {
+        _selectionState.value = _selectionState.value.copy(
+            isSelectionMode = true,
+            selectedNoteIds = setOf(noteId)
+        )
     }
 
     fun setMoveFolderDialogOpen(open: Boolean) {

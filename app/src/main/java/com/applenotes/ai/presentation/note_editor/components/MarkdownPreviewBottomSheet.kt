@@ -18,16 +18,34 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.applenotes.ai.core.theme.*
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.runtime.*
+import com.applenotes.ai.core.components.AppleSegmentedControl
+import com.applenotes.ai.core.components.SegmentItem
+
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MarkdownPreviewBottomSheet(
     title: String,
     content: String,
+    initialTab: Int = 0,
     onDismiss: () -> Unit
 ) {
     val isDark = isAppDarkTheme()
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
+
+    var selectedTab by remember { mutableIntStateOf(initialTab) }
+
+    val segmentItems = remember {
+        listOf(
+            SegmentItem("KaTeX & Şemalar", Icons.Default.AutoAwesome),
+            SegmentItem("Katlanabilir Başlıklar", Icons.Default.ViewAgenda)
+        )
+    }
 
     val htmlContent = remember(title, content, isDark) {
         buildHtmlPreview(title, content, isDark)
@@ -41,7 +59,7 @@ fun MarkdownPreviewBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.88f)
+                .fillMaxHeight(0.90f)
                 .padding(horizontal = 16.dp, vertical = 4.dp)
         ) {
             Row(
@@ -58,7 +76,7 @@ fun MarkdownPreviewBottomSheet(
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = "Görsel Önizleme (KaTeX & Mermaid)",
+                        text = "Markdown Önizleme",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = textPrimary
@@ -70,31 +88,54 @@ fun MarkdownPreviewBottomSheet(
                 }
             }
 
+            Spacer(modifier = Modifier.height(6.dp))
+
+            AppleSegmentedControl(
+                items = segmentItems,
+                selectedIndex = selectedTab,
+                onIndexSelected = { selectedTab = it },
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
             HorizontalDivider(
                 color = if (isDark) iOSSeparatorDark else iOSSeparatorLight,
                 thickness = 0.5.dp,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            AndroidView(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f),
-                factory = { ctx ->
-                    WebView(ctx).apply {
-                        settings.javaScriptEnabled = true
-                        settings.domStorageEnabled = true
-                        settings.loadWithOverviewMode = true
-                        settings.useWideViewPort = true
-                        setBackgroundColor(0) // Transparent
-                        webViewClient = WebViewClient()
-                        loadDataWithBaseURL("https://applenotes.local", htmlContent, "text/html", "UTF-8", null)
+            if (selectedTab == 0) {
+                AndroidView(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    factory = { ctx ->
+                        WebView(ctx).apply {
+                            settings.javaScriptEnabled = true
+                            settings.domStorageEnabled = true
+                            settings.loadWithOverviewMode = true
+                            settings.useWideViewPort = true
+                            setBackgroundColor(0) // Transparent
+                            webViewClient = WebViewClient()
+                            loadDataWithBaseURL("https://applenotes.local", htmlContent, "text/html", "UTF-8", null)
+                        }
+                    },
+                    update = { webView ->
+                        webView.loadDataWithBaseURL("https://applenotes.local", htmlContent, "text/html", "UTF-8", null)
                     }
-                },
-                update = { webView ->
-                    webView.loadDataWithBaseURL("https://applenotes.local", htmlContent, "text/html", "UTF-8", null)
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(bottom = 24.dp)
+                ) {
+                    CollapsibleMarkdownView(
+                        markdown = if (title.isNotBlank()) "# $title\n\n$content" else content
+                    )
                 }
-            )
+            }
         }
     }
 }

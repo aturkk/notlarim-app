@@ -678,13 +678,13 @@ fun SettingsScreen(
                 }
             }
 
-            // Data & Backup Section (Google Drive / SAF + Auto Sync)
+            // Data & Backup Section (WebDAV + Google Drive / SAF)
             item {
                 InsetGroupedSection(
-                    title = "Yedekleme & Senkronizasyon (Google Drive / SAF)",
-                    footer = "Notlarınız doğrudan cihazınızda saklanır. Google Drive veya yerel klasörlere SAF (Storage Access Framework) ile güvenle yedekleyebilir ve dilediğiniz zaman geri yükleyebilirsiniz."
+                    title = "Yedekleme & Bulut Senkronizasyonu",
+                    footer = "Notlarınız varsayılan olarak cihazınızda saklanır. Kişisel WebDAV bulutunuzla senkronize edebilir veya Google Drive ve yerel depolamaya tek dokunuşla ZIP yedeği alabilirsiniz."
                 ) {
-                    // 0. Personal Cloud Sync (WebDAV + SAF)
+                    // 0. Personal Cloud Sync (WebDAV / Nextcloud)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -701,13 +701,13 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Kişisel Bulut Senkronizasyonu",
+                                text = "Kişisel Bulut (WebDAV / Nextcloud)",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Bold,
                                 color = textPrimary
                             )
                             Text(
-                                text = "WebDAV (Nextcloud / ownCloud) ve Google Drive ile anında eşitle",
+                                text = "Nextcloud veya WebDAV sunucunuz ile güvenli eşitleme",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = textSecondary
                             )
@@ -742,7 +742,7 @@ fun SettingsScreen(
                         Spacer(modifier = Modifier.width(14.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "Google Drive'a / Dosyaya Yedekle",
+                                text = "Cihaza / Google Drive'a Yedekle (ZIP)",
                                 style = MaterialTheme.typography.bodyLarge,
                                 fontWeight = FontWeight.Medium,
                                 color = textPrimary

@@ -86,7 +86,7 @@ fun CommandPaletteBottomSheet(
             CommandAction(
                 id = "cloud_sync",
                 title = "Kişisel Bulut Senkronizasyonu",
-                subtitle = "WebDAV veya Google Drive ile notları yedekle/eşitle",
+                subtitle = "WebDAV (Nextcloud) ile notları güvenle eşitle",
                 icon = Icons.Default.CloudSync,
                 iconTint = iOSBlue,
                 action = { onOpenCloudSync(); onDismiss() }

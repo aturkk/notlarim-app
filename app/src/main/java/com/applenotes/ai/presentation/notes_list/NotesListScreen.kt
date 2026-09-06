@@ -44,6 +44,9 @@ import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.animation.AnimatedVisibility
 import com.applenotes.ai.presentation.notes_list.components.NoteContextMenuBottomSheet
+import com.applenotes.ai.core.components.SonnerFloatingToast
+import com.applenotes.ai.core.export.NoteExporter
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,6 +59,7 @@ fun NotesListScreen(
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
+    val coroutineScope = rememberCoroutineScope()
     val uiState by viewModel.uiState.collectAsState()
     val trashNotes by viewModel.trashNotes.collectAsState()
     val isDark = isAppDarkTheme()
@@ -73,6 +77,8 @@ fun NotesListScreen(
     var noteForContextMenu by remember { mutableStateOf<Note?>(null) }
     var newFolderName by remember { mutableStateOf("") }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
+    var isSortDialogOpen by remember { mutableStateOf(false) }
+    var floatingToastMessage by remember { mutableStateOf<String?>(null) }
     var isAiHubSheetVisible by remember { mutableStateOf(false) }
     var isCommandPaletteVisible by remember { mutableStateOf(false) }
 
@@ -343,6 +349,14 @@ fun NotesListScreen(
                                             onClick = {
                                                 isMoreMenuExpanded = false
                                                 viewModel.openOrCreateDailyNote(onNoteClick)
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Sırala: ${uiState.sortOrder.displayName}") },
+                                            leadingIcon = { Icon(Icons.Default.Sort, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                isSortDialogOpen = true
                                             }
                                         )
                                         DropdownMenuItem(
@@ -1022,18 +1036,44 @@ fun NotesListScreen(
             note = note,
             onDismiss = { noteForContextMenu = null },
             onTogglePin = { viewModel.togglePin(note.id) },
-            onDuplicate = { viewModel.duplicateNote(note) },
+            onDuplicate = {
+                viewModel.duplicateNote(note)
+                floatingToastMessage = "Not başarıyla çoğaltıldı"
+            },
             onToggleLock = { viewModel.toggleLock(note.id) },
+            onSharePdf = {
+                coroutineScope.launch {
+                    floatingToastMessage = "📄 PDF hazırlanıyor..."
+                    try {
+                        val file = NoteExporter.exportToPdf(context, note)
+                        NoteExporter.shareFile(context, file, "application/pdf")
+                    } catch (e: Exception) {
+                        floatingToastMessage = "Hata: ${e.localizedMessage}"
+                    }
+                }
+            },
+            onShareImageCard = {
+                coroutineScope.launch {
+                    floatingToastMessage = "🖼️ Paylaşım kartı hazırlanıyor..."
+                    try {
+                        val file = NoteExporter.exportToImageCard(context, note)
+                        NoteExporter.shareFile(context, file, "image/png")
+                    } catch (e: Exception) {
+                        floatingToastMessage = "Hata: ${e.localizedMessage}"
+                    }
+                }
+            },
             onMoveToFolder = {
-                viewModel.setSelectionMode(true)
-                viewModel.toggleSelectNote(note.id)
+                viewModel.enterSelectionMode(note.id)
                 viewModel.setMoveFolderDialogOpen(true)
             },
             onEnterSelectMode = {
-                viewModel.setSelectionMode(true)
-                viewModel.toggleSelectNote(note.id)
+                viewModel.enterSelectionMode(note.id)
             },
-            onDelete = { viewModel.moveToTrash(note.id) }
+            onDelete = {
+                viewModel.moveToTrash(note.id)
+                floatingToastMessage = "Not çöp kutusuna taşındı"
+            }
         )
     }
 
@@ -1293,5 +1333,71 @@ fun NotesListScreen(
             }
         )
     }
+
+    // Sort Order Dialog
+    if (isSortDialogOpen) {
+        AlertDialog(
+            onDismissRequest = { isSortDialogOpen = false },
+            title = {
+                Text(
+                    text = "Notları Sırala",
+                    fontWeight = FontWeight.Bold,
+                    color = textPrimary
+                )
+            },
+            text = {
+                Column {
+                    NoteSortOrder.entries.forEach { order ->
+                        val isSelected = uiState.sortOrder == order
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable {
+                                    haptic.selection()
+                                    viewModel.setSortOrder(order)
+                                    isSortDialogOpen = false
+                                    floatingToastMessage = "Sıralama: ${order.displayName}"
+                                }
+                                .padding(vertical = 12.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(text = order.icon, fontSize = 18.sp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = order.displayName,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                    color = textPrimary
+                                )
+                            }
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Seçili",
+                                    tint = accentColor
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { isSortDialogOpen = false }) {
+                    Text("Tamam", color = accentColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+
+    // Sonner-Style Floating Feedback Pill
+    SonnerFloatingToast(
+        message = floatingToastMessage,
+        onDismiss = { floatingToastMessage = null }
+    )
 }
 
