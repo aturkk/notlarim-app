@@ -40,6 +40,14 @@ class AudioRecorderHelper(private val context: Context) {
         return if (recordingStartTime > 0) (System.currentTimeMillis() - recordingStartTime) / 1000 else 0L
     }
 
+    fun getMaxAmplitude(): Int {
+        return try {
+            recorder?.maxAmplitude ?: 0
+        } catch (e: Exception) {
+            0
+        }
+    }
+
     fun stopRecording(): String? {
         recordingStartTime = 0L
         return try {

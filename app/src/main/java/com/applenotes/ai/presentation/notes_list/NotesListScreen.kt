@@ -699,7 +699,8 @@ fun NotesListScreen(
                                                 }
                                             },
                                             onTogglePin = { viewModel.togglePin(note.id) },
-                                            onDelete = { viewModel.moveToTrash(note.id) }
+                                            onDelete = { viewModel.moveToTrash(note.id) },
+                                            onToggleChecklistItem = viewModel::toggleChecklistItem
                                         )
                                         if (index < pinnedNotes.lastIndex) {
                                             InsetDivider(startIndent = 16.dp)
@@ -735,7 +736,8 @@ fun NotesListScreen(
                                                 }
                                             },
                                             onTogglePin = { viewModel.togglePin(note.id) },
-                                            onDelete = { viewModel.moveToTrash(note.id) }
+                                            onDelete = { viewModel.moveToTrash(note.id) },
+                                            onToggleChecklistItem = viewModel::toggleChecklistItem
                                         )
                                         if (index < unpinnedNotes.lastIndex) {
                                             InsetDivider(startIndent = 16.dp)

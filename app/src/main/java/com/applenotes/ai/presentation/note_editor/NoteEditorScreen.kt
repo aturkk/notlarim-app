@@ -41,6 +41,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.core.content.ContextCompat
 import android.Manifest
 import com.applenotes.ai.core.audio.AudioRecorderHelper
+import com.applenotes.ai.core.components.PaperBackground
+import com.applenotes.ai.core.components.PaperPickerBottomSheet
+import com.applenotes.ai.core.components.PaperType
+import com.applenotes.ai.core.components.AudioWaveformVisualizer
 import com.applenotes.ai.core.components.CupertinoTopAppBar
 import com.applenotes.ai.core.components.CupertinoFormatBar
 import com.applenotes.ai.core.components.SlashCommandBottomSheet
@@ -110,6 +114,8 @@ fun NoteEditorScreen(
     var viewingPdfPath by remember { mutableStateOf<String?>(null) }
     var viewingLightboxUrl by remember { mutableStateOf<String?>(null) }
     var recentTabs by remember { mutableStateOf<List<EditorTabItem>>(emptyList()) }
+    var currentPaperType by remember { mutableStateOf(PaperType.BLANK) }
+    var isPaperPickerOpen by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.noteId, uiState.title, uiState.icon) {
         if (uiState.noteId > 0) {
@@ -377,6 +383,14 @@ fun NoteEditorScreen(
                                         viewModel.setZenModeOpen(true)
                                     }
                                 )
+                                DropdownMenuItem(
+                                    text = { Text("📜 Kağıt Deseni / Dokusu") },
+                                    leadingIcon = { Icon(Icons.Default.Description, contentDescription = null, tint = AppleYellow) },
+                                    onClick = {
+                                        isMoreMenuOpen = false
+                                        isPaperPickerOpen = true
+                                    }
+                                )
                                 HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight)
                                 DropdownMenuItem(
                                     text = { Text("Notu Sil", color = iOSRed) },
@@ -543,6 +557,14 @@ fun NoteEditorScreen(
                                             modifier = Modifier.size(16.dp)
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
+                                        AudioWaveformVisualizer(
+                                            isRecording = true,
+                                            amplitudeProvider = { audioHelper.getMaxAmplitude() },
+                                            barColor = iOSRed,
+                                            barCount = 8,
+                                            maxHeight = 14.dp
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "Kaydı Bitir",
                                             color = iOSRed,
@@ -586,12 +608,16 @@ fun NoteEditorScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(scrollState)
-                    .padding(horizontal = 20.dp, vertical = 12.dp)
+            PaperBackground(
+                paperType = currentPaperType,
+                modifier = Modifier.fillMaxSize()
             ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                ) {
                 // Page Cover Banner
                 uiState.coverUrl?.let { url ->
                     Box(
@@ -1342,6 +1368,7 @@ fun NoteEditorScreen(
             }
         }
     }
+}
 
     // Drawing Canvas Dialog
     if (uiState.isDrawingDialogOpen) {
@@ -1872,6 +1899,15 @@ fun NoteEditorScreen(
         MediaLightboxDialog(
             imageUrl = url,
             onDismissRequest = { viewingLightboxUrl = null }
+        )
+    }
+
+    // Paper Pattern Bottom Sheet
+    if (isPaperPickerOpen) {
+        PaperPickerBottomSheet(
+            currentPaperType = currentPaperType,
+            onSelect = { currentPaperType = it },
+            onDismiss = { isPaperPickerOpen = false }
         )
     }
 }

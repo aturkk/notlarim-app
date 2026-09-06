@@ -3,6 +3,7 @@ package com.applenotes.ai.core.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -50,6 +51,7 @@ fun SwipeableNoteCard(
     onLongClick: (() -> Unit)? = null,
     onTogglePin: () -> Unit,
     onDelete: () -> Unit,
+    onToggleChecklistItem: ((noteId: Long, rawLine: String, currentChecked: Boolean) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val isDark = isAppDarkTheme()
@@ -249,6 +251,77 @@ fun SwipeableNoteCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+            }
+
+            // Interactive Inline Checklist Preview & One-Tap Checking
+            val checklistItems = remember(note.content, note.isLocked) {
+                if (note.isLocked) emptyList()
+                else {
+                    val regex = Regex("^[\\t ]*- \\[( |x|X)\\] (.*)$", RegexOption.MULTILINE)
+                    regex.findAll(note.content).take(2).map { match ->
+                        val isDone = match.groupValues[1].equals("x", ignoreCase = true)
+                        val text = match.groupValues[2].trim()
+                        val rawMatch = match.value
+                        Triple(isDone, text, rawMatch)
+                    }.toList()
+                }
+            }
+
+            if (!isCompact && checklistItems.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isDark) Color(0xFF1C1C1E).copy(alpha = 0.5f) else Color(0xFFF2F2F7).copy(alpha = 0.8f))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    checklistItems.forEach { (isDone, text, rawMatch) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 3.dp)
+                                .clip(RoundedCornerShape(4.dp))
+                                .clickable {
+                                    haptic.tick()
+                                    onToggleChecklistItem?.invoke(note.id, rawMatch, isDone)
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .background(if (isDone) Color(0xFF34C759) else Color.Transparent)
+                                    .border(
+                                        width = 1.5.dp,
+                                        color = if (isDone) Color(0xFF34C759) else textSecondary.copy(alpha = 0.5f),
+                                        shape = RoundedCornerShape(4.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isDone) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = text,
+                                fontSize = 12.sp,
+                                color = if (isDone) textSecondary.copy(alpha = 0.6f) else textPrimary,
+                                style = if (isDone) MaterialTheme.typography.bodySmall.copy(textDecoration = androidx.compose.ui.text.style.TextDecoration.LineThrough)
+                                        else MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                }
             }
 
             val detectedDomain = remember(note.content) {

@@ -571,6 +571,19 @@ class NotesListViewModel(
         _selectionState.update { it.copy(isCompactView = !it.isCompactView) }
     }
 
+    fun toggleChecklistItem(noteId: Long, rawLine: String, currentChecked: Boolean) {
+        viewModelScope.launch {
+            val note = repository.getNoteById(noteId) ?: return@launch
+            val newLine = if (currentChecked) {
+                rawLine.replaceFirst("- [x]", "- [ ]").replaceFirst("- [X]", "- [ ]")
+            } else {
+                rawLine.replaceFirst("- [ ]", "- [x]")
+            }
+            val newContent = note.content.replaceFirst(rawLine, newLine)
+            repository.saveNote(note.copy(content = newContent, updatedAt = System.currentTimeMillis()))
+        }
+    }
+
     private fun checkForUpdateSilently() {
         viewModelScope.launch {
             val result = updateService.checkForUpdate()
