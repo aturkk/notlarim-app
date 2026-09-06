@@ -25,6 +25,7 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
 12. [Güvenlik, Biyometri & Donanımsal Şifreleme (AES-256)](#12-güvenlik-biyometri--donanımsal-şifreleme)
 13. [Depolama Analizi, Önbellek Temizleme & Otomatik Yedekleme](#13-depolama-analizi-önbellek-temizleme--otomatik-yedekleme)
 14. [Görsel Tema, Tipografi & Buzlu Cam (Frosted Glass)](#14-görsel-tema-tipografi--buzlu-cam-frosted-glass)
+15. [Kategorize Edilmiş Modüler Ayarlar Mimarisi](#15-kategorize-edilmiş-modüler-ayarlar-mimarisi)
 
 ---
 
@@ -292,3 +293,19 @@ Uygulamada Emil Kowalski'nin ödüllü hareket tasarımı prensipleri uygulanmı
   - 💻 **MONOSPACE:** Kod blokları, teknik notlar ve markdown odaklı daktilo yazı tipi.
 - **Dokunsal Haptik Motoru (`HapticFeedbackHelper`):**
   - Seçim (`selection`), onay (`tick`), silme (`delete`), açılma (`heavy`) ve sürükleme durumlarında özelleştirilmiş fiziksel titreşimler.
+
+---
+
+## 15. Kategorize Edilmiş Modüler Ayarlar Mimarisi
+
+- **Apple iOS / iPadOS Standartlarında Alt Sayfalı Ayarlar (`SettingsSubpage`):**
+  - Ayarlar ekranı tek bir uzun liste yerine, Apple tarzı renkli kare ikonlu, özet göstergeli ve sağa oklu (`ChevronRight`) ana kategori kartlarına ayrılmıştır:
+    1. 🎨 **Görünüm & Tema:** Açık/Koyu tema modu, 6 vurgu rengi ve 3 tipografi ailesi.
+    2. 🤖 **Yapay Zeka (AI) & BYOK:** 7 AI sağlayıcısı, API anahtarları, model seçimi, cihaz içi LLM ve canlı bağlantı testi.
+    3. ☁️ **Yedekleme & Bulut Senkronizasyonu:** Kişisel WebDAV/Nextcloud, Google Drive / Cihaz SAF ZIP ve otomatik arka plan zamanlayıcısı.
+    4. 💾 **Depolama & Hafıza:** Toplam kaplanan alan, veritabanı/medya/önbellek boyutları ve tek tıkla önbellek temizleme.
+    5. 🔄 **Uygulama Güncellemeleri:** Otomatik GitHub denetimi, repo ayarları ve sürüm bilgileri.
+  - **Akıcı Animasyonlar & Geri Tuşu Yönetimi:**
+    - Alt sayfaya geçişte iOS stili sağdan kayarak giriş (`slideInHorizontally + fadeIn`), ana menüye dönüşte soldan kayma (`slideOutHorizontally + fadeOut`).
+    - `BackHandler` entegrasyonu sayesinde telefonun sistem geri tuşu alt sayfadayken doğrudan ana Ayarlar sayfasına döner, kullanıcıyı uygulamadan veya ekrandan istem dışı atmaz.
+
