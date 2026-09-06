@@ -52,16 +52,6 @@ fun AppNavigation(
                 },
                 onSettingsClick = {
                     navController.navigate(Screen.Settings.route)
-                },
-                onDownloadUpdate = { downloadUrl ->
-                    // Trigger download via updater
-                    val settingsVm = SettingsViewModel(
-                        prefs = appContainer.securePreferences,
-                        updateService = appContainer.updateService,
-                        aiServiceManager = appContainer.aiServiceManager,
-                        repository = appContainer.noteRepository
-                    )
-                    settingsVm.downloadAndInstallUpdate(downloadUrl)
                 }
             )
         }

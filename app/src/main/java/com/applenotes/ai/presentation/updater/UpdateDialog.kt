@@ -45,7 +45,7 @@ fun UpdateDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Sürüm:  (Mevcut: )",
+                    text = "Sürüm: ${updateInfo.latestVersion} (Mevcut: v${updateInfo.currentVersion})",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
                 )

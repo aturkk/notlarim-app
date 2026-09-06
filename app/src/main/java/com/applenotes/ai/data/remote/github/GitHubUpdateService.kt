@@ -230,8 +230,10 @@ class GitHubUpdateService(
 
     private fun isVersionNewer(latest: String, current: String): Boolean {
         try {
-            val latestParts = latest.split(".").mapNotNull { it.toIntOrNull() }
-            val currentParts = current.split(".").mapNotNull { it.toIntOrNull() }
+            val cleanLatest = latest.removePrefix("v").trim()
+            val cleanCurrent = current.removePrefix("v").trim()
+            val latestParts = cleanLatest.split(".").mapNotNull { it.toIntOrNull() }
+            val currentParts = cleanCurrent.split(".").mapNotNull { it.toIntOrNull() }
 
             val maxLen = maxOf(latestParts.size, currentParts.size)
             for (i in 0 until maxLen) {
@@ -242,7 +244,7 @@ class GitHubUpdateService(
             }
             return false
         } catch (e: Exception) {
-            return latest != current
+            return latest.removePrefix("v") != current.removePrefix("v")
         }
     }
 
@@ -300,7 +302,7 @@ class GitHubUpdateService(
             total += count
             output.write(data, 0, count)
             if (fileLength > 0) {
-                val progress = ((total * 100) / fileLength).toInt()
+                val progress = minOf(99, ((total * 100) / fileLength).toInt())
                 if (progress > lastEmittedProgress) {
                     lastEmittedProgress = progress
                     emit(progress)

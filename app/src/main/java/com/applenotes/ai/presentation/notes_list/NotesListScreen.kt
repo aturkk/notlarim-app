@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -43,7 +44,7 @@ fun NotesListScreen(
     onNoteClick: (Long) -> Unit,
     onNewNoteClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onDownloadUpdate: (String) -> Unit
+    onDownloadUpdate: (String) -> Unit = {}
 ) {
     val context = LocalContext.current
     val activity = context as? FragmentActivity
@@ -183,18 +184,39 @@ fun NotesListScreen(
             ) {
                 item {
                     Spacer(modifier = Modifier.statusBarsPadding())
+
+                    // Top Action Bar (Folder back button & Quick action icons)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(end = 16.dp),
+                            .padding(horizontal = 16.dp, vertical = 4.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            CupertinoLargeHeader(
-                                title = if (uiState.isSelectionMode) "${uiState.selectedNoteIds.size} Not Seçildi" else currentFolderTitle,
-                                subtitle = if (uiState.isSelectionMode) "İşlem yapmak için notları seçin" else if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
-                            )
+                        if (uiState.selectedFolderId != null) {
+                            Row(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { viewModel.onSelectFolder(null) }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = "Tüm Notlar",
+                                    tint = AppleYellow,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "Klasörler",
+                                    color = AppleYellow,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.width(1.dp))
                         }
 
                         Row(
@@ -223,11 +245,12 @@ fun NotesListScreen(
                                     )
                                 }
                             } else {
-                                // View Mode Switcher (List -> Gallery -> Kanban)
+                                // View Mode Switcher (List -> Gallery -> Kanban -> Calendar)
                                 IconButton(
                                     onClick = viewModel::toggleGridView,
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                 ) {
                                     Icon(
@@ -237,14 +260,9 @@ fun NotesListScreen(
                                             ViewMode.KANBAN -> Icons.Default.ViewWeek
                                             ViewMode.CALENDAR -> Icons.Default.CalendarMonth
                                         },
-                                        contentDescription = when (uiState.viewMode) {
-                                            ViewMode.LIST -> "Liste Görünümü"
-                                            ViewMode.GALLERY -> "Galeri Görünümü"
-                                            ViewMode.KANBAN -> "Pano (Kanban) Görünümü"
-                                            ViewMode.CALENDAR -> "Takvim Görünümü"
-                                        },
+                                        contentDescription = "Görünüm Değiştir",
                                         tint = if (uiState.viewMode != ViewMode.LIST) AppleYellow else textSecondary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(19.dp)
                                     )
                                 }
 
@@ -252,14 +270,15 @@ fun NotesListScreen(
                                 IconButton(
                                     onClick = { viewModel.setGraphDialogOpen(true) },
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.AccountTree,
                                         contentDescription = "Ağ Görünümü (Graph)",
                                         tint = textSecondary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(19.dp)
                                     )
                                 }
 
@@ -267,14 +286,15 @@ fun NotesListScreen(
                                 IconButton(
                                     onClick = { viewModel.setTemplateSheetOpen(true) },
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.PostAdd,
                                         contentDescription = "Şablonlar",
                                         tint = textSecondary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(19.dp)
                                     )
                                 }
 
@@ -282,14 +302,15 @@ fun NotesListScreen(
                                 IconButton(
                                     onClick = { viewModel.openMorningDigest() },
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.WbSunny,
                                         contentDescription = "Sabah Brifingi",
                                         tint = AppleYellow,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(19.dp)
                                     )
                                 }
 
@@ -297,31 +318,41 @@ fun NotesListScreen(
                                 IconButton(
                                     onClick = { viewModel.setGlobalAiChatVisible(true) },
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(12.dp))
+                                        .size(36.dp)
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(AppleYellow.copy(alpha = 0.15f))
                                 ) {
                                     Icon(
                                         imageVector = Icons.Default.Psychology,
                                         contentDescription = "Global AI Asistan",
                                         tint = AppleYellow,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(19.dp)
                                     )
                                 }
 
                                 // Select button
                                 if (uiState.notes.isNotEmpty()) {
-                                    TextButton(onClick = { viewModel.setSelectionMode(true) }) {
+                                    TextButton(
+                                        onClick = { viewModel.setSelectionMode(true) },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    ) {
                                         Text(
                                             text = "Seç",
                                             color = AppleYellow,
                                             fontWeight = FontWeight.Bold,
-                                            fontSize = 15.sp
+                                            fontSize = 16.sp
                                         )
                                     }
                                 }
                             }
                         }
                     }
+
+                    // Full-width Cupertino Large Title Header (Never wraps vertically)
+                    CupertinoLargeHeader(
+                        title = if (uiState.isSelectionMode) "${uiState.selectedNoteIds.size} Not Seçildi" else currentFolderTitle,
+                        subtitle = if (uiState.isSelectionMode) "İşlem yapmak için notları seçin" else if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
+                    )
                 }
 
                 item {
@@ -724,7 +755,46 @@ fun NotesListScreen(
         UpdateDialog(
             updateInfo = updateInfo,
             onDismiss = viewModel::dismissUpdateDialog,
-            onDownload = { onDownloadUpdate(updateInfo.downloadUrl) }
+            onDownload = { viewModel.downloadAndInstallUpdate(updateInfo.downloadUrl) }
+        )
+    }
+
+    // Download Progress Dialog
+    if (uiState.isDownloadInProgress) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Güncelleme İndiriliyor", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    LinearProgressIndicator(
+                        progress = { uiState.downloadProgress / 100f },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = AppleYellow
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("${uiState.downloadProgress}%", style = MaterialTheme.typography.labelLarge)
+                }
+            },
+            confirmButton = {},
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Update Message / Error Alert
+    uiState.updateMessage?.let { msg ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissUpdateMessage,
+            title = { Text("Güncelleme", fontWeight = FontWeight.Bold) },
+            text = { Text(msg) },
+            confirmButton = {
+                TextButton(onClick = viewModel::dismissUpdateMessage) {
+                    Text("Tamam", color = AppleYellow, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
         )
     }
 

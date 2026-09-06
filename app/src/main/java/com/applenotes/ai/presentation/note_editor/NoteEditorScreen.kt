@@ -232,7 +232,7 @@ fun NoteEditorScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .navigationBarsPadding()
+                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime))
             ) {
                 AnimatedVisibility(visible = uiState.isFormatBarVisible) {
                     CupertinoFormatBar(
@@ -792,7 +792,15 @@ fun NoteEditorScreen(
                     }
                     BasicTextField(
                         value = uiState.content,
-                        onValueChange = viewModel::onContentChange,
+                        onValueChange = { newText ->
+                            val oldLength = uiState.content.length
+                            viewModel.onContentChange(newText)
+                            if (newText.length > oldLength && scrollState.value >= scrollState.maxValue - 450) {
+                                coroutineScope.launch {
+                                    scrollState.animateScrollTo(scrollState.maxValue)
+                                }
+                            }
+                        },
                         visualTransformation = com.applenotes.ai.core.components.MarkdownVisualTransformation(isDark),
                         textStyle = MaterialTheme.typography.bodyLarge.copy(
                             color = textPrimary,
@@ -887,7 +895,7 @@ fun NoteEditorScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(320.dp))
             }
 
             // AI Loading Overlay

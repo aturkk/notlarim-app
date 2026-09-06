@@ -45,7 +45,10 @@ data class NotesListUiState(
     val isMorningDigestLoading: Boolean = false,
     val isSynthesisVisible: Boolean = false,
     val synthesisText: String? = null,
-    val isSynthesisLoading: Boolean = false
+    val isSynthesisLoading: Boolean = false,
+    val isDownloadInProgress: Boolean = false,
+    val downloadProgress: Int = 0,
+    val updateMessage: String? = null
 )
 
 private data class SelectionState(
@@ -60,7 +63,10 @@ private data class SelectionState(
     val isMorningDigestLoading: Boolean = false,
     val isSynthesisVisible: Boolean = false,
     val synthesisText: String? = null,
-    val isSynthesisLoading: Boolean = false
+    val isSynthesisLoading: Boolean = false,
+    val isDownloadInProgress: Boolean = false,
+    val downloadProgress: Int = 0,
+    val updateMessage: String? = null
 )
 
 private data class FilterParams(
@@ -139,7 +145,10 @@ class NotesListViewModel(
             isMorningDigestLoading = sel.isMorningDigestLoading,
             isSynthesisVisible = sel.isSynthesisVisible,
             synthesisText = sel.synthesisText,
-            isSynthesisLoading = sel.isSynthesisLoading
+            isSynthesisLoading = sel.isSynthesisLoading,
+            isDownloadInProgress = sel.isDownloadInProgress,
+            downloadProgress = sel.downloadProgress,
+            updateMessage = sel.updateMessage
         )
     }.stateIn(
         scope = viewModelScope,
@@ -377,6 +386,42 @@ class NotesListViewModel(
 
     fun dismissUpdateDialog() {
         _updateInfo.value = null
+    }
+
+    fun downloadAndInstallUpdate(downloadUrl: String) {
+        _updateInfo.value = null
+        _selectionState.update {
+            it.copy(
+                isDownloadInProgress = true,
+                downloadProgress = 0,
+                updateMessage = null
+            )
+        }
+        viewModelScope.launch {
+            try {
+                updateService.downloadApk(downloadUrl).collect { progress ->
+                    _selectionState.update { it.copy(downloadProgress = progress) }
+                    if (progress >= 100) {
+                        _selectionState.update { it.copy(isDownloadInProgress = false) }
+                        val installResult = updateService.installDownloadedApk()
+                        installResult.onFailure { installErr ->
+                            _selectionState.update { it.copy(updateMessage = installErr.message) }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                _selectionState.update {
+                    it.copy(
+                        isDownloadInProgress = false,
+                        updateMessage = "İndirme başarısız: ${e.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun dismissUpdateMessage() {
+        _selectionState.update { it.copy(updateMessage = null) }
     }
 
     fun openMorningDigest() {

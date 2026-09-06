@@ -917,7 +917,7 @@ fun SettingsScreen(
                         color = AppleYellow
                     )
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("%", style = MaterialTheme.typography.labelLarge)
+                    Text("${uiState.downloadProgress}%", style = MaterialTheme.typography.labelLarge)
                 }
             },
             confirmButton = {},
