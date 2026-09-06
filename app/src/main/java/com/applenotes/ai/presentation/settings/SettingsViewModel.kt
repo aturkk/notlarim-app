@@ -3,6 +3,7 @@ package com.applenotes.ai.presentation.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.applenotes.ai.core.security.SecurePreferences
+import com.applenotes.ai.core.theme.AppThemeMode
 import com.applenotes.ai.data.remote.ai.AiServiceManager
 import com.applenotes.ai.data.remote.github.GitHubUpdateService
 import com.applenotes.ai.domain.model.AiProvider
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SettingsUiState(
+    val themeMode: AppThemeMode = AppThemeMode.LIGHT,
     val activeProvider: AiProvider = AiProvider.GEMINI,
     val geminiApiKey: String = "",
     val geminiModel: String = "gemini-2.5-flash",
@@ -65,6 +67,7 @@ class SettingsViewModel(
 
     private val _uiState = MutableStateFlow(
         SettingsUiState(
+            themeMode = prefs.getThemeMode(),
             activeProvider = prefs.getActiveAiProvider(),
             geminiApiKey = prefs.geminiApiKey,
             geminiModel = prefs.geminiModel,
@@ -91,6 +94,11 @@ class SettingsViewModel(
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    fun setThemeMode(mode: AppThemeMode) {
+        prefs.setThemeMode(mode)
+        _uiState.update { it.copy(themeMode = mode) }
+    }
 
     fun setActiveProvider(provider: AiProvider) {
         prefs.setActiveAiProvider(provider)

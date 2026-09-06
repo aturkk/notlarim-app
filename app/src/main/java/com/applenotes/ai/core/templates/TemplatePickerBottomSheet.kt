@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.templates
+﻿package com.applenotes.ai.core.templates
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -24,7 +24,7 @@ fun TemplatePickerBottomSheet(
     onDismiss: () -> Unit,
     onSelectTemplate: (NoteTemplate) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

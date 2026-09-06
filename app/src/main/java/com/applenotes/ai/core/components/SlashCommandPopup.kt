@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -114,7 +114,7 @@ fun SlashCommandBottomSheet(
     onDismiss: () -> Unit,
     onSelectCommand: (SlashCommand) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     var searchQuery by remember { mutableStateOf("") }
 
     val filteredCommands = remember(searchQuery) {

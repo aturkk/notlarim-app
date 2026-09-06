@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.notes_list.components
+﻿package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -33,7 +33,7 @@ fun AiHubBottomSheet(
     onGlobalAiChatClick: () -> Unit,
     onSynthesisClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -152,7 +152,7 @@ private fun AiHubActionCard(
     badge: String,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val cardBg = if (isDark) Color(0xFF1C1C1E) else Color(0xFFF2F2F7)
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

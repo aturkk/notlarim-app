@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor.components
+﻿package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,7 +32,7 @@ fun ZenFocusModeDialog(
     onContentChange: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) Color(0xFF121212) else Color(0xFFFAF9F6)
     val textColor = if (isDark) Color(0xFFECECEC) else Color(0xFF1E1E1E)
     val subtleColor = if (isDark) Color(0xFF757575) else Color(0xFF9E9E9E)

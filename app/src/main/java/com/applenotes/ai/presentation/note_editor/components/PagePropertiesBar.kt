@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor.components
+﻿package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -31,7 +31,7 @@ fun PagePropertiesBar(
     onStatusChange: (String?) -> Unit,
     onProgressChange: (Int?) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val cardBg = if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)

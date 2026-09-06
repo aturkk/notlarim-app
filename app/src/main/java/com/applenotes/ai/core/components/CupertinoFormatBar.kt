@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -40,7 +40,7 @@ fun CupertinoFormatBar(
     onLinkClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val separatorColor = if (isDark) iOSSeparatorDark else iOSSeparatorLight
     val activeColor = AppleYellow

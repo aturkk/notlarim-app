@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.ai_assistant
+﻿package com.applenotes.ai.presentation.ai_assistant
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
@@ -26,7 +26,7 @@ fun AiFlashcardsDialog(
     rawText: String,
     onDismiss: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
 
     AlertDialog(
         onDismissRequest = onDismiss,

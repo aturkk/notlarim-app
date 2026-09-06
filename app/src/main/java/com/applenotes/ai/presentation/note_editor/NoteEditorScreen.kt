@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor
+﻿package com.applenotes.ai.presentation.note_editor
 
 import android.content.Intent
 import androidx.compose.animation.AnimatedVisibility
@@ -58,7 +58,7 @@ fun NoteEditorScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -1305,7 +1305,7 @@ private fun AiActionItem(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     Row(
         modifier = Modifier
             .fillMaxWidth()

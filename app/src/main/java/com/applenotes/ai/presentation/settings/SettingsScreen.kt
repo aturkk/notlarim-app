@@ -38,7 +38,7 @@ fun SettingsScreen(
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -91,8 +91,80 @@ fun SettingsScreen(
             item {
                 CupertinoLargeHeader(
                     title = "Ayarlar",
-                    subtitle = "Yapay zeka anahtarları ve uygulama tercihleri"
+                    subtitle = "Görünüm, yapay zeka ve uygulama tercihleri"
                 )
+            }
+
+            // Appearance & Theme Section
+            item {
+                InsetGroupedSection(
+                    title = "Görünüm & Tema",
+                    footer = "Notism temasını Açık veya Koyu olarak ayarlayabilir veya Sistem modunu seçebilirsiniz. (Varsayılan: Açık)"
+                ) {
+                    val themeOptions = listOf(
+                        Triple(AppThemeMode.LIGHT, "Açık (Varsayılan)", Icons.Default.LightMode),
+                        Triple(AppThemeMode.DARK, "Koyu", Icons.Default.DarkMode),
+                        Triple(AppThemeMode.SYSTEM, "Sistem", Icons.Default.SettingsBrightness)
+                    )
+
+                    themeOptions.forEachIndexed { index, (mode, label, icon) ->
+                        val isSelected = uiState.themeMode == mode
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.setThemeMode(mode) }
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(
+                                            when (mode) {
+                                                AppThemeMode.LIGHT -> AppleYellow.copy(alpha = 0.15f)
+                                                AppThemeMode.DARK -> Color(0xFF5E5CE6).copy(alpha = 0.15f)
+                                                AppThemeMode.SYSTEM -> Color(0xFF007AFF).copy(alpha = 0.15f)
+                                            }
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = when (mode) {
+                                            AppThemeMode.LIGHT -> AppleYellow
+                                            AppThemeMode.DARK -> Color(0xFF5E5CE6)
+                                            AppThemeMode.SYSTEM -> Color(0xFF007AFF)
+                                        },
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = textPrimary
+                                )
+                            }
+
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Seçili",
+                                    tint = AppleYellow
+                                )
+                            }
+                        }
+
+                        if (index < themeOptions.lastIndex) {
+                            InsetDivider()
+                        }
+                    }
+                }
             }
 
             // AI Provider Selection Section

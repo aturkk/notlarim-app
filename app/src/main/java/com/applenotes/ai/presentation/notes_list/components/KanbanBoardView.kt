@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.notes_list.components
+﻿package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,7 +40,7 @@ fun KanbanBoardView(
     onAddCard: (column: String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
 
     val columns = KanbanColumnType.entries
 
@@ -76,7 +76,7 @@ private fun KanbanColumnCard(
     onMoveNote: (noteId: Long, targetColumn: String) -> Unit,
     onAddCard: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -202,7 +202,7 @@ private fun KanbanItemCard(
     onMovePrevious: () -> Unit,
     onMoveNext: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val cardBg = if (isDark) iOSBackgroundDark else Color.White
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

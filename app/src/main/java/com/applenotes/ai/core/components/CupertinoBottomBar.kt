@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,7 +24,7 @@ fun CupertinoBottomBar(
     onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSBlurOverlayDark else iOSBlurOverlayLight
 
     Surface(

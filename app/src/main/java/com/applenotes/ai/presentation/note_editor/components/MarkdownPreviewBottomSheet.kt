@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor.components
+﻿package com.applenotes.ai.presentation.note_editor.components
 
 import android.annotation.SuppressLint
 import android.webkit.WebView
@@ -26,7 +26,7 @@ fun MarkdownPreviewBottomSheet(
     content: String,
     onDismiss: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
 
     val htmlContent = remember(title, content, isDark) {

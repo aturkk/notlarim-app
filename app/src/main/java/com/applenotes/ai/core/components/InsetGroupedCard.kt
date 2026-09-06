@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -24,7 +24,7 @@ fun InsetGroupedSection(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val cardBg = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
 
@@ -65,7 +65,7 @@ fun InsetGroupedSection(
 fun InsetDivider(
     startIndent: Dp = 16.dp
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val color = if (isDark) iOSSeparatorDark else iOSSeparatorLight
     HorizontalDivider(
         modifier = Modifier.padding(start = startIndent),

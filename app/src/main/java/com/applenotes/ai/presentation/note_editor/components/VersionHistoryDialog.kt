@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor.components
+﻿package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,7 +32,7 @@ fun VersionHistoryBottomSheet(
     onDismiss: () -> Unit,
     onRestoreVersion: (NoteHistoryEntity) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,7 +50,7 @@ fun IconPickerBottomSheet(
     onDismiss: () -> Unit,
     onSelectIcon: (String?) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     var customEmoji by remember { mutableStateOf("") }
 
     ModalBottomSheet(
@@ -166,7 +166,7 @@ fun CoverPickerBottomSheet(
     onDismiss: () -> Unit,
     onSelectCover: (String?) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     var customUrl by remember { mutableStateOf("") }
 
     ModalBottomSheet(

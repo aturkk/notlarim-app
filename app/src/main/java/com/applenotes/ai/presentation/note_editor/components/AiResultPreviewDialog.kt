@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.note_editor.components
+﻿package com.applenotes.ai.presentation.note_editor.components
 
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -36,7 +36,7 @@ fun AiResultPreviewDialog(
     onRegenerate: (tone: String?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.ai_assistant
+﻿package com.applenotes.ai.presentation.ai_assistant
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -32,7 +32,7 @@ fun AiChatBottomSheet(
     onSendMessage: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     var inputQuery by remember { mutableStateOf("") }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val listState = rememberLazyListState()

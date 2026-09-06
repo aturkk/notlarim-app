@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.applenotes.ai.core.theme.AppThemeMode
 import com.applenotes.ai.domain.model.AiProvider
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,6 +28,9 @@ class SecurePreferences(context: Context) {
         // Fallback for emulators/devices with broken keystore
         context.getSharedPreferences("apple_notes_prefs_fallback", Context.MODE_PRIVATE)
     }
+
+    private val _themeModeFlow = MutableStateFlow(getThemeMode())
+    val themeModeFlow: StateFlow<AppThemeMode> = _themeModeFlow.asStateFlow()
 
     private val _activeProviderFlow = MutableStateFlow(getActiveAiProvider())
     val activeProviderFlow: StateFlow<AiProvider> = _activeProviderFlow.asStateFlow()
@@ -130,6 +134,21 @@ class SecurePreferences(context: Context) {
         _activeProviderFlow.value = provider
     }
 
+    // App Theme Setting (LIGHT, DARK, SYSTEM) - Default is LIGHT
+    fun getThemeMode(): AppThemeMode {
+        val name = sharedPreferences.getString(KEY_THEME_MODE, AppThemeMode.LIGHT.name) ?: AppThemeMode.LIGHT.name
+        return try {
+            AppThemeMode.valueOf(name)
+        } catch (e: Exception) {
+            AppThemeMode.LIGHT
+        }
+    }
+
+    fun setThemeMode(mode: AppThemeMode) {
+        sharedPreferences.edit().putString(KEY_THEME_MODE, mode.name).apply()
+        _themeModeFlow.value = mode
+    }
+
     // GitHub Updater Settings
     var githubOwner: String
         get() = sharedPreferences.getString(KEY_GITHUB_OWNER, "aturkk") ?: "aturkk"
@@ -184,5 +203,6 @@ class SecurePreferences(context: Context) {
         private const val KEY_AUTO_BACKUP_ENABLED = "auto_backup_enabled"
         private const val KEY_AUTO_BACKUP_FREQ = "auto_backup_freq"
         private const val KEY_LAST_BACKUP_TIME = "last_backup_time"
+        private const val KEY_THEME_MODE = "app_theme_mode"
     }
 }

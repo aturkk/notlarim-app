@@ -14,7 +14,7 @@ fun Modifier.frostedGlass(
     blurRadius: Dp = 20.dp,
     tintColor: Color? = null
 ): Modifier = composed {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val defaultTint = if (isDark) iOSBlurOverlayDark else iOSBlurOverlayLight
     val activeTint = tintColor ?: defaultTint
 

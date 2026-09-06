@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import android.graphics.Bitmap
 import android.graphics.Canvas as AndroidCanvas
@@ -54,7 +54,7 @@ fun AppleDrawingDialog(
     onSaveDrawing: (String) -> Unit
 ) {
     val context = LocalContext.current
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
 
     val paths = remember { mutableStateListOf<DrawPath>() }
     val undonePaths = remember { mutableStateListOf<DrawPath>() }
@@ -309,7 +309,7 @@ private fun ToolIconButton(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     FilterChip(
         selected = isSelected,
         onClick = onClick,

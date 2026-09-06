@@ -1,4 +1,4 @@
-package com.applenotes.ai.core.components
+﻿package com.applenotes.ai.core.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
@@ -100,7 +100,7 @@ fun AppleSegmentedControl(
     onIndexSelected: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val haptic = LocalHapticFeedback.current
 
     val containerBg = if (isDark) Color(0xFF2C2C2E) else Color(0xFFE5E5EA)
@@ -189,7 +189,7 @@ fun AiSmartPillHeader(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
             AppleYellow.copy(alpha = 0.25f),
@@ -265,7 +265,7 @@ fun SonnerFloatingToast(
     onDismiss: () -> Unit,
     durationMs: Long = 2800L
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
 
     LaunchedEffect(message) {
         if (message != null) {

@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.notes_list.components
+﻿package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -51,7 +51,7 @@ fun GraphViewDialog(
     onDismiss: () -> Unit,
     onNoteClick: (Long) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textMeasurer = rememberTextMeasurer()
 

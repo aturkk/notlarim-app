@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.notes_list
+﻿package com.applenotes.ai.presentation.notes_list
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -51,7 +51,7 @@ fun NotesListScreen(
     val context = LocalContext.current
     val activity = context as? FragmentActivity
     val uiState by viewModel.uiState.collectAsState()
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
 

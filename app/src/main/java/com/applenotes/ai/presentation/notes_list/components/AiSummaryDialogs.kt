@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.notes_list.components
+﻿package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,7 +31,7 @@ fun MorningDigestDialog(
     onDismiss: () -> Unit,
     onSaveAsNote: (title: String, content: String) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
@@ -195,7 +195,7 @@ fun SynthesisDialog(
     onDismiss: () -> Unit,
     onSaveAsNote: (title: String, content: String) -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
     val bgColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight

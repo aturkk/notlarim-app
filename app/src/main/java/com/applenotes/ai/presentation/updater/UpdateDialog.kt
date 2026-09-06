@@ -1,4 +1,4 @@
-package com.applenotes.ai.presentation.updater
+﻿package com.applenotes.ai.presentation.updater
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -24,7 +24,7 @@ fun UpdateDialog(
     onDismiss: () -> Unit,
     onDownload: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
+    val isDark = isAppDarkTheme()
 
     AlertDialog(
         onDismissRequest = onDismiss,
