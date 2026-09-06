@@ -1,7 +1,7 @@
 # 🍎 Notism - Apple Notes AI (Android)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-v2.3.0-FFB300?style=for-the-badge&logo=android&logoColor=black" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v2.4.0-FFB300?style=for-the-badge&logo=android&logoColor=black" alt="Version" />
   <img src="https://img.shields.io/badge/Platform-Android_8.0+_(API_26--35)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform" />
   <img src="https://img.shields.io/badge/Design-Apple_Cupertino_(iOS_18)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Design" />
   <img src="https://img.shields.io/badge/Motion-Emil_Kowalski_Springs-FF2D55?style=for-the-badge" alt="Motion" />
