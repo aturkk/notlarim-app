@@ -1121,7 +1121,7 @@ fun NoteEditorScreen(
                     Spacer(modifier = Modifier.width(14.dp))
                     Column {
                         Text(text = "PDF Belgesi Olarak Dışa Aktar", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                        Text(text = "Apple Notes formatında şık PDF oluşturur", style = MaterialTheme.typography.bodySmall, color = textSecondary)
+                        Text(text = "Notism formatında şık PDF oluşturur", style = MaterialTheme.typography.bodySmall, color = textSecondary)
                     }
                 }
 

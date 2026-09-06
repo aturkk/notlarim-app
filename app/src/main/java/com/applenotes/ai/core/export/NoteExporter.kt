@@ -60,7 +60,7 @@ object NoteExporter {
         y += 24f
 
         val dateStr = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault()).format(Date(note.updatedAt))
-        canvas.drawText("Apple Notes AI · $dateStr", 50f, y, metaPaint)
+        canvas.drawText("Notism · $dateStr", 50f, y, metaPaint)
         y += 20f
 
         canvas.drawLine(50f, y, 545f, y, linePaint)
@@ -141,7 +141,7 @@ object NoteExporter {
         }
         val pillRect = RectF(110f, 140f, 370f, 200f)
         canvas.drawRoundRect(pillRect, 30f, 30f, pillPaint)
-        canvas.drawText("Apple Notes AI", 135f, 182f, pillTextPaint)
+        canvas.drawText("Notism", 135f, 182f, pillTextPaint)
 
         // Title
         val titlePaint = Paint().apply {
@@ -215,7 +215,7 @@ object NoteExporter {
             textSize = 22f
             isAntiAlias = true
         }
-        canvas.drawText("Bu not Apple Notes AI ile oluşturuldu", 110f, height - 120f, footerPaint)
+        canvas.drawText("Bu not Notism ile oluşturuldu", 110f, height - 120f, footerPaint)
 
         val dir = File(context.cacheDir, "image_exports")
         if (!dir.exists()) dir.mkdirs()
@@ -258,7 +258,7 @@ object NoteExporter {
 
         val backupDir = File(context.cacheDir, "backups")
         if (!backupDir.exists()) backupDir.mkdirs()
-        val zipFile = File(backupDir, "AppleNotes_Yedek_${System.currentTimeMillis()}.zip")
+        val zipFile = File(backupDir, "Notism_Yedek_${System.currentTimeMillis()}.zip")
 
         val zos = ZipOutputStream(FileOutputStream(zipFile))
         val entry = ZipEntry("notes_backup.json")

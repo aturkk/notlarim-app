@@ -80,7 +80,7 @@ fun AiHubBottomSheet(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = "Apple Intelligence",
+                        text = "Notism Asistanı",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             letterSpacing = (-0.3).sp

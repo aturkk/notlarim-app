@@ -334,7 +334,7 @@ class AiServiceManager(
             "3. 📋 Bekleyen Yapılacaklar & Hatırlatıcılar\n" +
             "4. 💡 Günün İlham Verici Sözü"
 
-        val systemPrompt = "Sen kullanıcının kişisel Apple Intelligence asistanısın. Türkçe, samimi, profesyonel, ilham verici ve net bir sabah brifingi üretirsin."
+        val systemPrompt = "Sen kullanıcının kişisel Notism asistanısın. Türkçe, samimi, profesyonel, ilham verici ve net bir sabah brifingi üretirsin."
         return sendPrompt(prompt, systemPrompt)
     }
 

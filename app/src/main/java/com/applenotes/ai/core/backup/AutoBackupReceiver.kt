@@ -34,15 +34,15 @@ class AutoBackupReceiver : BroadcastReceiver() {
                     }
 
                     // Rotate current to previous if exists
-                    val currentBackup = File(backupDir, "AppleNotes_AutoBackup.zip")
+                    val currentBackup = File(backupDir, "Notism_AutoBackup.zip")
                     if (currentBackup.exists()) {
-                        val prevBackup = File(backupDir, "AppleNotes_AutoBackup_prev.zip")
+                        val prevBackup = File(backupDir, "Notism_AutoBackup_prev.zip")
                         if (prevBackup.exists()) prevBackup.delete()
                         currentBackup.renameTo(prevBackup)
                     }
 
                     val tempZip = BackupRestoreHelper.createBackupZip(context, notes)
-                    tempZip.copyTo(File(backupDir, "AppleNotes_AutoBackup.zip"), overwrite = true)
+                    tempZip.copyTo(File(backupDir, "Notism_AutoBackup.zip"), overwrite = true)
                     tempZip.delete()
 
                     prefs.lastBackupTime = System.currentTimeMillis()

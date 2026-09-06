@@ -181,7 +181,7 @@ fun AppleSegmentedControl(
 }
 
 /**
- * Emil Kowalski & Apple Intelligence: Smart AI Action Capsule
+ * Emil Kowalski & Notism AI: Smart AI Action Capsule
  * Subtle glowing pill to launch Morning Digest, Global AI Chat, and Synthesis without cluttering header.
  */
 @Composable
@@ -230,7 +230,7 @@ fun AiSmartPillHeader(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "Apple Intelligence Asistanı",
+                        text = "Notism Asistanı",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight,

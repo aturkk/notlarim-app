@@ -18,7 +18,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Apple Notes AI"
+            android:text="Notism"
             android:textColor="#E5A93C"
             android:textSize="13sp"
             android:textStyle="bold" />

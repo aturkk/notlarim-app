@@ -528,7 +528,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable {
                                 val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
-                                exportLauncher.launch("AppleNotes_Backup_$timeStamp.zip")
+                                exportLauncher.launch("Notism_Backup_$timeStamp.zip")
                             }
                             .padding(horizontal = 16.dp, vertical = 13.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -886,7 +886,7 @@ fun SettingsScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Apple Notes AI",
+                        text = "Notism",
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.Bold,
                         color = textSecondary

@@ -107,8 +107,8 @@ class OpenAiApiClient {
                 contentType(ContentType.Application.Json)
                 header("Authorization", "Bearer $apiKey")
                 if (baseUrl.contains("openrouter")) {
-                    header("HTTP-Referer", "https://github.com/applenotes/ai")
-                    header("X-Title", "Apple Notes AI")
+                    header("HTTP-Referer", "https://github.com/notism/ai")
+                    header("X-Title", "Notism")
                 }
                 setBody(OpenAiChatRequest(model = model, messages = messages))
             }

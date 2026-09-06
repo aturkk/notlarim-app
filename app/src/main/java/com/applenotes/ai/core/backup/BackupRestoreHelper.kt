@@ -43,7 +43,7 @@ object BackupRestoreHelper {
     fun createBackupZip(context: Context, notes: List<Note>): File {
         val backupDir = File(context.cacheDir, "backups").apply { if (!exists()) mkdirs() }
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val zipFile = File(backupDir, "AppleNotes_Yedek_$timeStamp.zip")
+        val zipFile = File(backupDir, "Notism_Yedek_$timeStamp.zip")
 
         FileOutputStream(zipFile).use { fos ->
             writeNotesToZipStream(fos, notes)

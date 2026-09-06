@@ -68,7 +68,7 @@ fun NotesListScreen(
     }
 
     val currentFolderTitle = remember(uiState.selectedFolderId, uiState.folders) {
-        if (uiState.selectedFolderId == null) "Notlar"
+        if (uiState.selectedFolderId == null) "Notism"
         else uiState.folders.find { it.id == uiState.selectedFolderId }?.name ?: "Klasör"
     }
 
@@ -331,7 +331,7 @@ fun NotesListScreen(
                     )
                 }
 
-                // Apple Intelligence Smart Pill Header (Digest, Global AI, Synthesis Hub)
+                // Notism AI Smart Pill Header (Digest, Global AI, Synthesis Hub)
                 if (!uiState.isSelectionMode && uiState.selectedFolderId == null) {
                     item {
                         AiSmartPillHeader(
@@ -976,7 +976,7 @@ fun NotesListScreen(
         )
     }
 
-    // Apple Intelligence Hub Bottom Sheet
+    // Notism AI Hub Bottom Sheet
     if (isAiHubSheetVisible) {
         AiHubBottomSheet(
             onDismiss = { isAiHubSheetVisible = false },
