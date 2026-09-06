@@ -3,25 +3,28 @@
 > **Paket Adı:** `com.applenotes.ai`  
 > **Hedef Platform:** Android (minSdk 26, targetSdk 35)  
 > **Tasarım Dili:** Apple iOS 18 / macOS Sequoia Cupertino Design Language  
+> **Animasyon & Hissiyat:** Emil Kowalski Physics-Based Motion & Apple Tactile Haptics  
 > **Mimari:** Clean Architecture + MVVM + Jetpack Compose + Room Local-First  
 
-Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görünüm modlarını, sistem entegrasyonlarını, donanımsal güvenlik yapılarını ve yapay zeka özelliklerini eksiksiz olarak listeler.
+Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, görünüm modlarını, animasyon yapılarını, sistem entegrasyonlarını, şablonlarını, donanımsal güvenlik katmanlarını ve yapay zeka özelliklerini eksiksiz olarak listeler.
 
 ---
 
 ## 📑 İÇİNDEKİLER
 1. [Görünüm Modları & Ana Not Listesi (Liste, Kompakt, Kanban, Takvim, Graph)](#1-görünüm-modları--ana-not-listesi)
 2. [Gelişmiş Not Düzenleyici & Sayfa Özellikleri](#2-gelişmiş-not-düzenleyici--sayfa-özellikleri)
-3. [Defter Kağıdı Dokuları & Serbest Çizim](#3-defter-kağıdı-dokuları--serbest-çizim)
-4. [Sesli Notlar, Canlı Dalga & Hızlı Kayıt](#4-sesli-notlar-canlı-dalga--hızlı-kayıt)
-5. [Yapay Zeka (AI) Motoru (7 Sağlayıcı & AI Hub)](#5-yapay-zeka-ai-motoru-7-sağlayıcı--ai-hub)
-6. [Evrensel Komut Paleti (Spotlight / Raycast Stili)](#6-evrensel-komut-paleti)
-7. [Hatırlatıcılar & Akıllı Bildirimler](#7-hatırlatıcılar--akıllı-bildirimler)
-8. [Android Sistem Entegrasyonları (Tile, Widget, Clipper, Actions)](#8-android-sistem-entegrasyonları)
-9. [Dışa Aktarma & Sosyal Medya Kartları (PDF, PNG, Markdown)](#9-dışa-aktarma--sosyal-medya-kartları)
-10. [Güvenlik, Biyometri & Donanımsal Şifreleme (AES-256)](#10-güvenlik-biyometri--donanımsal-şifreleme)
-11. [Yedekleme, Senkronizasyon (WebDAV + SAF) & Otomatik Zamanlayıcı](#11-yedekleme-senkronizasyon--otomatik-zamanlayıcı)
-12. [Görsel Tema, Tipografi & Kişiselleştirme](#12-görsel-tema-tipografi--kişiselleştirme)
+3. [Yerleşik Şablon Kütüphanesi & Özel Şablon Yöneticisi](#3-yerleşik-şablon-kütüphanesi--özel-şablon-yöneticisi)
+4. [Defter Kağıdı Dokuları & Serbest Çizim Tuvali](#4-defter-kağıdı-dokuları--serbest-çizim-tuvali)
+5. [Sesli Notlar, Canlı Dalga & Hızlı Widget Kaydı](#5-sesli-notlar-canlı-dalga--hızlı-widget-kaydı)
+6. [Yapay Zeka (AI) Motoru (7 Sağlayıcı & AI Hub)](#6-yapay-zeka-ai-motoru-7-sağlayıcı--ai-hub)
+7. [Fizik Tabanlı Animasyonlar & Mikro-Etkileşimler (Emil Kowalski Sistemi)](#7-fizik-tabanlı-animasyonlar--mikro-etkileşimler)
+8. [Evrensel Komut Paleti (Spotlight / Raycast Stili)](#8-evrensel-komut-paleti)
+9. [Hatırlatıcılar & Akıllı Bildirimler](#9-hatırlatıcılar--akıllı-bildirimler)
+10. [Android Sistem Entegrasyonları (Quick Tile, Widget, Web Clipper, SAF)](#10-android-sistem-entegrasyonları)
+11. [Dışa Aktarma, Sosyal Medya Kartları & Güvenli Paylaşım](#11-dışa-aktarma-sosyal-medya-kartları--güvenli-paylaşım)
+12. [Güvenlik, Biyometri & Donanımsal Şifreleme (AES-256)](#12-güvenlik-biyometri--donanımsal-şifreleme)
+13. [Depolama Analizi, Önbellek Temizleme & Otomatik Yedekleme](#13-depolama-analizi-önbellek-temizleme--otomatik-yedekleme)
+14. [Görsel Tema, Tipografi & Buzlu Cam (Frosted Glass)](#14-görsel-tema-tipografi--buzlu-cam-frosted-glass)
 
 ---
 
@@ -91,12 +94,24 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 - **Sürüm Geçmişi & Geri Alma (`VersionHistoryDialog`):**
   - Anlık Geri Al (`Undo`) ve İleri Al (`Redo`) yığını.
   - Room veritabanında saklanan geçmiş sürümler (`NoteHistoryEntity`) ve tek tıkla önceki sürüme dönebilme.
-- **Şablon Yöneticisi (`CustomTemplateManager`):** Sık kullanılan formatları şablon olarak kaydetme ve tek dokunuşla yeni notlara uygulama.
 - **Karakter, Kelime & Okuma Süresi Sayacı:** Notun başındaki detaylar panelinde anlık istatistikler.
 
 ---
 
-## 3. Defter Kağıdı Dokuları & Serbest Çizim
+## 3. Yerleşik Şablon Kütüphanesi & Özel Şablon Yöneticisi
+
+Uygulama, profesyonel not alma yöntemlerini içeren zengin bir yerleşik şablon seti (`NoteTemplates`) ve kullanıcının kendi şablonlarını üretmesini sağlayan bir altyapı (`CustomTemplateManager`) içerir:
+1. 🎯 **Haftalık Planlayıcı & Alışkanlık Takipçisi:** Haftalık hedefler, 7 günlük alışkanlık matrisi (su, okuma, egzersiz, meditasyon), katlanabilir günlük akışlar (`<details>`) ve retrospektif.
+2. 📋 **Toplantı Notları & Aksiyon Planı:** Katılımcılar, gündem maddeleri, tartışmalar, alınan kararlar ve sorumlu/tarih içeren görev tablosu.
+3. 🎓 **Cornell Not Alma Tekniği:** Sol tarafta anahtar kavramlar/ipuçları (Cue Column), sağda detaylı ders notları ve en altta 1 paragraflık sentez özeti.
+4. 📚 **Kitap & Medya İncelemesi:** Yazar, tür, 5 yıldızlı puanlama, 1 cümlelik özet, ana çıkarımlar, alıntılar ve hayat uygulama planı.
+5. 💰 **Aylık Bütçe & Harcama Takipçisi:** Toplam gelir, sabit giderler tablosu, değişken harcama limitleri ve yatırım hedefleri.
+6. 🚀 **Proje & Sprint Takipçisi:** Sprint hedefi, Backlog iş listesi, In Progress, Done ve risk/bağımlılık değerlendirmesi.
+7. ➕ **Kullanıcıya Özel Şablon Kaydetme:** Herhangi bir notu tek tıkla (`Şablon Olarak Kaydet`) şablon kütüphanesine ekleme ve yeni not oluştururken kullanma.
+
+---
+
+## 4. Defter Kağıdı Dokuları & Serbest Çizim Tuvali
 
 - **Canvas Kağıt Dokuları (`PaperTexture`):**
   - 📄 **Düz Sayfa (Blank):** Sade, modern arka plan.
@@ -112,25 +127,25 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 
 ---
 
-## 4. Sesli Notlar, Canlı Dalga & Hızlı Kayıt
+## 5. Sesli Notlar, Canlı Dalga & Hızlı Widget Kaydı
 
 - **Canlı iOS Ses Dalgası Görselleştiricisi (`AudioWaveformVisualizer`):**
-  - Kayıt esnasında mikrofonun anlık genliğine (`MediaRecorder.maxAmplitude`) göre dans eden dikey çubuklar.
-- **Arka Planda Ses Kaydı:** Yüksek kaliteli `.m4a` formatında ses kaydı alma.
+  - Kayıt esnasında mikrofonun anlık genliğine (`MediaRecorder.maxAmplitude`) göre dinamik dans eden dikey ses dalgası çubukları.
+- **Arka Planda Ses Kaydı:** Yüksek kaliteli `.m4a` formatında ses kaydı alma (`AudioRecorderHelper`).
 - **Not İçi Dahili Ses Oynatıcı:** Ses dosyasını uygulama dışına çıkmadan dinleyebilme, süre çubuğu ve oynat/durdur kontrolleri.
-- **Widget Üzerinden Tek Dokunuşla Sesli Not:** Widget'taki mikrofon butonuna basıldığında uygulamanın doğrudan ses kaydı başlatan yeni bir not açması (`ACTION_VOICE_NOTE`).
+- **Widget Üzerinden Tek Dokunuşla Sesli Not:** Ana ekran widget'ındaki mikrofon butonuna basıldığında uygulamanın doğrudan mikrofonu açarak kayda başlaması (`ACTION_VOICE_NOTE`).
 
 ---
 
-## 5. Yapay Zeka (AI) Motoru (7 Sağlayıcı & AI Hub)
+## 6. Yapay Zeka (AI) Motoru (7 Sağlayıcı & AI Hub)
 
 - **7 Farklı Yapay Zeka Sağlayıcısı (`AiServiceManager`):**
   1. **Google Gemini API:** `gemini-2.5-flash`, `gemini-1.5-pro`
   2. **OpenAI API:** `gpt-4o`, `gpt-4o-mini`
   3. **Anthropic Claude API:** `claude-3-5-sonnet-20241022`, `claude-3-haiku`
-  4. **Groq API:** `llama-3.3-70b-versatile` (ultra hızlı yanıt süreleri)
-  5. **OpenRouter API:** İstediğiniz tüm açık kaynak veya özel modeller
-  6. **Google Vertex AI:** Kurumsal Google Cloud Vertex API ve proje kimliği
+  4. **Groq API:** `llama-3.3-70b-versatile` (milisaniyeler düzeyinde ultra hızlı yanıt)
+  5. **OpenRouter API:** Açık kaynak (Llama, Mistral, DeepSeek) ve tescilli tüm modeller
+  6. **Google Vertex AI:** Kurumsal bulut altyapısı ve özel proje kimliği
   7. **Cihaz İçi Yerel LLM (On-Device MediaPipe):** İnternetsiz, tamamen cihaz üzerinde çalışan yerel dil modelleri (Gemma)
 - **Yapay Zeka Merkezi (`AiHubBottomSheet`):**
   - ☀️ **Sabah Özeti (Morning Digest):** Günün ilk açılışında tüm notları tarayarak günlük yapılacakları ve önemli notları özetleme.
@@ -151,7 +166,17 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 
 ---
 
-## 6. Evrensel Komut Paleti
+## 7. Fizik Tabanlı Animasyonlar & Mikro-Etkileşimler
+
+Uygulamada Emil Kowalski'nin ödüllü hareket tasarımı prensipleri uygulanmıştır (`EmilMotionComponents`):
+- **`bouncyClickable`:** Butonlara, kartlara ve sekmelere dokunulduğunda elemanı fiziksel bir yay (`Spring.DampingRatioMediumBouncy`) ile %96'ya küçülten ve haptik titreşim veren elastik basış efekti.
+- **`AppleSegmentedControl`:** Apple iOS tarzı, arkasında yumuşak gölgeli beyaz/koyu hap kayan fiziksel görünüm değiştirici.
+- **`SonnerFloatingToast`:** Vercel Sonner / iOS Dynamic Island esintili, ekranın üstünden kayarak inen (`spring scale & fade`), zarif bildirim hapı. Standart Android Toast mesajları yerine kullanılır.
+- **`AiSmartPillHeader`:** Ana ekranda degrade parıltılı AI Asistanı kapsül butonu.
+
+---
+
+## 8. Evrensel Komut Paleti
 
 - **Spotlight / Raycast Stili Komut Paleti (`CommandPaletteBottomSheet`):**
   - Tek dokunuşla veya kısayolla açılan evrensel komut satırı.
@@ -167,7 +192,7 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 
 ---
 
-## 7. Hatırlatıcılar & Akıllı Bildirimler
+## 9. Hatırlatıcılar & Akıllı Bildirimler
 
 - **Hassas Zamanlı Hatırlatıcılar (Exact Alarms):** `AlarmManager` ile takvimden tarih ve saat seçilerek kurulan bildirimler (`ReminderScheduler`).
 - **Cihaz Yeniden Başlatma Koruması:** Telefon kapandığında alarmları hafızada tutup açılışta (`BOOT_COMPLETED`) otomatik geri yükleyen alıcı (`ReminderReceiver`).
@@ -177,33 +202,36 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 
 ---
 
-## 8. Android Sistem Entegrasyonları
+## 10. Android Sistem Entegrasyonları
 
 - **Android 14+ Hızlı Ayarlar Perdesi Kutucuğu (`QuickNoteTileService`):**
   - Bildirim panelini aşağı çekince Wi-Fi/Bluetooth yanına yerleşen **"Notism Hızlı Not"** kutucuğu.
   - Tek dokunuşla bildirim perdesini indirip doğrudan yeni not ekranını açar (Android 14+ `PendingIntent` tam uyumlu).
 - **Masaüstü Araç Takımı (`QuickNotesWidgetProvider`):**
   - Android ana ekranına eklenebilen widget.
-  - Son notları listeleme, tek tıkla yeni not açma (`ACTION_NEW_NOTE`) ve tek tıkla ses kaydı başlatma (`ACTION_VOICE_NOTE`).
-- **Web Kırpıcı (`WebClipperHelper`):**
-  - Chrome, Twitter/X, Instagram gibi uygulamalardan "Paylaş" denildiğinde Notism'i seçerek web sayfası bağlantısını, sayfa başlığını ve özetini otomatik yeni not yapma (`Intent.ACTION_SEND`).
+  - Son notları listeleme, tek tıkla yeni not açma (`ACTION_NEW_NOTE`), tek tıkla ses kaydı başlatma (`ACTION_VOICE_NOTE`) ve tüm notları görüntüleme.
+- **Akıllı Web Kırpıcı & Otomatik AI Özeti (`WebClipperHelper`):**
+  - Chrome, Twitter/X, Instagram veya herhangi bir tarayıcıdan "Paylaş" seçeneğinde Notism seçildiğinde devreye girer.
+  - Sayfa başlığı, URL ve HTML meta açıklamalarını otomatik çeker.
+  - Yapay zeka aktifse, içeriği otomatik olarak analiz edip **"3 Maddelik Yapay Zeka Özeti"** oluşturur, otomatik `#Web` etiketi ve `🌐` ikonu ekler.
 
 ---
 
-## 9. Dışa Aktarma & Sosyal Medya Kartları
+## 11. Dışa Aktarma, Sosyal Medya Kartları & Güvenli Paylaşım
 
-- **PDF Olarak Dışa Aktarma (`NoteExporter.exportToPdf`):** Notu şık tipografik sayfa düzeniyle standart PDF belgesine dönüştürme.
+- **PDF Olarak Dışa Aktarma (`NoteExporter.exportToPdf`):** A4 standart sayfa formatında, tipografik başlık, güncellenme tarihi, ayraç çizgisi ve temiz metin düzeniyle PDF dosyası üretme.
 - **Estetik Sosyal Medya Kartı (PNG Export - `NoteExporter.exportToImageCard`):**
-  - Instagram, Twitter veya LinkedIn için degradeli, şık logolu, kartvizit estetiğinde yüksek çözünürlüklü görsel oluşturma.
-- **Markdown & Düz Metin:** `.md` veya `.txt` dosyası olarak kaydetme.
-- **Sistem Paylaşımı:** Not içeriğini WhatsApp, Mail, Telegram vb. uygulamalara tek tıkla iletme.
+  - Instagram, Twitter veya LinkedIn için 1080x1350 piksel (4:5 en-boy oranı), yuvarlak köşeli kart, yumuşak gölge (`setShadowLayer`), Notism altın sarısı rozeti ve filigranla yüksek çözünürlüklü görsel üretimi.
+- **ZIP Arşiv Dışa Aktarma (`createBackupZip`):** Notları `notes_backup.json` formatında paketleyen şık ZIP yedekleme.
+- **Markdown & Düz Metin:** `.md` veya `.txt` dosyası olarak doğrudan kaydetme.
+- **Android FileProvider Paylaşımı:** Güvenli URI (`FileProvider.getUriForFile`) ile WhatsApp, Telegram, Gmail vb. uygulamalara doğrudan dosya aktarımı.
 
 ---
 
-## 10. Güvenlik, Biyometri & Donanımsal Şifreleme
+## 12. Güvenlik, Biyometri & Donanımsal Şifreleme
 
 - **Donanımsal Şifreli Tercihler (`SecurePreferences`):**
-  - Tüm API anahtarları, model isimleri ve gizli ayarlar Android Keystore donanım anahtarlarıyla **AES-256 GCM** ve **AES-256 SIV** algoritmalarıyla şifrelenir (`EncryptedSharedPreferences`).
+  - Tüm API anahtarları, model adları, kişisel bulut şifreleri Android Keystore donanım çipleriyle **AES-256 GCM** ve **AES-256 SIV** algoritmalarıyla şifrelenir (`EncryptedSharedPreferences`).
 - **Cihaz İçi Biyometrik Kilit (`BiometricAuthHelper`):**
   - Uygulama genelinde veya not bazında Parmak İzi / Yüz Tanıma / Kilit Ekranı PIN koruması (`BiometricPrompt`).
 - **Son Uygulamalarda Gizlilik Koruması (App Switcher Privacy):**
@@ -212,25 +240,28 @@ Bu belge, **Notism** uygulamasında yer alan tüm ekranları, modülleri, görü
 
 ---
 
-## 11. Yedekleme, Senkronizasyon & Otomatik Zamanlayıcı
+## 13. Depolama Analizi, Önbellek Temizleme & Otomatik Yedekleme
 
-- **İki Yönlü Bulut & Dizin Senkronizasyonu (`CloudSyncService`):**
-  - **WebDAV / Nextcloud:** Kendi özel bulut sunucunuzla şifreli senkronizasyon.
-  - **SAF (Storage Access Framework) Dizin Senkronizasyonu:** Cihaz depolamasındaki veya harici SD karttaki özel bir klasörle doğrudan dosya senkronizasyonu.
-- **Otomatik Arka Plan Yedekleme Zamanlayıcısı (`AutoBackupScheduler` & `AutoBackupReceiver`):**
+- **Depolama Analizi & Temizleme (`StorageHelper`):**
+  - Veritabanı (`apple_notes_db`, WAL, SHM), Medya (çizimler, ses kayıtları, ekler) ve Önbellek (`cacheDir`) boyutlarını bayt hassasiyetinde hesaplama.
+  - Tek tıkla geçici önbelleği temizleme (`clearCache`).
+- **Çift Yönlü Senkronizasyon (`CloudSyncService`):**
+  - **WebDAV / Nextcloud:** Kendi özel bulut sunucunuzla şifreli iki yönlü senkronizasyon (HTTP PUT/GET).
+  - **SAF (Storage Access Framework) Dizin Senkronizasyonu:** Dahili hafızadaki veya harici SD karttaki özel bir klasörle doğrudan dosya senkronizasyonu.
+- **Otomatik Arka Plan Yedekleme Zamanlayıcısı (`AutoBackupScheduler`):**
   - Günlük veya haftalık otomatik arka plan yedekleme.
   - Cihaz boştayken (`setAndAllowWhileIdle`) veritabanını şifreli zip/json olarak otomatik yedekler.
-- **Manuel JSON/ZIP Yedekleme & Geri Yükleme (`BackupRestoreHelper`):** Tek tıkla tüm notları, klasörleri ve ekleri arşiv dosyası olarak kaydetme ve geri yükleme.
 - **Uygulama İçi Güncelleyici (`GitHubUpdateService` / `UpdateDialog`):**
   - GitHub Releases API'si üzerinden yeni sürümleri kontrol etme (`aturkk/notlarim-app`).
   - Uygulama içerisinden doğrudan APK indirme, indirme ilerleme çubuğu ve tek tıkla kurulum.
 
 ---
 
-## 12. Görsel Tema, Tipografi & Kişiselleştirme
+## 14. Görsel Tema, Tipografi & Buzlu Cam (Frosted Glass)
 
 - **Otantik Apple Cupertino Arayüzü:** SF Pro tipografisi hissi, 16dp yuvarlatılmış köşeler, Apple haptik titreşimleri.
 - **Dinamik Açık/Koyu Tema:** Sistem temasını takip edebilme veya zorunlu Koyu / Açık tema seçebilme.
+- **Buzlu Cam Efekti (`BlurModifiers.frostedGlass`):** Android 12+ (API 31+) cihazlarda donanım seviyesinde render-node tabanlı iOS akrilik/buzlu cam bulanıklığı (`.blur(20.dp)`), alt sürümlerde yarı saydam degrade katman koruması.
 - **6 Farklı iOS Vurgu Rengi (`AppAccentColor`):**
   - 🟡 Apple Altın Sarısı (Varsayılan)
   - 🔵 iOS Mavisi
