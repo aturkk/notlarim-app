@@ -38,6 +38,7 @@ import com.applenotes.ai.presentation.notes_list.components.MorningDigestDialog
 import com.applenotes.ai.presentation.notes_list.components.SynthesisDialog
 import com.applenotes.ai.presentation.notes_list.components.AiHubBottomSheet
 import com.applenotes.ai.presentation.notes_list.components.TrashBottomSheet
+import com.applenotes.ai.core.haptic.rememberHapticFeedbackHelper
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -58,11 +59,13 @@ fun NotesListScreen(
     val bgColor = if (isDark) iOSBackgroundDark else iOSBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+    val haptic = rememberHapticFeedbackHelper()
 
     var isCreatingFolder by remember { mutableStateOf(false) }
     var newFolderName by remember { mutableStateOf("") }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
     var isAiHubSheetVisible by remember { mutableStateOf(false) }
+    var isCommandPaletteVisible by remember { mutableStateOf(false) }
 
     val pinnedNotes = remember(uiState.notes) { uiState.notes.filter { it.isPinned } }
     val unpinnedNotes = remember(uiState.notes) { uiState.notes.filter { !it.isPinned } }
@@ -273,6 +276,25 @@ fun NotesListScreen(
                                     }
                                 }
 
+                                // Spotlight Command Palette
+                                IconButton(
+                                    onClick = {
+                                        haptic.tick()
+                                        isCommandPaletteVisible = true
+                                    },
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Bolt,
+                                        contentDescription = "Spotlight Komut Merkezi",
+                                        tint = AppleYellow,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
                                 // More Menu (Dropdown for Graph, Templates, New Folder, Settings)
                                 Box {
                                     IconButton(
@@ -375,7 +397,11 @@ fun NotesListScreen(
                         onCancel = { viewModel.onSearchQueryChange("") },
                         isAiSearchActive = uiState.isSemanticSearchActive,
                         onToggleAiSearch = viewModel::toggleSemanticSearch,
-                        isAiSearching = uiState.isSemanticSearching
+                        isAiSearching = uiState.isSemanticSearching,
+                        onCommandPaletteClick = {
+                            haptic.tick()
+                            isCommandPaletteVisible = true
+                        }
                     )
                 }
 
@@ -1115,6 +1141,32 @@ fun NotesListScreen(
             onRestoreNote = viewModel::restoreFromTrash,
             onDeletePermanently = viewModel::deletePermanently,
             onEmptyTrash = viewModel::emptyTrash
+        )
+    }
+
+    // Spotlight Command Palette
+    if (isCommandPaletteVisible) {
+        CommandPaletteBottomSheet(
+            allNotes = uiState.notes,
+            onDismiss = { isCommandPaletteVisible = false },
+            onSelectNote = { noteId ->
+                val targetNote = uiState.notes.find { it.id == noteId }
+                if (targetNote != null) handleNoteClick(targetNote)
+                else onNoteClick(noteId)
+            },
+            onNewNote = onNewNoteClick,
+            onOpenDailyNote = { viewModel.openOrCreateDailyNote(onNoteClick) },
+            onOpenCloudSync = onSettingsClick,
+            onOpenTrash = { viewModel.setTrashSheetVisible(true) },
+            onOpenSettings = onSettingsClick,
+            onOpenAiHub = { isAiHubSheetVisible = true },
+            onSelectSmartFolder = { type ->
+                when (type) {
+                    "REMINDERS" -> viewModel.onSelectSmartFolder(SmartFolder.REMINDERS)
+                    "PINNED" -> viewModel.onSelectSmartFolder(SmartFolder.PINNED)
+                    "URGENT" -> viewModel.onSelectSmartFolder(SmartFolder.URGENT)
+                }
+            }
         )
     }
 }

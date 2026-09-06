@@ -64,6 +64,7 @@ import com.applenotes.ai.presentation.note_editor.components.MediaLightboxDialog
 import com.applenotes.ai.presentation.note_editor.components.EditorTabsBar
 import com.applenotes.ai.presentation.note_editor.components.EditorTabItem
 import com.applenotes.ai.core.templates.CustomTemplateManager
+import com.applenotes.ai.core.haptic.rememberHapticFeedbackHelper
 import com.applenotes.ai.core.templates.CustomTemplate
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
@@ -85,11 +86,13 @@ fun NoteEditorScreen(
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val context = LocalContext.current
+    val haptic = rememberHapticFeedbackHelper()
 
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
 
     val audioHelper = remember { AudioRecorderHelper(context) }
+    var isPropertiesManuallyExpanded by remember { mutableStateOf(false) }
     var isShareSheetOpen by remember { mutableStateOf(false) }
     var isMoreMenuOpen by remember { mutableStateOf(false) }
     var isAttachmentSheetOpen by remember { mutableStateOf(false) }
@@ -396,19 +399,19 @@ fun NoteEditorScreen(
                     CupertinoFormatBar(
                         canUndo = uiState.canUndo,
                         canRedo = uiState.canRedo,
-                        onUndo = viewModel::undo,
-                        onRedo = viewModel::redo,
-                        onBoldClick = { viewModel.insertMarkdown("**", "**") },
-                        onItalicClick = { viewModel.insertMarkdown("*", "*") },
-                        onStrikeClick = { viewModel.insertMarkdown("~~", "~~") },
-                        onH1Click = { viewModel.applyHeader(1) },
-                        onH2Click = { viewModel.applyHeader(2) },
-                        onChecklistClick = viewModel::applyChecklist,
-                        onBulletClick = viewModel::applyBulletList,
-                        onNumberedClick = viewModel::applyNumberedList,
-                        onQuoteClick = viewModel::applyQuote,
-                        onCodeClick = viewModel::applyCodeBlock,
-                        onLinkClick = { viewModel.insertMarkdown("[[", "]]") }
+                        onUndo = { haptic.selection(); viewModel.undo() },
+                        onRedo = { haptic.selection(); viewModel.redo() },
+                        onBoldClick = { haptic.selection(); viewModel.insertMarkdown("**", "**") },
+                        onItalicClick = { haptic.selection(); viewModel.insertMarkdown("*", "*") },
+                        onStrikeClick = { haptic.selection(); viewModel.insertMarkdown("~~", "~~") },
+                        onH1Click = { haptic.selection(); viewModel.applyHeader(1) },
+                        onH2Click = { haptic.selection(); viewModel.applyHeader(2) },
+                        onChecklistClick = { haptic.tick(); viewModel.applyChecklist() },
+                        onBulletClick = { haptic.selection(); viewModel.applyBulletList() },
+                        onNumberedClick = { haptic.selection(); viewModel.applyNumberedList() },
+                        onQuoteClick = { haptic.selection(); viewModel.applyQuote() },
+                        onCodeClick = { haptic.selection(); viewModel.applyCodeBlock() },
+                        onLinkClick = { haptic.selection(); viewModel.insertMarkdown("[[", "]]") }
                     )
                 }
 
@@ -436,7 +439,10 @@ fun NoteEditorScreen(
                             ) {
                                 // "＋" Insert / Attachment Picker
                                 IconButton(
-                                    onClick = { isAttachmentSheetOpen = true },
+                                    onClick = {
+                                        haptic.tick()
+                                        isAttachmentSheetOpen = true
+                                    },
                                     modifier = Modifier.size(38.dp)
                                 ) {
                                     Icon(
@@ -449,7 +455,10 @@ fun NoteEditorScreen(
 
                                 // "Aa" Format bar toggle
                                 IconButton(
-                                    onClick = viewModel::toggleFormatBar,
+                                    onClick = {
+                                        haptic.selection()
+                                        viewModel.toggleFormatBar()
+                                    },
                                     modifier = Modifier.size(38.dp)
                                 ) {
                                     Text(
@@ -462,7 +471,10 @@ fun NoteEditorScreen(
 
                                 // Checklist quick shortcut
                                 IconButton(
-                                    onClick = viewModel::applyChecklist,
+                                    onClick = {
+                                        haptic.tick()
+                                        viewModel.applyChecklist()
+                                    },
                                     modifier = Modifier.size(38.dp)
                                 ) {
                                     Icon(
@@ -475,7 +487,10 @@ fun NoteEditorScreen(
 
                                 // Markdown visual preview toggle
                                 IconButton(
-                                    onClick = { viewModel.setMarkdownPreviewVisible(true) },
+                                    onClick = {
+                                        haptic.tick()
+                                        viewModel.setMarkdownPreviewVisible(true)
+                                    },
                                     modifier = Modifier.size(38.dp)
                                 ) {
                                     Icon(
@@ -737,17 +752,60 @@ fun NoteEditorScreen(
                     }
                 }
 
-                // Notion-style Page Properties Bar (Priority, Status, Progress)
-                Spacer(modifier = Modifier.height(10.dp))
-                com.applenotes.ai.presentation.note_editor.components.PagePropertiesBar(
-                    priority = uiState.priority,
-                    status = uiState.status,
-                    progress = uiState.progress,
-                    noteContent = uiState.content,
-                    onPriorityChange = viewModel::setPriority,
-                    onStatusChange = viewModel::setStatus,
-                    onProgressChange = viewModel::setProgress
-                )
+                // Notion-style Page Properties Bar (Priority, Status, Progress) - Progressive Disclosure
+                val hasPageProperties = uiState.priority != null || uiState.status != null || uiState.progress != null
+                if (!hasPageProperties && !isPropertiesManuallyExpanded) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = (if (isDark) iOSCardBackgroundDark else Color(0xFFF2F2F7)).copy(alpha = 0.7f),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable {
+                                haptic.tick()
+                                isPropertiesManuallyExpanded = true
+                            }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Tune,
+                                contentDescription = null,
+                                tint = AppleYellow,
+                                modifier = Modifier.size(15.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                text = "+ Detay Ekle (Öncelik, Durum, İlerleme)",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = textSecondary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                } else {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    com.applenotes.ai.presentation.note_editor.components.PagePropertiesBar(
+                        priority = uiState.priority,
+                        status = uiState.status,
+                        progress = uiState.progress,
+                        noteContent = uiState.content,
+                        onPriorityChange = {
+                            haptic.selection()
+                            viewModel.setPriority(it)
+                        },
+                        onStatusChange = {
+                            haptic.selection()
+                            viewModel.setStatus(it)
+                        },
+                        onProgressChange = {
+                            haptic.tick()
+                            viewModel.setProgress(it)
+                        }
+                    )
+                }
 
                 // Drawing Preview Card
                 uiState.drawingPath?.let { path ->
@@ -811,6 +869,7 @@ fun NoteEditorScreen(
                             ) {
                                 IconButton(
                                     onClick = {
+                                        haptic.tick()
                                         if (uiState.isPlayingAudio) {
                                             audioHelper.stopPlaying()
                                             viewModel.setAudioPlaying(false)
@@ -848,7 +907,10 @@ fun NoteEditorScreen(
                                 }
                                 // Transcribe Button
                                 FilledTonalButton(
-                                    onClick = { viewModel.transcribeAudioFile(audioPath) },
+                                    onClick = {
+                                        haptic.tick()
+                                        viewModel.transcribeAudioFile(audioPath)
+                                    },
                                     enabled = !uiState.isTranscribingAudio,
                                     shape = RoundedCornerShape(12.dp),
                                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
@@ -878,7 +940,10 @@ fun NoteEditorScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 // Meeting / Lecture Minutes Button
                                 FilledTonalButton(
-                                    onClick = { viewModel.generateMeetingMinutesFromAudio(audioPath) },
+                                    onClick = {
+                                        haptic.tick()
+                                        viewModel.generateMeetingMinutesFromAudio(audioPath)
+                                    },
                                     enabled = !uiState.isAiLoading,
                                     shape = RoundedCornerShape(12.dp),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
@@ -893,6 +958,7 @@ fun NoteEditorScreen(
                                 Spacer(modifier = Modifier.width(4.dp))
                                 IconButton(
                                     onClick = {
+                                        haptic.warning()
                                         audioHelper.stopPlaying()
                                         viewModel.setAudioPlaying(false)
                                         viewModel.setAudioPath(null)
@@ -932,6 +998,7 @@ fun NoteEditorScreen(
                                             shape = RoundedCornerShape(8.dp),
                                             color = AppleYellow.copy(alpha = 0.15f),
                                             modifier = Modifier.clickable {
+                                                haptic.selection()
                                                 if (!uiState.isPlayingAudio) {
                                                     viewModel.setAudioPlaying(true)
                                                     audioHelper.playAudio(audioPath) {

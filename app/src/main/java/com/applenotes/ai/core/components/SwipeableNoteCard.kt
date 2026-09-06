@@ -48,15 +48,18 @@ fun SwipeableNoteCard(
     val cardBg = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
+    val haptic = com.applenotes.ai.core.haptic.rememberHapticFeedbackHelper()
 
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
                 SwipeToDismissBoxValue.StartToEnd -> {
+                    haptic.tick()
                     onTogglePin()
                     false
                 }
                 SwipeToDismissBoxValue.EndToStart -> {
+                    haptic.warning()
                     onDelete()
                     true
                 }
@@ -110,7 +113,12 @@ fun SwipeableNoteCard(
                 .background(cardBg)
                 .combinedClickable(
                     onClick = onClick,
-                    onLongClick = onLongClick
+                    onLongClick = if (onLongClick != null) {
+                        {
+                            haptic.heavy()
+                            onLongClick()
+                        }
+                    } else null
                 )
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically

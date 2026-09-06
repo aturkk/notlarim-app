@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,7 +36,8 @@ fun CupertinoSearchBar(
     placeholder: String = "Ara",
     isAiSearchActive: Boolean = false,
     onToggleAiSearch: (() -> Unit)? = null,
-    isAiSearching: Boolean = false
+    isAiSearching: Boolean = false,
+    onCommandPaletteClick: (() -> Unit)? = null
 ) {
     val isDark = isAppDarkTheme()
     val accentColor = rememberAccentColor()
@@ -90,6 +92,19 @@ fun CupertinoSearchBar(
                     cursorBrush = SolidColor(accentColor),
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+
+            if (onCommandPaletteClick != null) {
+                Icon(
+                    imageVector = Icons.Default.Bolt,
+                    contentDescription = "Spotlight Komut Paleti",
+                    tint = accentColor,
+                    modifier = Modifier
+                        .size(19.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .clickable { onCommandPaletteClick() }
+                )
+                Spacer(modifier = Modifier.width(6.dp))
             }
 
             if (onToggleAiSearch != null) {
