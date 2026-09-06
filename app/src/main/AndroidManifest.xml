@@ -32,11 +32,35 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Web Clipper: Receive shared text and web links from browser or other apps -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/*" />
+            </intent-filter>
         </activity>
 
         <receiver
             android:name=".core.reminder.ReminderReceiver"
             android:exported="false" />
+
+        <!-- Auto Backup Background Receiver -->
+        <receiver
+            android:name=".core.backup.AutoBackupReceiver"
+            android:exported="false" />
+
+        <!-- Home Screen Quick Notes Widget -->
+        <receiver
+            android:name=".core.widget.QuickNotesWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quick_notes_widget_info" />
+        </receiver>
 
         <provider
             android:name="androidx.core.content.FileProvider"

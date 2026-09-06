@@ -110,4 +110,20 @@ class NoteRepositoryImpl(
     override suspend fun deleteFolder(folderId: Long) {
         db.folderDao.deleteFolder(FolderEntity(id = folderId, name = ""))
     }
+
+    override suspend fun saveNoteHistory(noteId: Long, title: String, content: String) {
+        if (noteId <= 0 || (title.isBlank() && content.isBlank())) return
+        db.noteHistoryDao.insertHistory(
+            com.applenotes.ai.data.local.model.NoteHistoryEntity(
+                noteId = noteId,
+                title = title,
+                content = content,
+                timestamp = System.currentTimeMillis()
+            )
+        )
+    }
+
+    override fun getNoteHistory(noteId: Long): Flow<List<com.applenotes.ai.data.local.model.NoteHistoryEntity>> {
+        return db.noteHistoryDao.getHistoryForNote(noteId)
+    }
 }

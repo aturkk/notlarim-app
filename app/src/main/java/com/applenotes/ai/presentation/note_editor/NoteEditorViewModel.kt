@@ -52,7 +52,11 @@ data class NoteEditorUiState(
     val isSlashMenuVisible: Boolean = false,
     val isIconPickerVisible: Boolean = false,
     val isCoverPickerVisible: Boolean = false,
-    val isTemplatePickerVisible: Boolean = false
+    val isTemplatePickerVisible: Boolean = false,
+    val historyList: List<com.applenotes.ai.data.local.model.NoteHistoryEntity> = emptyList(),
+    val isVersionHistoryVisible: Boolean = false,
+    val isZenModeOpen: Boolean = false,
+    val isPomodoroOpen: Boolean = false
 )
 
 class NoteEditorViewModel(
@@ -92,6 +96,16 @@ class NoteEditorViewModel(
                     )
                 }
                 loadBacklinks(note.title)
+                loadVersionHistory(note.id)
+            }
+        }
+    }
+
+    private fun loadVersionHistory(noteId: Long) {
+        if (noteId <= 0) return
+        viewModelScope.launch {
+            repository.getNoteHistory(noteId).collect { history ->
+                _uiState.update { it.copy(historyList = history) }
             }
         }
     }
@@ -651,6 +665,31 @@ class NoteEditorViewModel(
         insertMarkdown("[[$targetNoteTitle]] ")
     }
 
+    fun setVersionHistoryVisible(visible: Boolean) {
+        _uiState.update { it.copy(isVersionHistoryVisible = visible) }
+    }
+
+    fun setZenModeOpen(open: Boolean) {
+        _uiState.update { it.copy(isZenModeOpen = open) }
+    }
+
+    fun setPomodoroOpen(open: Boolean) {
+        _uiState.update { it.copy(isPomodoroOpen = open) }
+    }
+
+    fun restoreVersion(version: com.applenotes.ai.data.local.model.NoteHistoryEntity) {
+        _uiState.update {
+            it.copy(
+                title = version.title,
+                content = version.content,
+                isVersionHistoryVisible = false
+            )
+        }
+        onContentChange(version.content)
+    }
+
+    private var lastHistorySaveTime: Long = 0L
+
     private fun scheduleAutoSave() {
         autoSaveJob?.cancel()
         autoSaveJob = viewModelScope.launch {
@@ -679,9 +718,18 @@ class NoteEditorViewModel(
             updatedAt = System.currentTimeMillis()
         )
         val savedId = repository.saveNote(note)
+        val activeNoteId = if (state.noteId == 0L) savedId else state.noteId
         if (state.noteId == 0L && savedId > 0) {
             _uiState.update { it.copy(noteId = savedId) }
             loadBacklinks(state.title)
+            loadVersionHistory(savedId)
+        }
+
+        // Save history snapshot if 1 minute elapsed since last snapshot
+        val now = System.currentTimeMillis()
+        if (activeNoteId > 0 && (now - lastHistorySaveTime > 60_000L || lastHistorySaveTime == 0L)) {
+            repository.saveNoteHistory(activeNoteId, state.title, state.content)
+            lastHistorySaveTime = now
         }
     }
 

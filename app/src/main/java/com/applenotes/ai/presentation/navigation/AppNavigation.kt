@@ -14,11 +14,20 @@ import com.applenotes.ai.presentation.notes_list.NotesListViewModel
 import com.applenotes.ai.presentation.settings.SettingsScreen
 import com.applenotes.ai.presentation.settings.SettingsViewModel
 
+import androidx.compose.runtime.LaunchedEffect
+
 @Composable
 fun AppNavigation(
     navController: NavHostController,
-    appContainer: AppleNotesApp
+    appContainer: AppleNotesApp,
+    initialNoteId: Long? = null
 ) {
+    LaunchedEffect(initialNoteId) {
+        if (initialNoteId != null) {
+            navController.navigate(Screen.NoteEditor.createRoute(initialNoteId))
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.NotesList.route

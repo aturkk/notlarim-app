@@ -147,6 +147,19 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getBoolean(KEY_AUTO_CHECK_UPDATES, true)
         set(value) = sharedPreferences.edit().putBoolean(KEY_AUTO_CHECK_UPDATES, value).apply()
 
+    // Backup & Sync Settings
+    var autoBackupEnabled: Boolean
+        get() = sharedPreferences.getBoolean(KEY_AUTO_BACKUP_ENABLED, true)
+        set(value) = sharedPreferences.edit().putBoolean(KEY_AUTO_BACKUP_ENABLED, value).apply()
+
+    var autoBackupFrequency: String
+        get() = sharedPreferences.getString(KEY_AUTO_BACKUP_FREQ, "DAILY") ?: "DAILY"
+        set(value) = sharedPreferences.edit().putString(KEY_AUTO_BACKUP_FREQ, value).apply()
+
+    var lastBackupTime: Long
+        get() = sharedPreferences.getLong(KEY_LAST_BACKUP_TIME, 0L)
+        set(value) = sharedPreferences.edit().putLong(KEY_LAST_BACKUP_TIME, value).apply()
+
     companion object {
         private const val KEY_GEMINI_KEY = "gemini_api_key"
         private const val KEY_GEMINI_MODEL = "gemini_model"
@@ -168,5 +181,8 @@ class SecurePreferences(context: Context) {
         private const val KEY_GITHUB_REPO = "github_repo"
         private const val KEY_GITHUB_TOKEN = "github_token"
         private const val KEY_AUTO_CHECK_UPDATES = "auto_check_updates"
+        private const val KEY_AUTO_BACKUP_ENABLED = "auto_backup_enabled"
+        private const val KEY_AUTO_BACKUP_FREQ = "auto_backup_freq"
+        private const val KEY_LAST_BACKUP_TIME = "last_backup_time"
     }
 }

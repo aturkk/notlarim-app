@@ -25,4 +25,7 @@ interface NoteRepository {
     fun getAllFolders(): Flow<List<Folder>>
     suspend fun createFolder(name: String, iconName: String = "folder"): Long
     suspend fun deleteFolder(folderId: Long)
+
+    suspend fun saveNoteHistory(noteId: Long, title: String, content: String)
+    fun getNoteHistory(noteId: Long): Flow<List<com.applenotes.ai.data.local.model.NoteHistoryEntity>>
 }

@@ -31,6 +31,9 @@ import com.applenotes.ai.core.security.BiometricAuthHelper
 import com.applenotes.ai.presentation.ai_assistant.GlobalAiChatBottomSheet
 import com.applenotes.ai.presentation.notes_list.components.KanbanBoardView
 import com.applenotes.ai.presentation.notes_list.components.GraphViewDialog
+import com.applenotes.ai.presentation.notes_list.components.CalendarView
+import com.applenotes.ai.presentation.notes_list.components.MorningDigestDialog
+import com.applenotes.ai.presentation.notes_list.components.SynthesisDialog
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,6 +115,17 @@ fun NotesListScreen(
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                IconButton(
+                                    onClick = viewModel::openSynthesis,
+                                    enabled = uiState.selectedNoteIds.isNotEmpty()
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = "Sentezle",
+                                        tint = if (uiState.selectedNoteIds.isNotEmpty()) AppleYellow else Color.Gray.copy(alpha = 0.4f)
+                                    )
+                                }
+
                                 IconButton(
                                     onClick = { viewModel.setMoveFolderDialogOpen(true) },
                                     enabled = uiState.selectedNoteIds.isNotEmpty()
@@ -221,11 +235,13 @@ fun NotesListScreen(
                                             ViewMode.LIST -> Icons.Default.ViewAgenda
                                             ViewMode.GALLERY -> Icons.Default.GridView
                                             ViewMode.KANBAN -> Icons.Default.ViewWeek
+                                            ViewMode.CALENDAR -> Icons.Default.CalendarMonth
                                         },
                                         contentDescription = when (uiState.viewMode) {
                                             ViewMode.LIST -> "Liste Görünümü"
                                             ViewMode.GALLERY -> "Galeri Görünümü"
                                             ViewMode.KANBAN -> "Pano (Kanban) Görünümü"
+                                            ViewMode.CALENDAR -> "Takvim Görünümü"
                                         },
                                         tint = if (uiState.viewMode != ViewMode.LIST) AppleYellow else textSecondary,
                                         modifier = Modifier.size(20.dp)
@@ -258,6 +274,21 @@ fun NotesListScreen(
                                         imageVector = Icons.Default.PostAdd,
                                         contentDescription = "Şablonlar",
                                         tint = textSecondary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                // Morning Digest (Sabah Brifingi)
+                                IconButton(
+                                    onClick = { viewModel.openMorningDigest() },
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.WbSunny,
+                                        contentDescription = "Sabah Brifingi",
+                                        tint = AppleYellow,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -361,6 +392,19 @@ fun NotesListScreen(
                                 )
                             }
                         }
+                    }
+                }
+
+                // ─── CALENDAR VIEW ──────────────────────────────────────────
+                if (uiState.viewMode == ViewMode.CALENDAR) {
+                    item {
+                        CalendarView(
+                            notes = uiState.notes,
+                            onNoteClick = handleNoteClick,
+                            onAddNoteForDate = { dateMillis ->
+                                viewModel.createNoteWithReminder(dateMillis, onNoteClick)
+                            }
+                        )
                     }
                 }
 
@@ -811,6 +855,31 @@ fun NotesListScreen(
             onDismiss = { viewModel.setTemplateSheetOpen(false) },
             onSelectTemplate = { template ->
                 viewModel.createNoteFromTemplate(template, onNoteClick)
+            }
+        )
+    }
+
+    // Morning Digest Dialog
+    if (uiState.isMorningDigestVisible) {
+        MorningDigestDialog(
+            isLoading = uiState.isMorningDigestLoading,
+            digestContent = uiState.morningDigestText,
+            onDismiss = viewModel::closeMorningDigest,
+            onSaveAsNote = { title, content ->
+                viewModel.saveReportAsNote(title, content, onNoteClick)
+            }
+        )
+    }
+
+    // Multi-Note Synthesis Dialog
+    if (uiState.isSynthesisVisible) {
+        SynthesisDialog(
+            isLoading = uiState.isSynthesisLoading,
+            synthesisContent = uiState.synthesisText,
+            selectedCount = uiState.selectedNoteIds.size,
+            onDismiss = viewModel::closeSynthesis,
+            onSaveAsNote = { title, content ->
+                viewModel.saveReportAsNote(title, content, onNoteClick)
             }
         )
     }

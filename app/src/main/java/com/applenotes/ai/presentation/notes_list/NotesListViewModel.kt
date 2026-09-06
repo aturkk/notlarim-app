@@ -18,7 +18,7 @@ import com.applenotes.ai.domain.model.MessageRole
 import com.applenotes.ai.core.templates.NoteTemplate
 
 enum class ViewMode {
-    LIST, GALLERY, KANBAN
+    LIST, GALLERY, KANBAN, CALENDAR
 }
 
 data class NotesListUiState(
@@ -39,7 +39,13 @@ data class NotesListUiState(
     val selectedNoteIds: Set<Long> = emptySet(),
     val isMoveFolderDialogOpen: Boolean = false,
     val isGraphDialogOpen: Boolean = false,
-    val isTemplateSheetOpen: Boolean = false
+    val isTemplateSheetOpen: Boolean = false,
+    val isMorningDigestVisible: Boolean = false,
+    val morningDigestText: String? = null,
+    val isMorningDigestLoading: Boolean = false,
+    val isSynthesisVisible: Boolean = false,
+    val synthesisText: String? = null,
+    val isSynthesisLoading: Boolean = false
 )
 
 private data class SelectionState(
@@ -48,7 +54,13 @@ private data class SelectionState(
     val selectedNoteIds: Set<Long> = emptySet(),
     val isMoveFolderDialogOpen: Boolean = false,
     val isGraphDialogOpen: Boolean = false,
-    val isTemplateSheetOpen: Boolean = false
+    val isTemplateSheetOpen: Boolean = false,
+    val isMorningDigestVisible: Boolean = false,
+    val morningDigestText: String? = null,
+    val isMorningDigestLoading: Boolean = false,
+    val isSynthesisVisible: Boolean = false,
+    val synthesisText: String? = null,
+    val isSynthesisLoading: Boolean = false
 )
 
 private data class FilterParams(
@@ -121,7 +133,13 @@ class NotesListViewModel(
             selectedNoteIds = sel.selectedNoteIds,
             isMoveFolderDialogOpen = sel.isMoveFolderDialogOpen,
             isGraphDialogOpen = sel.isGraphDialogOpen,
-            isTemplateSheetOpen = sel.isTemplateSheetOpen
+            isTemplateSheetOpen = sel.isTemplateSheetOpen,
+            isMorningDigestVisible = sel.isMorningDigestVisible,
+            morningDigestText = sel.morningDigestText,
+            isMorningDigestLoading = sel.isMorningDigestLoading,
+            isSynthesisVisible = sel.isSynthesisVisible,
+            synthesisText = sel.synthesisText,
+            isSynthesisLoading = sel.isSynthesisLoading
         )
     }.stateIn(
         scope = viewModelScope,
@@ -201,9 +219,23 @@ class NotesListViewModel(
         val nextMode = when (_selectionState.value.viewMode) {
             ViewMode.LIST -> ViewMode.GALLERY
             ViewMode.GALLERY -> ViewMode.KANBAN
-            ViewMode.KANBAN -> ViewMode.LIST
+            ViewMode.KANBAN -> ViewMode.CALENDAR
+            ViewMode.CALENDAR -> ViewMode.LIST
         }
         setViewMode(nextMode)
+    }
+
+    fun createNoteWithReminder(reminderMillis: Long, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newNote = Note(
+                title = "",
+                content = "",
+                reminderTime = reminderMillis,
+                updatedAt = System.currentTimeMillis()
+            )
+            val id = repository.saveNote(newNote)
+            onCreated(id)
+        }
     }
 
     fun setGraphDialogOpen(open: Boolean) {
@@ -345,5 +377,83 @@ class NotesListViewModel(
 
     fun dismissUpdateDialog() {
         _updateInfo.value = null
+    }
+
+    fun openMorningDigest() {
+        _selectionState.value = _selectionState.value.copy(
+            isMorningDigestVisible = true,
+            isMorningDigestLoading = true,
+            morningDigestText = null
+        )
+        viewModelScope.launch {
+            val allNotes = uiState.value.notes
+            val result = aiServiceManager.generateMorningDigest(allNotes)
+            result.onSuccess { digest ->
+                _selectionState.value = _selectionState.value.copy(
+                    isMorningDigestLoading = false,
+                    morningDigestText = digest
+                )
+            }.onFailure { err ->
+                _selectionState.value = _selectionState.value.copy(
+                    isMorningDigestLoading = false,
+                    morningDigestText = "Hata: ${err.message ?: "Brifing oluşturulamadı."}"
+                )
+            }
+        }
+    }
+
+    fun closeMorningDigest() {
+        _selectionState.value = _selectionState.value.copy(
+            isMorningDigestVisible = false,
+            morningDigestText = null,
+            isMorningDigestLoading = false
+        )
+    }
+
+    fun openSynthesis() {
+        val selectedNotes = uiState.value.notes.filter { it.id in _selectionState.value.selectedNoteIds }
+        if (selectedNotes.isEmpty()) return
+        _selectionState.value = _selectionState.value.copy(
+            isSynthesisVisible = true,
+            isSynthesisLoading = true,
+            synthesisText = null
+        )
+        viewModelScope.launch {
+            val result = aiServiceManager.synthesizeNotes(selectedNotes)
+            result.onSuccess { text ->
+                _selectionState.value = _selectionState.value.copy(
+                    isSynthesisLoading = false,
+                    synthesisText = text
+                )
+            }.onFailure { err ->
+                _selectionState.value = _selectionState.value.copy(
+                    isSynthesisLoading = false,
+                    synthesisText = "Hata: ${err.message ?: "Sentez oluşturulamadı."}"
+                )
+            }
+        }
+    }
+
+    fun closeSynthesis() {
+        _selectionState.value = _selectionState.value.copy(
+            isSynthesisVisible = false,
+            synthesisText = null,
+            isSynthesisLoading = false
+        )
+    }
+
+    fun saveReportAsNote(title: String, content: String, onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val newNote = Note(
+                title = title,
+                content = content,
+                updatedAt = System.currentTimeMillis()
+            )
+            val id = repository.saveNote(newNote)
+            closeMorningDigest()
+            closeSynthesis()
+            clearSelection()
+            onCreated(id)
+        }
     }
 }

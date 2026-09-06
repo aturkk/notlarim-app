@@ -20,6 +20,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import com.applenotes.ai.BuildConfig
 import com.applenotes.ai.core.components.*
 import com.applenotes.ai.core.theme.*
@@ -38,6 +40,22 @@ fun SettingsScreen(
     val textPrimary = if (isDark) iOSTextPrimaryDark else iOSTextPrimaryLight
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val context = androidx.compose.ui.platform.LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/zip")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportBackupToUri(context, uri)
+        }
+    }
+
+    val restoreLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.restoreBackupFromUri(context, uri)
+        }
+    }
 
     var showKey by remember { mutableStateOf(false) }
 
@@ -491,30 +509,210 @@ fun SettingsScreen(
                 }
             }
 
-            // Data & Backup Section
+            // Data & Backup Section (Google Drive / SAF + Auto Sync)
             item {
                 InsetGroupedSection(
-                    title = "Veri Güvenliği ve Yedekleme"
+                    title = "Yedekleme & Senkronizasyon (Google Drive / SAF)",
+                    footer = "Notlarınız doğrudan cihazınızda saklanır. Google Drive veya yerel klasörlere SAF (Storage Access Framework) ile güvenle yedekleyebilir ve dilediğiniz zaman geri yükleyebilirsiniz."
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Tüm notlarınızı, etiketlerinizi ve medya dosyalarınızı şifreli bir ZIP arşivi olarak dışa aktarabilirsiniz.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = textSecondary
+                    // 1. Google Drive / SAF Export
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                val timeStamp = java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
+                                exportLauncher.launch("AppleNotes_Backup_$timeStamp.zip")
+                            }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudUpload,
+                            contentDescription = null,
+                            tint = AppleYellow,
+                            modifier = Modifier.size(24.dp)
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Button(
-                            onClick = { viewModel.createBackup(context) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDark) iOSSecondaryBackgroundDark else iOSSecondaryBackgroundLight,
-                                contentColor = textPrimary
-                            ),
-                            shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.fillMaxWidth()
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Google Drive'a / Dosyaya Yedekle",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "Drive veya cihazda konum seçerek tam ZIP yedeği kaydeder",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                    }
+
+                    InsetDivider()
+
+                    // 2. Restore from Backup
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                restoreLauncher.launch(arrayOf("application/zip", "application/json", "application/octet-stream", "*/*"))
+                            }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CloudDownload,
+                            contentDescription = null,
+                            tint = AppleYellow,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Yedekten Geri Yükle",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "Google Drive veya cihazınızdaki yedek dosyasından notları geri yükler",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                    }
+
+                    InsetDivider()
+
+                    // 3. Markdown (.zip) Share
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.exportAndShareZip(context) }
+                            .padding(horizontal = 16.dp, vertical = 13.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = null,
+                            tint = AppleYellow,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(modifier = Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Markdown (.zip) Paylaş / Dışa Aktar",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "Obsidian ve Notion uyumlu .md dosyaları olarak dışa aktarır",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                    }
+
+                    InsetDivider()
+
+                    // 4. Auto Background Backup Switch
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Otomatik Arka Plan Yedekleme",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = textPrimary
+                            )
+                            Text(
+                                text = "Notlarınızı düzenli aralıklarla yerel depolamaya otomatik yedekler",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = textSecondary
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Switch(
+                            checked = uiState.autoBackupEnabled,
+                            onCheckedChange = { viewModel.onAutoBackupToggle(context, it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = AppleYellow
+                            )
+                        )
+                    }
+
+                    if (uiState.autoBackupEnabled) {
+                        InsetDivider()
+
+                        // 5. Frequency Selection
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Icon(Icons.Default.Archive, contentDescription = null, tint = AppleYellow, modifier = Modifier.size(18.dp))
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text("Tüm Notları ZIP Olarak Yedekle", fontWeight = FontWeight.SemiBold)
+                            Text(
+                                text = "Yedekleme Sıklığı",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = textPrimary
+                            )
+
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = uiState.autoBackupFrequency == "DAILY",
+                                    onClick = { viewModel.onAutoBackupFrequencyChange(context, "DAILY") },
+                                    label = { Text("Günlük") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppleYellow,
+                                        selectedLabelColor = Color.Black
+                                    )
+                                )
+                                FilterChip(
+                                    selected = uiState.autoBackupFrequency == "WEEKLY",
+                                    onClick = { viewModel.onAutoBackupFrequencyChange(context, "WEEKLY") },
+                                    label = { Text("Haftalık") },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = AppleYellow,
+                                        selectedLabelColor = Color.Black
+                                    )
+                                )
+                            }
+                        }
+
+                        InsetDivider()
+
+                        // 6. Last Backup Time Info
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "Son Yedekleme",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textSecondary
+                            )
+                            val lastBackupStr = if (uiState.lastBackupTime > 0) {
+                                java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault()).format(java.util.Date(uiState.lastBackupTime))
+                            } else {
+                                "Henüz yapılmadı"
+                            }
+                            Text(
+                                text = lastBackupStr,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = textPrimary
+                            )
                         }
                     }
                 }
@@ -577,8 +775,28 @@ fun SettingsScreen(
         )
     }
 
+    // Backup in Progress Dialog
+    if (uiState.isBackupInProgress) {
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text("Yedekleme İşlemi", fontWeight = FontWeight.Bold) },
+            text = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(color = AppleYellow, modifier = Modifier.size(28.dp), strokeWidth = 3.dp)
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Text("Dosyalar işleniyor, lütfen bekleyin...")
+                }
+            },
+            confirmButton = {},
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
     // Information Dialogs
-    val alertMessage = uiState.testApiMessage ?: uiState.updateMessage
+    val alertMessage = uiState.testApiMessage ?: uiState.updateMessage ?: uiState.backupMessage
     if (alertMessage != null) {
         AlertDialog(
             onDismissRequest = viewModel::dismissMessageDialog,

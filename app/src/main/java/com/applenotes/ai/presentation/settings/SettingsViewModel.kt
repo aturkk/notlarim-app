@@ -42,7 +42,12 @@ data class SettingsUiState(
     val isTestingApi: Boolean = false,
     val testApiMessage: String? = null,
     val isDownloadInProgress: Boolean = false,
-    val downloadProgress: Int = 0
+    val downloadProgress: Int = 0,
+    val autoBackupEnabled: Boolean = true,
+    val autoBackupFrequency: String = "DAILY",
+    val lastBackupTime: Long = 0L,
+    val isBackupInProgress: Boolean = false,
+    val backupMessage: String? = null
 )
 
 class SettingsViewModel(
@@ -73,7 +78,10 @@ class SettingsViewModel(
             onDeviceModelStatus = if (prefs.onDeviceModelPath.isNotBlank()) "✅ Model yüklü: ${prefs.onDeviceModelPath}" else "⚠️ Model dosyası seçilmedi",
             githubOwner = prefs.githubOwner,
             githubRepo = prefs.githubRepo,
-            autoCheckUpdates = prefs.autoCheckUpdates
+            autoCheckUpdates = prefs.autoCheckUpdates,
+            autoBackupEnabled = prefs.autoBackupEnabled,
+            autoBackupFrequency = prefs.autoBackupFrequency,
+            lastBackupTime = prefs.lastBackupTime
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
@@ -251,6 +259,81 @@ class SettingsViewModel(
     }
 
     fun dismissMessageDialog() {
-        _uiState.update { it.copy(updateMessage = null, testApiMessage = null) }
+        _uiState.update { it.copy(updateMessage = null, testApiMessage = null, backupMessage = null) }
+    }
+
+    fun onAutoBackupToggle(context: android.content.Context, enabled: Boolean) {
+        prefs.autoBackupEnabled = enabled
+        _uiState.update { it.copy(autoBackupEnabled = enabled) }
+        if (enabled) {
+            com.applenotes.ai.core.backup.AutoBackupScheduler.schedule(context)
+        } else {
+            com.applenotes.ai.core.backup.AutoBackupScheduler.cancel(context)
+        }
+    }
+
+    fun onAutoBackupFrequencyChange(context: android.content.Context, frequency: String) {
+        prefs.autoBackupFrequency = frequency
+        _uiState.update { it.copy(autoBackupFrequency = frequency) }
+        com.applenotes.ai.core.backup.AutoBackupScheduler.schedule(context)
+    }
+
+    fun exportBackupToUri(context: android.content.Context, targetUri: android.net.Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackupInProgress = true) }
+            val notes = repository.getAllNotes().first()
+            val result = com.applenotes.ai.core.backup.BackupRestoreHelper.exportBackupToUri(context, targetUri, notes)
+            result.onSuccess { count ->
+                prefs.lastBackupTime = System.currentTimeMillis()
+                _uiState.update {
+                    it.copy(
+                        isBackupInProgress = false,
+                        lastBackupTime = prefs.lastBackupTime,
+                        backupMessage = "✅ $count adet not başarıyla Google Drive'a / Dosyalara yedeklendi!"
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isBackupInProgress = false,
+                        backupMessage = "❌ Yedekleme başarısız: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun restoreBackupFromUri(context: android.content.Context, sourceUri: android.net.Uri) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isBackupInProgress = true) }
+            val result = com.applenotes.ai.core.backup.BackupRestoreHelper.restoreBackupFromUri(context, sourceUri, repository)
+            result.onSuccess { count ->
+                _uiState.update {
+                    it.copy(
+                        isBackupInProgress = false,
+                        backupMessage = "✅ $count adet not başarıyla geri yüklendi!"
+                    )
+                }
+            }.onFailure { err ->
+                _uiState.update {
+                    it.copy(
+                        isBackupInProgress = false,
+                        backupMessage = "❌ Geri yükleme başarısız: ${err.message}"
+                    )
+                }
+            }
+        }
+    }
+
+    fun exportAndShareZip(context: android.content.Context) {
+        viewModelScope.launch {
+            try {
+                val notes = repository.getAllNotes().first()
+                val zipFile = com.applenotes.ai.core.backup.BackupRestoreHelper.createBackupZip(context, notes)
+                com.applenotes.ai.core.export.NoteExporter.shareFile(context, zipFile, "application/zip")
+            } catch (e: Exception) {
+                _uiState.update { it.copy(backupMessage = "Hata: ${e.message}") }
+            }
+        }
     }
 }

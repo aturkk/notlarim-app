@@ -7,6 +7,7 @@ import com.applenotes.ai.domain.model.AiProvider
 import com.applenotes.ai.domain.model.ChatMessage
 import com.applenotes.ai.domain.model.MessageRole
 import com.applenotes.ai.domain.model.TitleAndTagsResult
+import com.applenotes.ai.domain.model.Note
 
 class AiServiceManager(
     private val context: Context,
@@ -317,6 +318,59 @@ class AiServiceManager(
             }
             else -> Result.failure(IllegalStateException("Belgeden/Görselden metin çıkarma (OCR) için Google Gemini API anahtarı gereklidir. Lütfen Ayarlar bölümünden anahtarınızı kaydedin."))
         }
+    }
+
+    suspend fun generateMorningDigest(notes: List<Note>): Result<String> {
+        val notesContext = notes.take(25).joinToString("\n---\n") { note ->
+            val icon = note.icon?.let { "$it " } ?: ""
+            "Başlık: $icon${note.title}\nİçerik: ${note.content.take(200)}\nEtiketler: ${note.tags.joinToString(", ")}"
+        }
+
+        val prompt = "Aşağıdaki notlar ve yapılacaklar listesini inceleyerek kullanıcıya enerjik, şık ve son derece motive edici bir 'Günlük Sabah Brifingi' hazırla.\n\n" +
+            "Notlar Arşivi:\n" + notesContext + "\n\n" +
+            "Brifing şu bölümleri içersin:\n" +
+            "1. ☀️ Günün Özeti & Selamlama\n" +
+            "2. 🎯 Bugünün En Kritik 3 Hedefi\n" +
+            "3. 📋 Bekleyen Yapılacaklar & Hatırlatıcılar\n" +
+            "4. 💡 Günün İlham Verici Sözü"
+
+        val systemPrompt = "Sen kullanıcının kişisel Apple Intelligence asistanısın. Türkçe, samimi, profesyonel, ilham verici ve net bir sabah brifingi üretirsin."
+        return sendPrompt(prompt, systemPrompt)
+    }
+
+    suspend fun synthesizeNotes(notes: List<Note>): Result<String> {
+        if (notes.isEmpty()) return Result.failure(IllegalArgumentException("Sentezlemek için en az bir not seçilmelidir."))
+
+        val notesContext = notes.joinToString("\n\n====================\n\n") { note ->
+            "BAŞLIK: ${note.title}\nİÇERİK:\n${note.content}"
+        }
+
+        val prompt = "Aşağıda kullanıcının seçtiği ${notes.size} adet not yer almaktadır. Bu notları derinlemesine analiz et ve kapsamlı bir 'Sentez & Yönetici Master Raporu' oluştur.\n\n" +
+            notesContext + "\n\n" +
+            "Format:\n" +
+            "# 📑 Çoklu Not Sentez Raporu\n" +
+            "## 📌 Ortak Temalar & Ana Fikirler\n" +
+            "## 💡 Alınan Kritik Kararlar\n" +
+            "## 🚀 Birleşik Aksiyon & Görev Listesi (- [ ] formatında)\n" +
+            "## 🔍 Riskler ve Sonraki Adımlar"
+
+        val systemPrompt = "Sen üst düzey bir strateji ve not sentezi uzmanısın. Birden fazla nottaki dağınık bilgileri birleştirip kusursuz bir master rapora dönüştürürsün."
+        return sendPrompt(prompt, systemPrompt)
+    }
+
+    suspend fun semanticSearch(notes: List<Note>, query: String): Result<String> {
+        if (notes.isEmpty() || query.isBlank()) return Result.success("Aranacak not bulunamadı.")
+
+        val notesContext = notes.take(30).joinToString("\n---\n") { note ->
+            "ID: ${note.id} | Başlık: ${note.title}\nİçerik: ${note.content.take(250)}"
+        }
+
+        val prompt = "Kullanıcının doğal dille sorduğu soru şudur:\n\"$query\"\n\n" +
+            "Aşağıdaki not arşivini incele. Kullanıcının sorusuna doğrudan cevap ver ve cevabın hangi nottan (başlığını belirterek) alındığını açıkla:\n\n" +
+            notesContext
+
+        val systemPrompt = "Sen anlamsal zeka arama motorusun (Semantic Search Engine). Kullanıcının sorusunu en alakalı notlarla eşleştirir, cevabı özetler ve kaynak notları gösterirsin."
+        return sendPrompt(prompt, systemPrompt)
     }
 }
 

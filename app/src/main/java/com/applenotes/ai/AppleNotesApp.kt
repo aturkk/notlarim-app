@@ -33,5 +33,8 @@ class AppleNotesApp : Application() {
         noteRepository = NoteRepositoryImpl(database)
         aiServiceManager = AiServiceManager(this, securePreferences)
         updateService = GitHubUpdateService(this, securePreferences)
+
+        // Initialize background periodic backup scheduler
+        com.applenotes.ai.core.backup.AutoBackupScheduler.schedule(this)
     }
 }

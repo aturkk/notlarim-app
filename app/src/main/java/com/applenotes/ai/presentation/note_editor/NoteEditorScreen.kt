@@ -41,6 +41,9 @@ import com.applenotes.ai.core.components.SlashCommandBottomSheet
 import com.applenotes.ai.core.components.IconPickerBottomSheet
 import com.applenotes.ai.core.components.CoverPickerBottomSheet
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
+import com.applenotes.ai.presentation.note_editor.components.VersionHistoryBottomSheet
+import com.applenotes.ai.presentation.note_editor.components.ZenFocusModeDialog
+import com.applenotes.ai.presentation.note_editor.components.PomodoroTimerDialog
 import com.applenotes.ai.core.theme.*
 import com.applenotes.ai.domain.model.AiAction
 import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
@@ -159,6 +162,20 @@ fun NoteEditorScreen(
                             imageVector = Icons.Default.PushPin,
                             contentDescription = "Sabitle",
                             tint = if (uiState.isPinned) AppleYellow else textSecondary
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setPomodoroOpen(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = "Pomodoro Odak Zamanlayıcısı",
+                            tint = AppleYellow
+                        )
+                    }
+                    IconButton(onClick = { viewModel.setZenModeOpen(true) }) {
+                        Icon(
+                            imageVector = Icons.Default.SelfImprovement,
+                            contentDescription = "Zen Daktilo Modu",
+                            tint = AppleYellow
                         )
                     }
                     IconButton(onClick = { isShareSheetOpen = true }) {
@@ -1044,9 +1061,58 @@ fun NoteEditorScreen(
                     }
                 }
 
+                HorizontalDivider(color = if (isDark) iOSSeparatorDark else iOSSeparatorLight, thickness = 0.5.dp)
+
+                // Version History (Time Machine)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable {
+                            isShareSheetOpen = false
+                            viewModel.setVersionHistoryVisible(true)
+                        }
+                        .padding(vertical = 12.dp, horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(imageVector = Icons.Default.History, contentDescription = null, tint = AppleYellow)
+                    Spacer(modifier = Modifier.width(14.dp))
+                    Column {
+                        Text(text = "Zaman Makinesi (Sürüm Geçmişi)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(text = "Notun önceki düzenlemelerine göz at ve geri yükle", style = MaterialTheme.typography.bodySmall, color = textSecondary)
+                    }
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
+    }
+
+    // Version History Bottom Sheet
+    if (uiState.isVersionHistoryVisible) {
+        VersionHistoryBottomSheet(
+            historyList = uiState.historyList,
+            onDismiss = { viewModel.setVersionHistoryVisible(false) },
+            onRestoreVersion = viewModel::restoreVersion
+        )
+    }
+
+    // Zen Focus Mode Dialog
+    if (uiState.isZenModeOpen) {
+        ZenFocusModeDialog(
+            title = uiState.title,
+            content = uiState.content,
+            onTitleChange = viewModel::onTitleChange,
+            onContentChange = viewModel::onContentChange,
+            onDismiss = { viewModel.setZenModeOpen(false) }
+        )
+    }
+
+    // Pomodoro Timer Dialog
+    if (uiState.isPomodoroOpen) {
+        PomodoroTimerDialog(
+            onDismiss = { viewModel.setPomodoroOpen(false) }
+        )
     }
 
     // Slash Command Bottom Sheet
