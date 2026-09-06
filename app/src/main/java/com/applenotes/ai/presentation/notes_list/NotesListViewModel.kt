@@ -60,7 +60,8 @@ data class NotesListUiState(
     val isDownloadInProgress: Boolean = false,
     val downloadProgress: Int = 0,
     val updateMessage: String? = null,
-    val isTrashSheetOpen: Boolean = false
+    val isTrashSheetOpen: Boolean = false,
+    val isCompactView: Boolean = false
 )
 
 private data class SelectionState(
@@ -81,7 +82,8 @@ private data class SelectionState(
     val updateMessage: String? = null,
     val isTrashSheetOpen: Boolean = false,
     val isSemanticSearchActive: Boolean = false,
-    val isSemanticSearching: Boolean = false
+    val isSemanticSearching: Boolean = false,
+    val isCompactView: Boolean = false
 )
 
 private data class FilterParams(
@@ -187,7 +189,8 @@ class NotesListViewModel(
             isDownloadInProgress = sel.isDownloadInProgress,
             downloadProgress = sel.downloadProgress,
             updateMessage = sel.updateMessage,
-            isTrashSheetOpen = sel.isTrashSheetOpen
+            isTrashSheetOpen = sel.isTrashSheetOpen,
+            isCompactView = sel.isCompactView
         )
     }.stateIn(
         scope = viewModelScope,
@@ -204,6 +207,11 @@ class NotesListViewModel(
     init {
         if (prefs.autoCheckUpdates) {
             checkForUpdateSilently()
+        }
+        // 30-Day Auto Trash Cleanup
+        viewModelScope.launch {
+            val thirtyDaysAgo = System.currentTimeMillis() - (30L * 24 * 60 * 60 * 1000L)
+            repository.cleanupOldTrash(thirtyDaysAgo)
         }
     }
 
@@ -534,6 +542,33 @@ class NotesListViewModel(
         viewModelScope.launch {
             repository.createFolder(name.trim())
         }
+    }
+
+    fun deleteFolder(folderId: Long) {
+        viewModelScope.launch {
+            repository.deleteFolder(folderId)
+            if (_selectedFolderId.value == folderId) {
+                _selectedFolderId.value = null
+            }
+        }
+    }
+
+    fun duplicateNote(note: Note) {
+        viewModelScope.launch {
+            val copyTitle = if (note.title.isNotBlank()) "${note.title} (Kopya)" else "Başlıksız Not (Kopya)"
+            val duplicated = note.copy(
+                id = 0,
+                title = copyTitle,
+                isPinned = false,
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis()
+            )
+            repository.saveNote(duplicated)
+        }
+    }
+
+    fun toggleCompactView() {
+        _selectionState.update { it.copy(isCompactView = !it.isCompactView) }
     }
 
     private fun checkForUpdateSilently() {

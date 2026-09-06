@@ -41,6 +41,10 @@ import com.applenotes.ai.presentation.notes_list.components.TrashBottomSheet
 import com.applenotes.ai.core.haptic.rememberHapticFeedbackHelper
 import com.applenotes.ai.core.templates.TemplatePickerBottomSheet
 
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.AnimatedVisibility
+import com.applenotes.ai.presentation.notes_list.components.NoteContextMenuBottomSheet
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotesListScreen(
@@ -61,7 +65,12 @@ fun NotesListScreen(
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val haptic = rememberHapticFeedbackHelper()
 
+    val lazyListState = rememberLazyListState()
+    val isScrolled by remember { derivedStateOf { lazyListState.firstVisibleItemIndex > 0 || lazyListState.firstVisibleItemScrollOffset > 40 } }
+
     var isCreatingFolder by remember { mutableStateOf(false) }
+    var folderToDelete by remember { mutableStateOf<com.applenotes.ai.domain.model.Folder?>(null) }
+    var noteForContextMenu by remember { mutableStateOf<Note?>(null) }
     var newFolderName by remember { mutableStateOf("") }
     var isMoreMenuExpanded by remember { mutableStateOf(false) }
     var isAiHubSheetVisible by remember { mutableStateOf(false) }
@@ -193,6 +202,7 @@ fun NotesListScreen(
                 .padding(bottom = paddingValues.calculateBottomPadding())
         ) {
             LazyColumn(
+                state = lazyListState,
                 modifier = Modifier.fillMaxSize()
             ) {
                 item {
@@ -232,7 +242,18 @@ fun NotesListScreen(
                                 )
                             }
                         } else {
-                            Spacer(modifier = Modifier.width(1.dp))
+                            AnimatedVisibility(visible = isScrolled) {
+                                Text(
+                                    text = currentFolderTitle,
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = textPrimary,
+                                    modifier = Modifier.padding(start = 4.dp)
+                                )
+                            }
+                            if (!isScrolled) {
+                                Spacer(modifier = Modifier.width(1.dp))
+                            }
                         }
 
                         Row(
@@ -341,6 +362,14 @@ fun NotesListScreen(
                                             }
                                         )
                                         DropdownMenuItem(
+                                            text = { Text(if (uiState.isCompactView) "Detaylı Liste Görünümü" else "Kompakt Liste Görünümü") },
+                                            leadingIcon = { Icon(if (uiState.isCompactView) Icons.Default.ViewAgenda else Icons.Default.TableRows, contentDescription = null, tint = AppleYellow) },
+                                            onClick = {
+                                                isMoreMenuExpanded = false
+                                                viewModel.toggleCompactView()
+                                            }
+                                        )
+                                        DropdownMenuItem(
                                             text = { Text("Yeni Klasör") },
                                             leadingIcon = { Icon(Icons.Default.CreateNewFolder, contentDescription = null, tint = accentColor) },
                                             onClick = {
@@ -372,21 +401,25 @@ fun NotesListScreen(
                     }
 
                     // Full-width Cupertino Large Title Header (Never wraps vertically)
-                    CupertinoLargeHeader(
-                        title = if (uiState.isSelectionMode) "${uiState.selectedNoteIds.size} Not Seçildi" else currentFolderTitle,
-                        subtitle = if (uiState.isSelectionMode) "İşlem yapmak için notları seçin" else if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
-                    )
+                    AnimatedVisibility(visible = !isScrolled) {
+                        CupertinoLargeHeader(
+                            title = if (uiState.isSelectionMode) "${uiState.selectedNoteIds.size} Not Seçildi" else currentFolderTitle,
+                            subtitle = if (uiState.isSelectionMode) "İşlem yapmak için notları seçin" else if (uiState.selectedFolderId != null) "Tüm notlara dönmek için klasörler simgesine dokunun" else null
+                        )
+                    }
                 }
 
                 // Notism AI Smart Pill Header (Digest, Global AI, Synthesis Hub)
                 if (!uiState.isSelectionMode && uiState.selectedFolderId == null) {
                     item {
-                        AiSmartPillHeader(
-                            onClick = { isAiHubSheetVisible = true },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        )
+                        AnimatedVisibility(visible = !isScrolled) {
+                            AiSmartPillHeader(
+                                onClick = { isAiHubSheetVisible = true },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
 
@@ -568,7 +601,11 @@ fun NotesListScreen(
                                                     }
                                                 },
                                                 onLongClick = {
-                                                    viewModel.toggleSelectNote(note.id)
+                                                    if (uiState.isSelectionMode) {
+                                                        viewModel.toggleSelectNote(note.id)
+                                                    } else {
+                                                        noteForContextMenu = note
+                                                    }
                                                 }
                                             )
                                         }
@@ -617,7 +654,11 @@ fun NotesListScreen(
                                                     }
                                                 },
                                                 onLongClick = {
-                                                    viewModel.toggleSelectNote(note.id)
+                                                    if (uiState.isSelectionMode) {
+                                                        viewModel.toggleSelectNote(note.id)
+                                                    } else {
+                                                        noteForContextMenu = note
+                                                    }
                                                 }
                                             )
                                         }
@@ -637,25 +678,32 @@ fun NotesListScreen(
                         item {
                             InsetGroupedSection(title = "Sabitlenenler") {
                                 pinnedNotes.forEachIndexed { index, note ->
-                                    SwipeableNoteCard(
-                                        note = note,
-                                        isSelected = uiState.selectedNoteIds.contains(note.id),
-                                        isSelectionMode = uiState.isSelectionMode,
-                                        onClick = {
-                                            if (uiState.isSelectionMode) {
-                                                viewModel.toggleSelectNote(note.id)
-                                            } else {
-                                                handleNoteClick(note)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            viewModel.toggleSelectNote(note.id)
-                                        },
-                                        onTogglePin = { viewModel.togglePin(note.id) },
-                                        onDelete = { viewModel.moveToTrash(note.id) }
-                                    )
-                                    if (index < pinnedNotes.lastIndex) {
-                                        InsetDivider(startIndent = 16.dp)
+                                    key(note.id) {
+                                        SwipeableNoteCard(
+                                            note = note,
+                                            isSelected = uiState.selectedNoteIds.contains(note.id),
+                                            isSelectionMode = uiState.isSelectionMode,
+                                            isCompact = uiState.isCompactView,
+                                            onClick = {
+                                                if (uiState.isSelectionMode) {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                } else {
+                                                    handleNoteClick(note)
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (uiState.isSelectionMode) {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                } else {
+                                                    noteForContextMenu = note
+                                                }
+                                            },
+                                            onTogglePin = { viewModel.togglePin(note.id) },
+                                            onDelete = { viewModel.moveToTrash(note.id) }
+                                        )
+                                        if (index < pinnedNotes.lastIndex) {
+                                            InsetDivider(startIndent = 16.dp)
+                                        }
                                     }
                                 }
                             }
@@ -666,25 +714,32 @@ fun NotesListScreen(
                         item {
                             InsetGroupedSection(title = if (pinnedNotes.isNotEmpty()) "Notlar" else null) {
                                 unpinnedNotes.forEachIndexed { index, note ->
-                                    SwipeableNoteCard(
-                                        note = note,
-                                        isSelected = uiState.selectedNoteIds.contains(note.id),
-                                        isSelectionMode = uiState.isSelectionMode,
-                                        onClick = {
-                                            if (uiState.isSelectionMode) {
-                                                viewModel.toggleSelectNote(note.id)
-                                            } else {
-                                                handleNoteClick(note)
-                                            }
-                                        },
-                                        onLongClick = {
-                                            viewModel.toggleSelectNote(note.id)
-                                        },
-                                        onTogglePin = { viewModel.togglePin(note.id) },
-                                        onDelete = { viewModel.moveToTrash(note.id) }
-                                    )
-                                    if (index < unpinnedNotes.lastIndex) {
-                                        InsetDivider(startIndent = 16.dp)
+                                    key(note.id) {
+                                        SwipeableNoteCard(
+                                            note = note,
+                                            isSelected = uiState.selectedNoteIds.contains(note.id),
+                                            isSelectionMode = uiState.isSelectionMode,
+                                            isCompact = uiState.isCompactView,
+                                            onClick = {
+                                                if (uiState.isSelectionMode) {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                } else {
+                                                    handleNoteClick(note)
+                                                }
+                                            },
+                                            onLongClick = {
+                                                if (uiState.isSelectionMode) {
+                                                    viewModel.toggleSelectNote(note.id)
+                                                } else {
+                                                    noteForContextMenu = note
+                                                }
+                                            },
+                                            onTogglePin = { viewModel.togglePin(note.id) },
+                                            onDelete = { viewModel.moveToTrash(note.id) }
+                                        )
+                                        if (index < unpinnedNotes.lastIndex) {
+                                            InsetDivider(startIndent = 16.dp)
+                                        }
                                     }
                                 }
                             }
@@ -814,7 +869,7 @@ fun NotesListScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .clickable { viewModel.onSelectFolder(folder.id) }
-                            .padding(vertical = 12.dp, horizontal = 8.dp),
+                            .padding(vertical = 8.dp, horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
@@ -829,6 +884,25 @@ fun NotesListScreen(
                             fontWeight = if (uiState.selectedFolderId == folder.id) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier.weight(1f)
                         )
+                        if (folder.noteCount > 0) {
+                            Text(
+                                text = "${folder.noteCount}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = textSecondary
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        IconButton(
+                            onClick = { folderToDelete = folder },
+                            modifier = Modifier.size(34.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Klasörü Sil",
+                                tint = iOSRed.copy(alpha = 0.75f),
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
                     }
                 }
 
@@ -910,6 +984,54 @@ fun NotesListScreen(
                 }
             },
             containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Delete Folder Confirmation Dialog
+    folderToDelete?.let { folder ->
+        AlertDialog(
+            onDismissRequest = { folderToDelete = null },
+            title = { Text("Klasörü Sil", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("\"${folder.name}\" klasörünü silmek istediğinize emin misiniz? Bu klasördeki notlar silinmez, klasörsüz alana taşınır.")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteFolder(folder.id)
+                        folderToDelete = null
+                    }
+                ) {
+                    Text("Sil", color = iOSRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { folderToDelete = null }) {
+                    Text("Vazgeç", color = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight)
+                }
+            },
+            containerColor = if (isDark) iOSCardBackgroundDark else iOSCardBackgroundLight
+        )
+    }
+
+    // Peek & Pop Note Long-Press Context Menu
+    noteForContextMenu?.let { note ->
+        NoteContextMenuBottomSheet(
+            note = note,
+            onDismiss = { noteForContextMenu = null },
+            onTogglePin = { viewModel.togglePin(note.id) },
+            onDuplicate = { viewModel.duplicateNote(note) },
+            onToggleLock = { viewModel.toggleLock(note.id) },
+            onMoveToFolder = {
+                viewModel.setSelectionMode(true)
+                viewModel.toggleSelectNote(note.id)
+                viewModel.setMoveFolderDialogOpen(true)
+            },
+            onEnterSelectMode = {
+                viewModel.setSelectionMode(true)
+                viewModel.toggleSelectNote(note.id)
+            },
+            onDelete = { viewModel.moveToTrash(note.id) }
         )
     }
 

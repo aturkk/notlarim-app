@@ -22,6 +22,7 @@ interface NoteRepository {
     suspend fun updateNoteCover(noteId: Long, coverUrl: String?)
     suspend fun updateReminderTime(noteId: Long, reminderTime: Long?)
     suspend fun emptyTrash()
+    suspend fun cleanupOldTrash(cutoffTime: Long)
 
     fun getAllFolders(): Flow<List<Folder>>
     suspend fun createFolder(name: String, iconName: String = "folder"): Long

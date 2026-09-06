@@ -239,6 +239,18 @@ fun NoteEditorScreen(
                     },
                     actions = {
                         IconButton(
+                            onClick = {
+                                haptic.tick()
+                                viewModel.setZenModeOpen(true)
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SelfImprovement,
+                                contentDescription = "Zen Odak Modu",
+                                tint = AppleYellow
+                            )
+                        }
+                        IconButton(
                             onClick = viewModel::undo,
                             enabled = uiState.canUndo
                         ) {

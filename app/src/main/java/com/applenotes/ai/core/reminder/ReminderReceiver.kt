@@ -19,6 +19,7 @@ class ReminderReceiver : BroadcastReceiver() {
 
     companion object {
         const val ACTION_COMPLETE_REMINDER = "com.applenotes.ai.ACTION_COMPLETE_REMINDER"
+        const val ACTION_SNOOZE_15_MIN = "com.applenotes.ai.ACTION_SNOOZE_15_MIN"
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -33,7 +34,23 @@ class ReminderReceiver : BroadcastReceiver() {
                     db.noteDao.updateReminderTime(noteId, null)
                 }
             }
-            Toast.makeText(context, "Hatırlatıcı tamamlandı olarak işaretlendi", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "✓ Hatırlatıcı tamamlandı olarak işaretlendi", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        if (intent.action == ACTION_SNOOZE_15_MIN) {
+            notificationManager.cancel(noteId.toInt())
+            if (noteId > 0) {
+                val title = intent.getStringExtra("note_title") ?: "Not Hatırlatıcısı"
+                val snippet = intent.getStringExtra("note_snippet") ?: ""
+                val snoozeTime = System.currentTimeMillis() + (15 * 60 * 1000L)
+                CoroutineScope(Dispatchers.IO).launch {
+                    val db = AppDatabase.getInstance(context)
+                    db.noteDao.updateReminderTime(noteId, snoozeTime)
+                }
+                ReminderScheduler(context).scheduleReminder(noteId, title, snippet, snoozeTime)
+            }
+            Toast.makeText(context, "⏰ Hatırlatıcı 15 dakika ertelendi", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -76,6 +93,20 @@ class ReminderReceiver : BroadcastReceiver() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val snoozeIntent = Intent(context, ReminderReceiver::class.java).apply {
+            action = ACTION_SNOOZE_15_MIN
+            putExtra("note_id", noteId)
+            putExtra("note_title", noteTitle)
+            putExtra("note_snippet", noteSnippet)
+        }
+
+        val snoozePendingIntent = PendingIntent.getBroadcast(
+            context,
+            (noteId + 200000).toInt(),
+            snoozeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle(noteTitle)
@@ -84,6 +115,7 @@ class ReminderReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setContentIntent(openPendingIntent)
             .addAction(android.R.drawable.ic_menu_view, "Aç", openPendingIntent)
+            .addAction(android.R.drawable.ic_popup_sync, "15 Dk Ertele", snoozePendingIntent)
             .addAction(android.R.drawable.checkbox_on_background, "Tamamlandı", completePendingIntent)
             .build()
 

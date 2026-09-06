@@ -32,12 +32,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.ui.draw.clip
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
+import kotlinx.coroutines.delay
+import androidx.compose.material.icons.filled.Link
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SwipeableNoteCard(
     note: Note,
     isSelected: Boolean = false,
     isSelectionMode: Boolean = false,
+    isCompact: Boolean = false,
     onClick: () -> Unit,
     onLongClick: (() -> Unit)? = null,
     onTogglePin: () -> Unit,
@@ -50,79 +58,94 @@ fun SwipeableNoteCard(
     val textSecondary = if (isDark) iOSTextSecondaryDark else iOSTextSecondaryLight
     val haptic = com.applenotes.ai.core.haptic.rememberHapticFeedbackHelper()
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { value ->
-            when (value) {
-                SwipeToDismissBoxValue.StartToEnd -> {
-                    haptic.tick()
-                    onTogglePin()
-                    false
-                }
-                SwipeToDismissBoxValue.EndToStart -> {
-                    haptic.warning()
-                    onDelete()
-                    true
-                }
-                SwipeToDismissBoxValue.Settled -> false
-            }
+    var isDeleted by remember(note.id) { mutableStateOf(false) }
+
+    LaunchedEffect(isDeleted) {
+        if (isDeleted) {
+            delay(260)
+            onDelete()
         }
-    )
+    }
 
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = !isSelectionMode,
-        enableDismissFromEndToStart = !isSelectionMode,
-        modifier = modifier,
-        backgroundContent = {
-            val direction = dismissState.dismissDirection
-            val color by animateColorAsState(
-                when (dismissState.targetValue) {
-                    SwipeToDismissBoxValue.StartToEnd -> AppleYellow
-                    SwipeToDismissBoxValue.EndToStart -> iOSRed
-                    SwipeToDismissBoxValue.Settled -> Color.Transparent
-                },
-                label = "swipe_bg"
-            )
-
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color)
-                    .padding(horizontal = 20.dp),
-                contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
-            ) {
-                if (direction == SwipeToDismissBoxValue.StartToEnd) {
-                    Icon(
-                        imageVector = Icons.Default.PushPin,
-                        contentDescription = "Sabitle",
-                        tint = Color.White
-                    )
-                } else if (direction == SwipeToDismissBoxValue.EndToStart) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Sil",
-                        tint = Color.White
-                    )
+    val dismissState = key(note.id) {
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { value ->
+                when (value) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        haptic.tick()
+                        onTogglePin()
+                        false
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        haptic.warning()
+                        isDeleted = true
+                        true
+                    }
+                    SwipeToDismissBoxValue.Settled -> false
                 }
             }
-        }
+        )
+    }
+
+    AnimatedVisibility(
+        visible = !isDeleted,
+        exit = shrinkVertically(animationSpec = tween(250)) + fadeOut(animationSpec = tween(200))
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(cardBg)
-                .combinedClickable(
-                    onClick = onClick,
-                    onLongClick = if (onLongClick != null) {
-                        {
-                            haptic.heavy()
-                            onLongClick()
-                        }
-                    } else null
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = !isSelectionMode,
+            enableDismissFromEndToStart = !isSelectionMode,
+            modifier = modifier,
+            backgroundContent = {
+                val direction = dismissState.dismissDirection
+                val color by animateColorAsState(
+                    when (dismissState.targetValue) {
+                        SwipeToDismissBoxValue.StartToEnd -> AppleYellow
+                        SwipeToDismissBoxValue.EndToStart -> iOSRed
+                        SwipeToDismissBoxValue.Settled -> Color.Transparent
+                    },
+                    label = "swipe_bg"
                 )
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(color)
+                        .padding(horizontal = 20.dp),
+                    contentAlignment = if (direction == SwipeToDismissBoxValue.StartToEnd) Alignment.CenterStart else Alignment.CenterEnd
+                ) {
+                    if (direction == SwipeToDismissBoxValue.StartToEnd) {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "Sabitle",
+                            tint = Color.White
+                        )
+                    } else if (direction == SwipeToDismissBoxValue.EndToStart) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Sil",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(cardBg)
+                    .combinedClickable(
+                        onClick = onClick,
+                        onLongClick = if (onLongClick != null) {
+                            {
+                                haptic.heavy()
+                                onLongClick()
+                            }
+                        } else null
+                    )
+                    .padding(horizontal = 16.dp, vertical = if (isCompact) 8.dp else 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
             if (isSelectionMode) {
                 Box(
                     modifier = Modifier
@@ -228,13 +251,46 @@ fun SwipeableNoteCard(
                 )
             }
 
-            // Badges: Reminder, Tags, Priority, Status, Progress
-            if (note.tags.isNotEmpty() || note.priority != null || note.status != null || note.progress != null || (note.reminderTime != null && note.reminderTime > 0)) {
+            val detectedDomain = remember(note.content) {
+                val regex = Regex("https?://([a-zA-Z0-9.-]+\\.[a-zA-Z]{2,})")
+                val match = regex.find(note.content)
+                match?.groupValues?.get(1)?.removePrefix("www.")
+            }
+
+            // Badges: Reminder, Tags, Priority, Status, Progress, Smart Link
+            if (!isCompact && (note.tags.isNotEmpty() || note.priority != null || note.status != null || note.progress != null || (note.reminderTime != null && note.reminderTime > 0) || detectedDomain != null)) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Smart Link Preview Badge
+                    detectedDomain?.let { domain ->
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = AppleYellow.copy(alpha = 0.15f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Link,
+                                    contentDescription = null,
+                                    tint = AppleYellowDark,
+                                    modifier = Modifier.size(11.dp)
+                                )
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Text(
+                                    text = domain,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = AppleYellowDark
+                                )
+                            }
+                        }
+                    }
+
                     // Reminder Badge
                     if (note.reminderTime != null && note.reminderTime > 0) {
                         val sdf = SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault())
@@ -331,6 +387,7 @@ fun SwipeableNoteCard(
         }
         }
     }
+}
 }
 
 private fun formatDate(timestamp: Long): String {

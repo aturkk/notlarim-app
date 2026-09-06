@@ -98,6 +98,10 @@ class NoteRepositoryImpl(
         db.noteDao.emptyTrash()
     }
 
+    override suspend fun cleanupOldTrash(cutoffTime: Long) {
+        db.noteDao.cleanupOldTrash(cutoffTime)
+    }
+
     override fun getAllFolders(): Flow<List<Folder>> {
         return db.folderDao.getAllFolders().map { list ->
             list.map { entity ->
@@ -112,7 +116,8 @@ class NoteRepositoryImpl(
     }
 
     override suspend fun deleteFolder(folderId: Long) {
-        db.folderDao.deleteFolder(FolderEntity(id = folderId, name = ""))
+        db.noteDao.clearFolderFromNotes(folderId)
+        db.folderDao.deleteFolderById(folderId)
     }
 
     override suspend fun saveNoteHistory(noteId: Long, title: String, content: String) {

@@ -59,4 +59,10 @@ interface NoteDao {
 
     @Query("DELETE FROM notes WHERE isDeleted = 1")
     suspend fun emptyTrash()
+
+    @Query("UPDATE notes SET folderId = NULL WHERE folderId = :folderId")
+    suspend fun clearFolderFromNotes(folderId: Long)
+
+    @Query("DELETE FROM notes WHERE isDeleted = 1 AND updatedAt < :cutoffTime")
+    suspend fun cleanupOldTrash(cutoffTime: Long)
 }
