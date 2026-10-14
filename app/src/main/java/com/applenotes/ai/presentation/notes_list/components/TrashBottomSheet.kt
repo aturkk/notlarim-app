@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.notes_list.components
+package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -192,7 +192,7 @@ fun TrashBottomSheet(
                                         )
                                         Spacer(modifier = Modifier.height(2.dp))
                                         Text(
-                                            text = note.content.take(60).replace("`n", " "),
+                                            text = if (note.isLocked) "🔒 Bu not kilitlidir" else note.content.take(60).replace("\n", " "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = textSecondary,
                                             maxLines = 1,
@@ -213,8 +213,7 @@ fun TrashBottomSheet(
                                 ) {
                                     // Restore Button
                                     IconButton(
-                                        onClick = { onRestoreNote(note.id) },
-                                        modifier = Modifier.bouncyClickable { onRestoreNote(note.id) }
+                                        onClick = { onRestoreNote(note.id) }
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.Restore,
@@ -225,8 +224,7 @@ fun TrashBottomSheet(
 
                                     // Delete Permanently Button
                                     IconButton(
-                                        onClick = { noteToDeletePermanently = note },
-                                        modifier = Modifier.bouncyClickable { noteToDeletePermanently = note }
+                                        onClick = { noteToDeletePermanently = note }
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.DeleteForever,

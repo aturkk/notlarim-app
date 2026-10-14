@@ -790,13 +790,22 @@ class NoteEditorViewModel(
         }
     }
 
-    private suspend fun saveNoteImmediately() {
+    private suspend fun saveNoteImmediately(): Long {
         val state = _uiState.value
-        if (state.title.isBlank() && state.content.isBlank()) return
+        if (state.title.isBlank() && state.content.isBlank() && state.drawingPath == null && state.audioPath == null && state.reminderTime == null) {
+            return state.noteId
+        }
+
+        val resolvedTitle = when {
+            state.title.isNotBlank() -> state.title.trim()
+            state.content.isBlank() && state.audioPath != null -> "🎙️ Sesli Not"
+            state.content.isBlank() && state.drawingPath != null -> "🎨 Çizim Notu"
+            else -> ""
+        }
 
         val note = Note(
             id = state.noteId,
-            title = state.title.trim(),
+            title = resolvedTitle,
             content = state.content,
             tags = state.tags,
             isPinned = state.isPinned,
@@ -815,17 +824,18 @@ class NoteEditorViewModel(
         val savedId = repository.saveNote(note)
         val activeNoteId = if (state.noteId == 0L) savedId else state.noteId
         if (state.noteId == 0L && savedId > 0) {
-            _uiState.update { it.copy(noteId = savedId) }
-            loadBacklinks(state.title)
+            _uiState.update { it.copy(noteId = savedId, title = if (it.title.isBlank()) resolvedTitle else it.title) }
+            loadBacklinks(resolvedTitle)
             loadVersionHistory(savedId)
         }
 
         // Save history snapshot if 1 minute elapsed since last snapshot
         val now = System.currentTimeMillis()
         if (activeNoteId > 0 && (now - lastHistorySaveTime > 60_000L || lastHistorySaveTime == 0L)) {
-            repository.saveNoteHistory(activeNoteId, state.title, state.content)
+            repository.saveNoteHistory(activeNoteId, resolvedTitle, state.content)
             lastHistorySaveTime = now
         }
+        return activeNoteId
     }
 
     fun deleteCurrentNote(onDeleted: () -> Unit) {
@@ -910,7 +920,13 @@ class NoteEditorViewModel(
     }
 
     fun setStatus(status: String?) {
-        _uiState.update { it.copy(status = status) }
+        val mappedKanban = when (status) {
+            "NOT_STARTED" -> "TODO"
+            "IN_PROGRESS" -> "IN_PROGRESS"
+            "DONE" -> "DONE"
+            else -> _uiState.value.kanbanColumn
+        }
+        _uiState.update { it.copy(status = status, kanbanColumn = mappedKanban) }
         scheduleAutoSave()
     }
 
@@ -952,15 +968,20 @@ class NoteEditorViewModel(
         setTocSheetVisible(false)
     }
 
-    fun updateReminder(timeMillis: Long?) {
+    fun updateReminder(timeMillis: Long?, onNoteIdReady: ((Long) -> Unit)? = null) {
         _uiState.update { it.copy(reminderTime = timeMillis) }
-        val id = _uiState.value.noteId
-        if (id > 0) {
-            viewModelScope.launch {
-                repository.updateReminderTime(id, timeMillis)
+        viewModelScope.launch {
+            val currentId = _uiState.value.noteId
+            val effectiveId = if (currentId > 0) {
+                repository.updateReminderTime(currentId, timeMillis)
+                currentId
+            } else {
+                saveNoteImmediately()
+            }
+            if (effectiveId > 0) {
+                onNoteIdReady?.invoke(effectiveId)
             }
         }
-        scheduleAutoSave()
     }
 
     fun insertContent(text: String) {

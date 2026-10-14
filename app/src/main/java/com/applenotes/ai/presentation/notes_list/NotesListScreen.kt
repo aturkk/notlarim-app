@@ -85,6 +85,7 @@ fun NotesListScreen(
     var noteForVersionHistory by remember { mutableStateOf<Note?>(null) }
     var isAiHubSheetVisible by remember { mutableStateOf(false) }
     var isCommandPaletteVisible by remember { mutableStateOf(false) }
+    var isCloudSyncDialogOpen by remember { mutableStateOf(false) }
 
     val pinnedNotes = remember(uiState.notes) { uiState.notes.filter { it.isPinned } }
     val unpinnedNotes = remember(uiState.notes) { uiState.notes.filter { !it.isPinned } }
@@ -774,7 +775,17 @@ fun NotesListScreen(
                             notes = uiState.notes,
                             onNoteClick = handleNoteClick,
                             onAddNoteForDate = { dateMillis ->
-                                viewModel.createNoteWithReminder(dateMillis, onNoteClick)
+                                viewModel.createNoteWithReminder(dateMillis) { newId ->
+                                    if (dateMillis > System.currentTimeMillis()) {
+                                        com.applenotes.ai.core.reminder.ReminderScheduler(context).scheduleReminder(
+                                            noteId = newId,
+                                            title = "Takvim Notu",
+                                            snippet = "Hatırlatıcı zamanı geldi",
+                                            triggerTimeMillis = dateMillis
+                                        )
+                                    }
+                                    onNoteClick(newId)
+                                }
                             }
                         )
                     }
@@ -1262,34 +1273,57 @@ fun NotesListScreen(
 
     // Peek & Pop Note Long-Press Context Menu
     noteForContextMenu?.let { note ->
+        val requireAuthIfLocked: (() -> Unit) -> Unit = { action ->
+            if (note.isLocked && activity != null) {
+                BiometricAuthHelper.authenticate(
+                    activity = activity,
+                    title = note.title.ifBlank { "Kilitli Not" },
+                    subtitle = "Bu işlemi gerçekleştirmek için kimliğinizi doğrulayın",
+                    onSuccess = action,
+                    onError = {}
+                )
+            } else {
+                action()
+            }
+        }
         NoteContextMenuBottomSheet(
             note = note,
             onDismiss = { noteForContextMenu = null },
             onTogglePin = { viewModel.togglePin(note.id) },
             onDuplicate = {
-                viewModel.duplicateNote(note)
-                floatingToastMessage = "Not başarıyla çoğaltıldı"
+                requireAuthIfLocked {
+                    viewModel.duplicateNote(note)
+                    floatingToastMessage = "Not başarıyla çoğaltıldı"
+                }
             },
-            onToggleLock = { viewModel.toggleLock(note.id) },
+            onToggleLock = {
+                requireAuthIfLocked {
+                    viewModel.toggleLock(note.id)
+                }
+            },
             onSharePdf = {
-                coroutineScope.launch {
-                    floatingToastMessage = "📄 PDF hazırlanıyor..."
-                    try {
-                        val file = NoteExporter.exportToPdf(context, note)
-                        NoteExporter.shareFile(context, file, "application/pdf")
-                    } catch (e: Exception) {
-                        floatingToastMessage = "Hata: ${e.localizedMessage}"
+                requireAuthIfLocked {
+                    coroutineScope.launch {
+                        floatingToastMessage = "📄 PDF hazırlanıyor..."
+                        try {
+                            val file = NoteExporter.exportToPdf(context, note)
+                            NoteExporter.shareFile(context, file, "application/pdf")
+                        } catch (e: Exception) {
+                            floatingToastMessage = "Hata: ${e.localizedMessage}"
+                        }
                     }
                 }
             },
             onShareImageCard = {
-                coroutineScope.launch {
-                    floatingToastMessage = "🖼️ Paylaşım kartı hazırlanıyor..."
-                    try {
-                        val file = NoteExporter.exportToImageCard(context, note)
-                        NoteExporter.shareFile(context, file, "image/png")
-                    } catch (e: Exception) {
-                        floatingToastMessage = "Hata: ${e.localizedMessage}"
+                requireAuthIfLocked {
+                    coroutineScope.launch {
+                        floatingToastMessage = "🖼️ Paylaşım kartı hazırlanıyor..."
+                        try {
+                            val file = NoteExporter.exportToImageCard(context, note)
+                            NoteExporter.shareFile(context, file, "image/png")
+                        } catch (e: Exception) {
+                            floatingToastMessage = "Hata: ${e.localizedMessage}"
+                        }
                     }
                 }
             },
@@ -1298,7 +1332,9 @@ fun NotesListScreen(
                 viewModel.setMoveFolderDialogOpen(true)
             },
             onViewVersionHistory = {
-                noteForVersionHistory = note
+                requireAuthIfLocked {
+                    noteForVersionHistory = note
+                }
             },
             onEnterSelectMode = {
                 viewModel.enterSelectionMode(note.id)
@@ -1570,7 +1606,7 @@ fun NotesListScreen(
             },
             onNewNote = onNewNoteClick,
             onOpenDailyNote = { viewModel.openOrCreateDailyNote(onNoteClick) },
-            onOpenCloudSync = onSettingsClick,
+            onOpenCloudSync = { isCloudSyncDialogOpen = true },
             onOpenTrash = { viewModel.setTrashSheetVisible(true) },
             onOpenSettings = onSettingsClick,
             onOpenAiHub = { isAiHubSheetVisible = true },
@@ -1581,6 +1617,14 @@ fun NotesListScreen(
                     "URGENT" -> viewModel.onSelectSmartFolder(SmartFolder.URGENT)
                 }
             }
+        )
+    }
+
+    if (isCloudSyncDialogOpen) {
+        com.applenotes.ai.presentation.settings.components.CloudSyncDialog(
+            prefs = viewModel.prefs,
+            repository = viewModel.repository,
+            onDismissRequest = { isCloudSyncDialogOpen = false }
         )
     }
 

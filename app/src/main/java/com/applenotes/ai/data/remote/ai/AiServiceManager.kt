@@ -181,11 +181,12 @@ class AiServiceManager(
         userQuestion: String,
         chatHistory: List<ChatMessage>
     ): Result<String> {
+        val unlockedNotes = allNotes.filter { !it.isLocked }
         if (prefs.getActiveAiProvider() == AiProvider.GEMINI_NANO) {
-            return onDeviceClient.chatWithAllNotes(allNotes, userQuestion)
+            return onDeviceClient.chatWithAllNotes(unlockedNotes, userQuestion)
         }
 
-        val notesContext = allNotes.take(20).joinToString("\n\n---\n") { note ->
+        val notesContext = unlockedNotes.take(20).joinToString("\n\n---\n") { note ->
             "Başlık: ${note.title}\nEtiketler: ${note.tags.joinToString(", ")}\nİçerik: ${note.content.take(600)}"
         }
 
@@ -325,7 +326,8 @@ class AiServiceManager(
     }
 
     suspend fun generateMorningDigest(notes: List<Note>): Result<String> {
-        val notesContext = notes.take(25).joinToString("\n---\n") { note ->
+        val unlockedNotes = notes.filter { !it.isLocked }
+        val notesContext = unlockedNotes.take(25).joinToString("\n---\n") { note ->
             val icon = note.icon?.let { "$it " } ?: ""
             "Başlık: $icon${note.title}\nİçerik: ${note.content.take(200)}\nEtiketler: ${note.tags.joinToString(", ")}"
         }
@@ -363,9 +365,10 @@ class AiServiceManager(
     }
 
     suspend fun semanticSearch(notes: List<Note>, query: String): Result<String> {
-        if (notes.isEmpty() || query.isBlank()) return Result.success("Aranacak not bulunamadı.")
+        val unlockedNotes = notes.filter { !it.isLocked }
+        if (unlockedNotes.isEmpty() || query.isBlank()) return Result.success("Aranacak not bulunamadı.")
 
-        val notesContext = notes.take(30).joinToString("\n---\n") { note ->
+        val notesContext = unlockedNotes.take(30).joinToString("\n---\n") { note ->
             "ID: ${note.id} | Başlık: ${note.title}\nİçerik: ${note.content.take(250)}"
         }
 

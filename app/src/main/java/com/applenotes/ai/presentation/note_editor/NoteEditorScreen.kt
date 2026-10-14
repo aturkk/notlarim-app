@@ -83,6 +83,9 @@ import com.applenotes.ai.presentation.ai_assistant.AiChatBottomSheet
 fun NoteEditorScreen(
     viewModel: NoteEditorViewModel,
     autoRecordAudio: Boolean = false,
+    onConsumedAutoRecord: () -> Unit = {},
+    recentTabs: List<EditorTabItem> = emptyList(),
+    onUpdateRecentTabs: (List<EditorTabItem>) -> Unit = {},
     onBack: () -> Unit,
     onNavigateToNote: (Long) -> Unit = {}
 ) {
@@ -114,11 +117,30 @@ fun NoteEditorScreen(
     var isTableEditorOpen by remember { mutableStateOf(false) }
     var viewingPdfPath by remember { mutableStateOf<String?>(null) }
     var viewingLightboxUrl by remember { mutableStateOf<String?>(null) }
-    var recentTabs by remember { mutableStateOf<List<EditorTabItem>>(emptyList()) }
     var currentPaperType by remember { mutableStateOf(PaperType.BLANK) }
     var isPaperPickerOpen by remember { mutableStateOf(false) }
     var markdownPreviewTab by remember { mutableIntStateOf(0) }
     var floatingToastMessage by remember { mutableStateOf<String?>(null) }
+
+    // Hoisted Pomodoro state so closing the dialog does not reset the timer
+    val pomodoroWorkDuration = 25 * 60
+    val pomodoroBreakDuration = 5 * 60
+    var pomodoroIsWorkMode by remember { mutableStateOf(true) }
+    var pomodoroTimeLeftSeconds by remember { mutableIntStateOf(pomodoroWorkDuration) }
+    var pomodoroIsRunning by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pomodoroIsRunning, pomodoroTimeLeftSeconds) {
+        if (pomodoroIsRunning && pomodoroTimeLeftSeconds > 0) {
+            delay(1000L)
+            pomodoroTimeLeftSeconds -= 1
+        } else if (pomodoroIsRunning && pomodoroTimeLeftSeconds == 0) {
+            pomodoroIsRunning = false
+            val finishedWork = pomodoroIsWorkMode
+            pomodoroIsWorkMode = !pomodoroIsWorkMode
+            pomodoroTimeLeftSeconds = if (pomodoroIsWorkMode) pomodoroWorkDuration else pomodoroBreakDuration
+            floatingToastMessage = if (finishedWork) "🍅 Odak süresi tamamlandı! Mola zamanı." else "☕ Mola bitti! Yeni odak turuna hazırsınız."
+        }
+    }
 
     LaunchedEffect(uiState.noteId, uiState.title, uiState.icon) {
         if (uiState.noteId > 0) {
@@ -128,7 +150,7 @@ fun NoteEditorScreen(
                 icon = uiState.icon
             )
             val filtered = recentTabs.filter { it.id != uiState.noteId }
-            recentTabs = (listOf(currentItem) + filtered).take(6)
+            onUpdateRecentTabs((listOf(currentItem) + filtered).take(6))
         }
     }
 
@@ -152,6 +174,7 @@ fun NoteEditorScreen(
 
     LaunchedEffect(autoRecordAudio) {
         if (autoRecordAudio) {
+            onConsumedAutoRecord()
             val hasPermission = ContextCompat.checkSelfPermission(
                 context,
                 Manifest.permission.RECORD_AUDIO
@@ -442,7 +465,7 @@ fun NoteEditorScreen(
                             }
                         },
                         onCloseTab = { targetId ->
-                            recentTabs = recentTabs.filter { it.id != targetId }
+                            onUpdateRecentTabs(recentTabs.filter { it.id != targetId })
                         }
                     )
                 }
@@ -1105,10 +1128,22 @@ fun NoteEditorScreen(
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
+                            val priorityLabel = when (uiState.priority) {
+                                "HIGH" -> "Acil"
+                                "MEDIUM" -> "Orta"
+                                "LOW" -> "Düşük"
+                                else -> uiState.priority
+                            }
+                            val statusLabel = when (uiState.status) {
+                                "NOT_STARTED" -> "Başlamadı"
+                                "IN_PROGRESS" -> "Sürüyor"
+                                "DONE" -> "Tamamlandı"
+                                else -> uiState.status
+                            }
                             Text(
                                 text = when {
-                                    uiState.priority != null -> "Öncelik: ${uiState.priority}"
-                                    uiState.status != null -> "Durum: ${uiState.status}"
+                                    priorityLabel != null -> "Öncelik: $priorityLabel"
+                                    statusLabel != null -> "Durum: $statusLabel"
                                     uiState.progress != null -> "İlerleme: %${uiState.progress}"
                                     else -> "Detaylar"
                                 },
@@ -1653,9 +1688,9 @@ fun NoteEditorScreen(
                                             fontWeight = FontWeight.SemiBold,
                                             color = textPrimary
                                         )
-                                        if (linkNote.content.isNotBlank()) {
+                                        if (linkNote.content.isNotBlank() || linkNote.isLocked) {
                                             Text(
-                                                text = linkNote.content.take(60).replace("\n", " "),
+                                                text = if (linkNote.isLocked) "🔒 Bu not kilitlidir" else linkNote.content.take(60).replace("\n", " "),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = textSecondary,
                                                 maxLines = 1
@@ -1995,6 +2030,14 @@ fun NoteEditorScreen(
     // Pomodoro Timer Dialog
     if (uiState.isPomodoroOpen) {
         PomodoroTimerDialog(
+            isWorkMode = pomodoroIsWorkMode,
+            timeLeftSeconds = pomodoroTimeLeftSeconds,
+            isRunning = pomodoroIsRunning,
+            onToggleRunning = { pomodoroIsRunning = !pomodoroIsRunning },
+            onReset = {
+                pomodoroIsRunning = false
+                pomodoroTimeLeftSeconds = if (pomodoroIsWorkMode) pomodoroWorkDuration else pomodoroBreakDuration
+            },
             onDismiss = { viewModel.setPomodoroOpen(false) }
         )
     }
@@ -2041,8 +2084,13 @@ fun NoteEditorScreen(
         com.applenotes.ai.presentation.note_editor.components.TableOfContentsBottomSheet(
             noteContent = uiState.content,
             onDismiss = { viewModel.setTocSheetVisible(false) },
-            onSelectHeading = { _ ->
+            onSelectHeading = { heading ->
                 viewModel.setTocSheetVisible(false)
+                val totalLines = uiState.content.lines().size.coerceAtLeast(1)
+                val targetScroll = ((heading.lineIndex.toFloat() / totalLines) * scrollState.maxValue).toInt()
+                coroutineScope.launch {
+                    scrollState.animateScrollTo(targetScroll)
+                }
             },
             onInsertTocToNote = viewModel::insertTableOfContents
         )
@@ -2064,7 +2112,7 @@ fun NoteEditorScreen(
     // Wiki-Link Picker Dialog
     if (isWikiLinkPickerOpen) {
         val selectableNotes = allNotes.filter {
-            it.id != uiState.noteId && (wikiSearchQuery.isBlank() || it.title.contains(wikiSearchQuery, ignoreCase = true) || it.content.contains(wikiSearchQuery, ignoreCase = true))
+            it.id != uiState.noteId && (wikiSearchQuery.isBlank() || it.title.contains(wikiSearchQuery, ignoreCase = true) || (!it.isLocked && it.content.contains(wikiSearchQuery, ignoreCase = true)))
         }
         AlertDialog(
             onDismissRequest = {
@@ -2132,7 +2180,7 @@ fun NoteEditorScreen(
                                             maxLines = 1
                                         )
                                         Text(
-                                            text = targetNote.content.take(50).replace("\n", " "),
+                                            text = if (targetNote.isLocked) "🔒 Bu not kilitlidir" else targetNote.content.take(50).replace("\n", " "),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = textSecondary,
                                             maxLines = 1
@@ -2167,12 +2215,11 @@ fun NoteEditorScreen(
             currentReminderMillis = uiState.reminderTime,
             onDismissRequest = { isReminderPickerOpen = false },
             onSetReminder = { timeMillis ->
-                viewModel.updateReminder(timeMillis)
-                if (uiState.noteId > 0) {
+                viewModel.updateReminder(timeMillis) { realNoteId ->
                     reminderScheduler.scheduleReminder(
-                        noteId = uiState.noteId,
+                        noteId = realNoteId,
                         title = uiState.title.ifBlank { "Not Hatırlatıcısı" },
-                        snippet = uiState.content.take(80),
+                        snippet = if (uiState.isLocked) "🔒 Bu not kilitlidir" else uiState.content.take(80),
                         triggerTimeMillis = timeMillis
                     )
                 }

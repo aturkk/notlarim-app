@@ -244,7 +244,12 @@ fun CloudSyncDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 TextButton(
-                    onClick = onDismissRequest,
+                    onClick = {
+                        prefs.webDavServerUrl = webDavUrl.trim()
+                        prefs.webDavUsername = webDavUser.trim()
+                        prefs.webDavPassword = webDavPass
+                        onDismissRequest()
+                    },
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Tamam", color = accentColor, fontWeight = FontWeight.Bold)

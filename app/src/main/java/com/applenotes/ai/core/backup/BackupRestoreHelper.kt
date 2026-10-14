@@ -27,7 +27,10 @@ data class NoteBackupModel(
     val createdAt: Long = System.currentTimeMillis(),
     val updatedAt: Long = System.currentTimeMillis(),
     val icon: String? = null,
-    val coverUrl: String? = null
+    val coverUrl: String? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val progress: Int? = null
 )
 
 object BackupRestoreHelper {
@@ -86,7 +89,10 @@ object BackupRestoreHelper {
                 createdAt = note.createdAt,
                 updatedAt = note.updatedAt,
                 icon = note.icon,
-                coverUrl = note.coverUrl
+                coverUrl = note.coverUrl,
+                priority = note.priority,
+                status = note.status,
+                progress = note.progress
             )
         }
         val manifestJson = json.encodeToString(backupModels)
@@ -185,12 +191,15 @@ object BackupRestoreHelper {
                                     isPinned = model.isPinned,
                                     isLocked = model.isLocked,
                                     folderId = model.folderId,
-                                    kanbanColumn = model.kanbanColumn,
+                                    kanbanColumn = model.kanbanColumn ?: "TODO",
                                     reminderTime = model.reminderTime,
                                     createdAt = model.createdAt,
                                     updatedAt = model.updatedAt,
                                     icon = model.icon,
-                                    coverUrl = model.coverUrl
+                                    coverUrl = model.coverUrl,
+                                    priority = model.priority,
+                                    status = model.status,
+                                    progress = model.progress
                                 )
                             )
                             restoredCount++
@@ -220,8 +229,16 @@ object BackupRestoreHelper {
                             tags = model.tags,
                             isPinned = model.isPinned,
                             isLocked = model.isLocked,
+                            folderId = model.folderId,
+                            kanbanColumn = model.kanbanColumn ?: "TODO",
+                            reminderTime = model.reminderTime,
                             createdAt = model.createdAt,
-                            updatedAt = model.updatedAt
+                            updatedAt = model.updatedAt,
+                            icon = model.icon,
+                            coverUrl = model.coverUrl,
+                            priority = model.priority,
+                            status = model.status,
+                            progress = model.progress
                         )
                     )
                     restoredCount++

@@ -45,7 +45,7 @@ interface NoteDao {
     @Query("UPDATE notes SET folderId = :folderId WHERE id = :noteId")
     suspend fun moveToFolder(noteId: Long, folderId: Long?)
 
-    @Query("UPDATE notes SET kanbanColumn = :column WHERE id = :noteId")
+    @Query("UPDATE notes SET kanbanColumn = :column, status = CASE :column WHEN 'TODO' THEN 'NOT_STARTED' WHEN 'IN_PROGRESS' THEN 'IN_PROGRESS' WHEN 'DONE' THEN 'DONE' ELSE status END WHERE id = :noteId")
     suspend fun updateKanbanColumn(noteId: Long, column: String)
 
     @Query("UPDATE notes SET icon = :icon WHERE id = :noteId")

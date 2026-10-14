@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.notes_list.components
+package com.applenotes.ai.presentation.notes_list.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -237,10 +237,10 @@ private fun KanbanItemCard(
                 )
             }
 
-            if (note.content.isNotBlank()) {
+            if (note.isLocked || note.content.isNotBlank()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = note.content.take(80),
+                    text = if (note.isLocked) "🔒 Bu not kilitlidir" else note.content.take(80),
                     style = MaterialTheme.typography.bodySmall,
                     color = textSecondary,
                     fontSize = 11.sp,

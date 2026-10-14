@@ -1,6 +1,11 @@
 package com.applenotes.ai.presentation.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -9,12 +14,11 @@ import androidx.navigation.navArgument
 import com.applenotes.ai.AppleNotesApp
 import com.applenotes.ai.presentation.note_editor.NoteEditorScreen
 import com.applenotes.ai.presentation.note_editor.NoteEditorViewModel
+import com.applenotes.ai.presentation.note_editor.components.EditorTabItem
 import com.applenotes.ai.presentation.notes_list.NotesListScreen
 import com.applenotes.ai.presentation.notes_list.NotesListViewModel
 import com.applenotes.ai.presentation.settings.SettingsScreen
 import com.applenotes.ai.presentation.settings.SettingsViewModel
-
-import androidx.compose.runtime.LaunchedEffect
 
 @Composable
 fun AppNavigation(
@@ -24,8 +28,12 @@ fun AppNavigation(
     autoRecordAudio: Boolean = false,
     onConsumedNavigation: () -> Unit = {}
 ) {
+    var activeAutoRecordAudio by remember { mutableStateOf(false) }
+    var recentTabs by remember { mutableStateOf<List<EditorTabItem>>(emptyList()) }
+
     LaunchedEffect(initialNoteId) {
         if (initialNoteId != null) {
+            activeAutoRecordAudio = autoRecordAudio
             navController.navigate(Screen.NoteEditor.createRoute(initialNoteId))
             onConsumedNavigation()
         }
@@ -36,12 +44,14 @@ fun AppNavigation(
         startDestination = Screen.NotesList.route
     ) {
         composable(Screen.NotesList.route) {
-            val viewModel = NotesListViewModel(
-                repository = appContainer.noteRepository,
-                updateService = appContainer.updateService,
-                prefs = appContainer.securePreferences,
-                aiServiceManager = appContainer.aiServiceManager
-            )
+            val viewModel = remember {
+                NotesListViewModel(
+                    repository = appContainer.noteRepository,
+                    updateService = appContainer.updateService,
+                    prefs = appContainer.securePreferences,
+                    aiServiceManager = appContainer.aiServiceManager
+                )
+            }
             NotesListScreen(
                 viewModel = viewModel,
                 onNoteClick = { noteId ->
@@ -66,15 +76,23 @@ fun AppNavigation(
             )
         ) { backStackEntry ->
             val noteId = backStackEntry.arguments?.getLong("noteId") ?: 0L
-            val viewModel = NoteEditorViewModel(
-                noteId = noteId,
-                repository = appContainer.noteRepository,
-                aiServiceManager = appContainer.aiServiceManager
-            )
+            val viewModel = remember(noteId) {
+                NoteEditorViewModel(
+                    noteId = noteId,
+                    repository = appContainer.noteRepository,
+                    aiServiceManager = appContainer.aiServiceManager
+                )
+            }
             NoteEditorScreen(
                 viewModel = viewModel,
-                autoRecordAudio = autoRecordAudio,
-                onBack = { navController.popBackStack() },
+                autoRecordAudio = activeAutoRecordAudio,
+                onConsumedAutoRecord = { activeAutoRecordAudio = false },
+                recentTabs = recentTabs,
+                onUpdateRecentTabs = { recentTabs = it },
+                onBack = {
+                    activeAutoRecordAudio = false
+                    navController.popBackStack()
+                },
                 onNavigateToNote = { targetId ->
                     navController.navigate(Screen.NoteEditor.createRoute(targetId))
                 }
@@ -82,12 +100,14 @@ fun AppNavigation(
         }
 
         composable(Screen.Settings.route) {
-            val viewModel = SettingsViewModel(
-                prefs = appContainer.securePreferences,
-                updateService = appContainer.updateService,
-                aiServiceManager = appContainer.aiServiceManager,
-                repository = appContainer.noteRepository
-            )
+            val viewModel = remember {
+                SettingsViewModel(
+                    prefs = appContainer.securePreferences,
+                    updateService = appContainer.updateService,
+                    aiServiceManager = appContainer.aiServiceManager,
+                    repository = appContainer.noteRepository
+                )
+            }
             SettingsScreen(
                 viewModel = viewModel,
                 onBack = { navController.popBackStack() }

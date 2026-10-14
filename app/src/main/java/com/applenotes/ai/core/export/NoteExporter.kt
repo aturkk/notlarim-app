@@ -25,9 +25,10 @@ object NoteExporter {
 
     fun exportToPdf(context: Context, note: Note): File {
         val document = PdfDocument()
-        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create() // A4 size
-        val page = document.startPage(pageInfo)
-        val canvas: Canvas = page.canvas
+        var pageNumber = 1
+        var pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create() // A4 size
+        var page = document.startPage(pageInfo)
+        var canvas: Canvas = page.canvas
 
         val titlePaint = Paint().apply {
             color = AndroidColor.parseColor("#1C1C1E")
@@ -80,17 +81,33 @@ object NoteExporter {
                 if (bodyPaint.measureText(testLine) < 495f) {
                     currentLine = testLine
                 } else {
+                    if (y > 790f) {
+                        document.finishPage(page)
+                        pageNumber++
+                        pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                        page = document.startPage(pageInfo)
+                        canvas = page.canvas
+                        y = 60f
+                    }
                     canvas.drawText(currentLine, 50f, y, bodyPaint)
                     y += 18f
                     currentLine = word
-                    if (y > 800f) break
                 }
             }
             if (currentLine.isNotEmpty()) {
+                if (y > 790f) {
+                    document.finishPage(page)
+                    pageNumber++
+                    pageInfo = PdfDocument.PageInfo.Builder(595, 842, pageNumber).create()
+                    page = document.startPage(pageInfo)
+                    canvas = page.canvas
+                    y = 60f
+                }
                 canvas.drawText(currentLine, 50f, y, bodyPaint)
                 y += 18f
+            } else {
+                y += 12f
             }
-            if (y > 800f) break
         }
 
         document.finishPage(page)

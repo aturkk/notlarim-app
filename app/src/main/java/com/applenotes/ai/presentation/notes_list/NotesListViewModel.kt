@@ -105,9 +105,9 @@ private data class FilterParams(
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class NotesListViewModel(
-    private val repository: NoteRepository,
+    val repository: NoteRepository,
     private val updateService: GitHubUpdateService,
-    private val prefs: SecurePreferences,
+    val prefs: SecurePreferences,
     private val aiServiceManager: AiServiceManager
 ) : ViewModel() {
 
@@ -152,7 +152,11 @@ class NotesListViewModel(
                     filtered = when (params.smartFolder) {
                         SmartFolder.REMINDERS -> filtered.filter { it.reminderTime != null && it.reminderTime > 0 }
                         SmartFolder.PINNED -> filtered.filter { it.isPinned }
-                        SmartFolder.URGENT -> filtered.filter { it.priority?.equals("urgent", true) == true || it.priority?.equals("acil", true) == true }
+                        SmartFolder.URGENT -> filtered.filter {
+                            it.priority?.equals("urgent", true) == true ||
+                                it.priority?.equals("acil", true) == true ||
+                                it.priority?.equals("HIGH", ignoreCase = true) == true
+                        }
                         SmartFolder.ATTACHMENTS -> filtered.filter { !it.audioPath.isNullOrBlank() || !it.drawingPath.isNullOrBlank() || it.content.contains("![") || it.content.contains(".pdf") }
                         SmartFolder.LOCKED -> filtered.filter { it.isLocked }
                     }

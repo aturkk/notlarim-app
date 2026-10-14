@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.note_editor.components
+package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
@@ -39,7 +39,7 @@ fun PagePropertiesBar(
     var isPriorityMenuOpen by remember { mutableStateOf(false) }
     var isStatusMenuOpen by remember { mutableStateOf(false) }
     var isProgressSliderOpen by remember { mutableStateOf(false) }
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(true) }
 
     // Calculate auto checklist progress if checklists exist
     val checklistStats = remember(noteContent) {

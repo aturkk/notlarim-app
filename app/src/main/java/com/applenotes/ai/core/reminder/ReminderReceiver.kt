@@ -36,7 +36,7 @@ class ReminderReceiver : BroadcastReceiver() {
                         val remTime = note.reminderTime
                         if (!note.isDeleted && remTime != null && remTime > now) {
                             val title = note.title.ifBlank { "Not Hatırlatıcısı" }
-                            val snippet = note.content.take(120).ifBlank { "Notunuz için hatırlatıcı zamanı geldi." }
+                            val snippet = if (note.isLocked) "🔒 Bu not kilitlidir" else note.content.take(120).ifBlank { "Notunuz için hatırlatıcı zamanı geldi." }
                             scheduler.scheduleReminder(note.id, title, snippet, remTime)
                         }
                     }

@@ -176,6 +176,12 @@ fun ReminderPickerDialog(
                                         if (pickedCal.timeInMillis > System.currentTimeMillis()) {
                                             onSetReminder(pickedCal.timeInMillis)
                                             onDismissRequest()
+                                        } else {
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "Lütfen ileri bir tarih ve saat seçin",
+                                                android.widget.Toast.LENGTH_SHORT
+                                            ).show()
                                         }
                                     },
                                     now.get(Calendar.HOUR_OF_DAY),

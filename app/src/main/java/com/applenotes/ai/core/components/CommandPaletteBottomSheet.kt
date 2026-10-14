@@ -277,9 +277,9 @@ fun CommandPaletteBottomSheet(
                                     color = textPrimary,
                                     maxLines = 1
                                 )
-                                if (note.content.isNotBlank()) {
+                                if (note.isLocked || note.content.isNotBlank()) {
                                     Text(
-                                        text = note.content.take(60).replace("\n", " "),
+                                        text = if (note.isLocked) "🔒 Bu not kilitlidir" else note.content.take(60).replace("\n", " "),
                                         fontSize = 12.sp,
                                         color = textSecondary,
                                         maxLines = 1

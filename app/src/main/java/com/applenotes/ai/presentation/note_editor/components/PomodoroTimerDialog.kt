@@ -1,4 +1,4 @@
-﻿package com.applenotes.ai.presentation.note_editor.components
+package com.applenotes.ai.presentation.note_editor.components
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -24,6 +24,11 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun PomodoroTimerDialog(
+    isWorkMode: Boolean = true,
+    timeLeftSeconds: Int = 25 * 60,
+    isRunning: Boolean = false,
+    onToggleRunning: () -> Unit = {},
+    onReset: () -> Unit = {},
     onDismiss: () -> Unit
 ) {
     val isDark = isAppDarkTheme()
@@ -34,23 +39,7 @@ fun PomodoroTimerDialog(
     val workDurationSeconds = 25 * 60
     val breakDurationSeconds = 5 * 60
 
-    var isWorkMode by remember { mutableStateOf(true) }
-    var timeLeftSeconds by remember { mutableIntStateOf(workDurationSeconds) }
-    var isRunning by remember { mutableStateOf(false) }
-
     val totalDuration = if (isWorkMode) workDurationSeconds else breakDurationSeconds
-
-    LaunchedEffect(isRunning, timeLeftSeconds) {
-        if (isRunning && timeLeftSeconds > 0) {
-            delay(1000)
-            timeLeftSeconds--
-        } else if (isRunning && timeLeftSeconds == 0) {
-            // Switch cycle
-            isWorkMode = !isWorkMode
-            timeLeftSeconds = if (isWorkMode) workDurationSeconds else breakDurationSeconds
-            isRunning = false
-        }
-    }
 
     val minutes = timeLeftSeconds / 60
     val seconds = timeLeftSeconds % 60
@@ -132,10 +121,7 @@ fun PomodoroTimerDialog(
                 ) {
                     // Reset
                     FilledTonalIconButton(
-                        onClick = {
-                            isRunning = false
-                            timeLeftSeconds = if (isWorkMode) workDurationSeconds else breakDurationSeconds
-                        },
+                        onClick = onReset,
                         modifier = Modifier.size(48.dp)
                     ) {
                         Icon(imageVector = Icons.Default.Refresh, contentDescription = "Sıfırla")
@@ -143,7 +129,7 @@ fun PomodoroTimerDialog(
 
                     // Start / Pause
                     Button(
-                        onClick = { isRunning = !isRunning },
+                        onClick = onToggleRunning,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isWorkMode) AppleYellow else Color(0xFF34C759)
                         ),
