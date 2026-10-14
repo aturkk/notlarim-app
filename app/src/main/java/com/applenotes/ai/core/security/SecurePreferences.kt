@@ -43,6 +43,12 @@ class SecurePreferences(context: Context) {
     private val _activeProviderFlow = MutableStateFlow(getActiveAiProvider())
     val activeProviderFlow: StateFlow<AiProvider> = _activeProviderFlow.asStateFlow()
 
+    private val _appLockEnabledFlow = MutableStateFlow(sharedPreferences.getBoolean(KEY_APP_LOCK_ENABLED, false))
+    val appLockEnabledFlow: StateFlow<Boolean> = _appLockEnabledFlow.asStateFlow()
+
+    private val _privacyScreenEnabledFlow = MutableStateFlow(sharedPreferences.getBoolean(KEY_PRIVACY_SCREEN_ENABLED, false))
+    val privacyScreenEnabledFlow: StateFlow<Boolean> = _privacyScreenEnabledFlow.asStateFlow()
+
     // Gemini
     var geminiApiKey: String
         get() = sharedPreferences.getString(KEY_GEMINI_KEY, "") ?: ""
@@ -242,6 +248,21 @@ class SecurePreferences(context: Context) {
         get() = sharedPreferences.getBoolean(KEY_HAS_SEEDED_WELCOME_NOTE, false)
         set(value) = sharedPreferences.edit().putBoolean(KEY_HAS_SEEDED_WELCOME_NOTE, value).apply()
 
+    // App-Wide Security & Privacy Settings
+    var appLockEnabled: Boolean
+        get() = sharedPreferences.getBoolean(KEY_APP_LOCK_ENABLED, false)
+        set(value) {
+            sharedPreferences.edit().putBoolean(KEY_APP_LOCK_ENABLED, value).apply()
+            _appLockEnabledFlow.value = value
+        }
+
+    var privacyScreenEnabled: Boolean
+        get() = sharedPreferences.getBoolean(KEY_PRIVACY_SCREEN_ENABLED, false)
+        set(value) {
+            sharedPreferences.edit().putBoolean(KEY_PRIVACY_SCREEN_ENABLED, value).apply()
+            _privacyScreenEnabledFlow.value = value
+        }
+
     companion object {
         private const val KEY_GEMINI_KEY = "gemini_api_key"
         private const val KEY_GEMINI_MODEL = "gemini_model"
@@ -275,5 +296,7 @@ class SecurePreferences(context: Context) {
         private const val KEY_SAF_SYNC_URI = "saf_sync_uri"
         private const val KEY_LAST_CLOUD_SYNC_TIME = "last_cloud_sync_time"
         private const val KEY_HAS_SEEDED_WELCOME_NOTE = "has_seeded_welcome_note"
+        private const val KEY_APP_LOCK_ENABLED = "app_lock_enabled"
+        private const val KEY_PRIVACY_SCREEN_ENABLED = "privacy_screen_enabled"
     }
 }

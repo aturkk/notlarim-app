@@ -59,7 +59,9 @@ data class SettingsUiState(
     val mediaSizeBytes: Long = 0L,
     val cacheSizeBytes: Long = 0L,
     val isCalculatingStorage: Boolean = false,
-    val storageCleanMessage: String? = null
+    val storageCleanMessage: String? = null,
+    val appLockEnabled: Boolean = false,
+    val privacyScreenEnabled: Boolean = false
 )
 
 class SettingsViewModel(
@@ -99,10 +101,22 @@ class SettingsViewModel(
             autoCheckUpdates = prefs.autoCheckUpdates,
             autoBackupEnabled = prefs.autoBackupEnabled,
             autoBackupFrequency = prefs.autoBackupFrequency,
-            lastBackupTime = prefs.lastBackupTime
+            lastBackupTime = prefs.lastBackupTime,
+            appLockEnabled = prefs.appLockEnabled,
+            privacyScreenEnabled = prefs.privacyScreenEnabled
         )
     )
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
+
+    fun onAppLockToggle(enabled: Boolean) {
+        prefs.appLockEnabled = enabled
+        _uiState.update { it.copy(appLockEnabled = enabled) }
+    }
+
+    fun onPrivacyScreenToggle(enabled: Boolean) {
+        prefs.privacyScreenEnabled = enabled
+        _uiState.update { it.copy(privacyScreenEnabled = enabled) }
+    }
 
     fun setThemeMode(mode: AppThemeMode) {
         prefs.setThemeMode(mode)

@@ -2036,20 +2036,6 @@ fun NoteEditorScreen(
         )
     }
 
-    // AI Preview Result Dialog (Allows reviewing, tone change, regenerating, and inserting)
-    uiState.aiPreviewResult?.let { preview ->
-        AiResultPreviewDialog(
-            title = preview.title,
-            generatedText = preview.generatedText,
-            isRegenerating = preview.isRegenerating,
-            activeTone = preview.activeTone,
-            onApplyAppend = viewModel::applyAiPreviewAppend,
-            onApplyReplace = viewModel::applyAiPreviewReplace,
-            onRegenerate = viewModel::regenerateAiPreview,
-            onDismiss = viewModel::dismissAiPreview
-        )
-    }
-
     // Table of Contents Bottom Sheet
     if (uiState.isTocSheetVisible) {
         com.applenotes.ai.presentation.note_editor.components.TableOfContentsBottomSheet(

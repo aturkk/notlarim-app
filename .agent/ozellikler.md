@@ -1,5 +1,5 @@
 # Notism (Notlar Uygulaması) - Eksiksiz Özellik & Mimari Kataloğu
-> **Sürüm:** v2.5.0 (versionCode: 27)  
+> **Sürüm:** v2.6.0 (versionCode: 28)  
 > **Paket Adı:** `com.applenotes.ai`  
 > **Hedef Platform:** Android (minSdk 26, targetSdk 35)  
 > **Tasarım Dili:** Apple iOS 18 / macOS Sequoia Cupertino Design Language  
@@ -32,41 +32,49 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
 ## 1. Görünüm Modları & Ana Not Listesi
 
 - **Dinamik Küçülen Başlık (Scroll-Aware Collapsible Header):** Sayfa aşağı kaydırıldığında büyük iOS başlığı ve özet barı ipeksi bir animasyonla küçülür; ekran alanının %90'ından fazlası notlara ayrılır. En üste çıkıldığında başlık eski haline döner.
+- **Birleşik Akıllı Klasör & Etiket Filtre Çubuğu (Unified Filter Chip Bar):** `Tüm Notlar`, `Sabitlenenler`, `Görevler`, `Sesli Notlar`, `Çizimler`, `Kilitli Notlar` akıllı klasörleri ile dinamik `#etiket` filtrelerini tek bir yatay kaydırılabilir çubukta birleştiren ergonomik yapı.
 - **5 Farklı Not Görüntüleme Modu:**
   1. **Detaylı Liste / Grid Görünümü:** Başlık, özet, görsel kapaklar, etiketler ve meta bilgilerle zengin kartlar.
   2. **Kompakt Liste Modu:** Rozetleri gizleyen, dikey boşlukları daraltan ve tek ekranda maksimum not gösteren minimalist liste.
   3. **📋 Kanban Pano Görünümü (`KanbanBoardView`):** Notları durumlarına göre `TODO` (Yapılacaklar), `IN_PROGRESS` (Devam Edenler) ve `DONE` (Tamamlandı) sütunlarına ayıran, sütunlar arası kart taşıma imkanı sunan pano.
   4. **📅 Takvim Görünümü (`CalendarView`):** Notları aylık interaktif takvim üzerinde gün bazında gösteren, geçmiş/gelecek günlerdeki notları filtreleyen ve seçilen güne doğrudan not eklemeyi sağlayan takvim matrisi.
   5. **🕸️ İnteraktif Bilgi Ağı Grafiği (`GraphViewDialog`):** Obsidian tarzı 2D fizik motorlu ağ grafiği; `[[Not Bağlantısı]]` ile birbirine bağlı notları görsel düğümler halinde sunar ve tıklanan nota gider.
+- **Günün Notu (`📅 Günün Notu` - Daily Note):** Tek dokunuşla bugünün tarihine özel günlük notu oluşturan veya mevcut günlük nota doğrudan açan hızlı aksiyon.
+- **İlk Kurulum Hoş Geldiniz Rehberi (`hasSeededWelcomeNote`):** Uygulama ilk kez açıldığında tüm özellikleri (Markdown, `/` komutları, `[[Wiki-Link]]`, AI Hub, görev listeleri) interaktif olarak tanıtan kapsamlı başlangıç notu.
+- **Apple Cupertino Boş Durum Ekranları (Empty States):** Not listesi boşken veya arama/etiket filtresi sonuç döndürmediğinde kullanıcıya `"Yeni Not Oluştur"` veya `"Filtreleri Temizle"` hızlı aksiyonları sunan zarif boş durum kartları.
 - **Klasör Yönetimi & Güvenli Silme:**
   - Özel ikonlu klasörler oluşturma ve yeniden adlandırma.
   - Klasör silme desteği: *"Bu klasördeki notlar silinmez, klasörsüz alana aktarılır"* güvencesiyle veriler korunur.
   - Hızlı klasör sekmeleri: `Tüm Notlar`, `Sabitlenenler`, `Kilitli Notlar`, `Çöp Kutusu` ve kullanıcı klasörleri.
-- **Kaydırılabilir Not Kartları (`SwipeableNoteCard`):**
-  - **Sola Kaydırarak Silme:** Donma/takılma yapmayan `key(note.id)` ve `AnimatedVisibility` (shrinkVertically + fadeOut) tabanlı animasyonlu silme.
+- **Kaydırılabilir Not Kartları (`SwipeableNoteCard`) & Anında Geri Alma (`Undo`):**
+  - **Sola Kaydırarak Silme + "Geri Al" Bildirimi:** Silinen not için `SonnerFloatingToast` üzerinde 4.5 saniyelik **"Geri Al"** butonu çıkar; tek dokunuşla not çöp kutusundan anında geri yüklenir.
   - **Sağa Kaydırarak Sabitleme:** Başa tutturma/sabitlemeyi kaldırma.
   - **Kart Üzerinde Doğrudan Görev Tikleme (Inline Task Check):** Notun içine girmeye gerek kalmadan, kart üzerindeki `- [ ]` kontrol maddelerine doğrudan dokunarak tik atabilme ve veritabanını anında güncelleme.
   - **Akıllı Web Alan Adı Rozeti (Smart Link Badge):** Notta yer alan web bağlantılarını otomatik tespit edip kartta temiz bir alan adı rozeti (`🔗 github.com`, `🔗 medium.com`) olarak gösterme.
   - **Görsel Önizleme:** Notun kapak görseli, çizimi veya ekli fotoğraflarını kart üzerinde küçük görsel olarak önizleme.
-- **Akıllı Not Sıralama (`NoteSortOrder`):**
+- **Akıllı Not Sıralama (`NoteSortOrder`) & Çoklu Seçim Girişi:**
   - Listenin sağ üst `⋯` menüsünden veya komut paletinden seçilebilen 4 sıralama ölçütü:
     - 🕒 **Son Güncellenen** (Varsayılan)
     - 📅 **Oluşturulma Tarihi**
     - 🔤 **Başlığa Göre (A-Z)**
     - ⚡ **Önceliğe Göre (Acil → Düşük)**
   - Sabitlenen (Pinned) notlar her sıralamada otomatik olarak listenin en başında tutulur.
+  - Sağ üst `⋯` menüsünden **"Notları Seç (Çoklu)"** seçeneğiyle doğrudan toplu seçim moduna geçiş.
 - **Peek & Pop Hızlı Aksiyon Menüsü (Uzun Basış):**
   - Kart üzerine uzun basıldığında açılan alt menü (`NoteContextMenuBottomSheet`):
     - 📌 Başa Sabitle / Kaldır
     - 📋 Notu Çoğalt (Duplicate Note)
     - 🔒 Biyometrik Kilit Ekle / Aç
+    - ⏳ **Sürüm Geçmişi (Zaman Makinesi)** (Notun içine girmeden doğrudan geçmiş sürümleri inceleme ve geri yükleme)
     - 📄 **PDF Olarak Paylaş / Dışa Aktar** (Notun içine girmeden anında PDF üretip paylaşma)
     - 🖼️ **Görsel Kartı (PNG) Paylaş** (Instagram/Twitter için 4:5 sosyal paylaşım kartı üretimi)
     - 📁 Klasöre Taşı
     - ☑️ Çoklu Seçim Modunu Başlat
     - 🗑️ Çöp Kutusuna Gönder
 - **Çoklu Seçim Modu (Batch Actions):** Birden fazla not seçilerek toplu silme, toplu klasöre taşıma veya toplu sabitleme.
-- **Canlı Arama & Vurgulama:** Başlık, içerik ve etiketlerde anlık arama, arama terimlerini sarı renkle vurgulama.
+- **Canlı Arama, Vurgulama & Anlamsal (Semantik) AI Arama:**
+  - Başlık, içerik ve etiketlerde anlık arama, arama terimlerini sarı renkle vurgulama.
+  - Arama çubuğundaki `✨` (Semantik AI Arama) butonuyla kelimesi kelimesine eşleşmese bile anlamca ilgili notları yapay zeka ile bulma (`semanticSearch`).
 - **Detaylı Çöp Kutusu Yönetimi (`TrashBottomSheet`):**
   - Silinen notları listeleme, silinme tarihini görme.
   - Tek tıkla nota geri dönme (`Restore`), kalıcı olarak silme (`Delete Forever`) ve çöp kutusunu tamamen boşaltma (`Empty Trash`).
@@ -77,10 +85,18 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
 ## 2. Gelişmiş Not Düzenleyici & Sayfa Özellikleri
 
 - **Çoklu Not Sekmeleri (`EditorTabsBar`):** Üst çubuk altında son açılan 6 not arasında sekme değiştirir gibi tek tıkla geçiş yapabilme.
-- **Notion Tarzı Sayfa Özellikleri Çubuğu (`PagePropertiesBar`):**
+- **Aşamalı Görünürlük (Progressive Disclosure) & Sayfa Özellikleri (`PagePropertiesBar`):**
+  - Yeni veya sade notlarda ekranı kalabalıklaştırmayan kompakt `+ Etiket`, `+ Özellik` ve `+ Kapak` rozetleri; tıklandığında tam teşekküllü özellik ve etiket çubuğuna dönüşür.
   - **Öncelik:** Düşük, Orta, Yüksek, Acil rozetleri.
   - **Durum:** Başlanmadı, Devam Ediyor, Tamamlandı, Beklemede.
   - **İlerleme Yüzdesi (Progress Slider):** %0 - %100 arası elle ilerleme belirleme veya nottaki checklist maddelerinden otomatik yüzde hesaplama.
+- **Tek Katmanlı 50dp Klavye Üstü Araç Çubuğu (`Single-Layer Accessory Bar`):**
+  - Klavyenin üzerinde minimum dikey alan kaplayan (50dp) birleşik araç çubuğu: sol tarafta hızlı `+ Ekle` (`EditorAttachmentBottomSheet`) ve `✨ AI` (`AiActionBottomSheet`) kapsülleri, sağ tarafta yatay kaydırılabilir Markdown biçimlendirme butonları (`B`, `I`, `S`, `H1`, `H2`, `- [ ]`, `•`, `1.`, `>`, `Code`, `[[Link]]`).
+- **3x3 Kompakt Apple Ekleme & Araçlar Menüsü (`EditorAttachmentBottomSheet`):**
+  - `+` butonuna basıldığında açılan 3x3 ızgara: **Ses Kaydı**, **Çizim**, **Görsel**, **Dosya / PDF**, **Tablo**, **Şablonlar**, **Kapak Seç**, **Zen Modu** ve **Pomodoro**.
+- **Dahili PDF Okuyucu & Tam Ekran Görsel İnceleyici (Lightbox):**
+  - **Dahili PDF Okuyucu (`PdfViewerBottomSheet`):** Android `PdfRenderer` tabanlı, uygulama dışına çıkmadan çok sayfalı PDF belgelerini yakınlaştırarak okuma.
+  - **Tam Ekran Görsel & Çizim Lightbox (`MediaLightboxDialog`):** Nota eklenen görselleri ve çizimleri iki parmakla yakınlaştırarak (Pinch-to-Zoom) tam ekran inceleme.
 - **Gerçek Zamanlı WYSIWYG Markdown Dönüştürme (`MarkdownVisualTransformation`):**
   - Metin yazılırken `#`, `**`, `*`, `~~`, `>` etiketlerini görünmez yaparak canlı biçimlendirme; başlık boyutları, kalınlık, yatıklık ve alıntı blokları doğrudan editör alanında gerçek zamanlı görünür.
 - **Katlanabilir / Açılabilir Başlıklar (`CollapsibleMarkdownRenderer`):**
@@ -88,14 +104,10 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
 - **Notion Tarzı Kapak & Emoji Başlığı:**
   - Unsplash koleksiyonundan veya cihaz galerisinden not kapağı ekleme.
   - Apple stili emoji seçiciyle not simgesi belirleme.
-- **Apple Cupertino Biçimlendirme Çubuğu (`CupertinoFormatBar`):**
-  - Kalın (`**`), İtalik (`*`), Üstü Çizili (`~~`)
-  - Başlık 1 (`#`), Başlık 2 (`##`)
-  - Görev Listesi (`- [ ]`), Madde İmleri (`-`), Numaralı Liste (`1.`)
-  - Alıntı Bloğu (`>`), Kod Bloğu (` ``` `)
-  - Not İçi Bağlantı Ekleme (`[[Not Başlığı]]`)
-- **Slash Komutları Menüsü (`/`):** Not içinde `/` yazıldığında açılan ve başlık, tablo, kod, görev listesi veya ayraç eklemeyi sağlayan Apple tarzı hızlı komut menüsü.
-- **İki Yönlü Not Bağlantıları (Wiki-Links):** `[[` yazılarak diğer notlara bağlantı verme ve tek tıkla bağlı nota atlama.
+- **Slash Komutları Menüsü (`/`):** Not içinde `/` yazıldığında açılan ve başlık, tablo, kod, görev listesi veya ayraç eklemeyi sağlayan Apple tarzı hızlı komut menüsü (`"Yazmaya başlayın veya araçlar için '/' yazın..."` ipucuyla).
+- **İki Yönlü Not Bağlantıları (`[[Wiki-Links]]`) & Geri Bağlantılar Paneli (Backlinks):**
+  - `[[` yazılarak diğer notlara bağlantı verme ve tek tıkla bağlı nota atlama.
+  - **Bu Nota Bağlanan Notlar (Backlinks Panel):** Sayfanın en altında, mevcut nota `[[Not Başlığı]]` ile referans veren diğer tüm notları otomatik listeleyen ve tek dokunuşla o notlara geçiş sağlayan çift yönlü bilgi ağı kartı.
 - **Görsel Markdown & Katlanabilir Başlık Önizleme (`MarkdownPreviewBottomSheet`):**
   - `AppleSegmentedControl` ile iki güçlü görünüm arasında tek dokunuşla geçiş:
     - **✨ KaTeX & Şemalar:** KaTeX matematik formülleri (`$E=mc^2$`), Mermaid akış şemaları ve görsel zengin metin önizleme.
@@ -104,7 +116,7 @@ Bu belge, **Notism** uygulamasında mevcut olan tüm modülleri, ekranları, gö
   - ⏳ **Zaman Makinesi (Sürüm Geçmişi):** Notun geçmiş sürümlerine göz atma ve tek tıkla geri yükleme (`VersionHistoryBottomSheet`).
   - 📂 **Katlanabilir Başlıklar (Okuma Modu):** Notu doğrudan katlanabilir başlık modunda açma.
   - 📋 **Şablon Uygula / Ekle:** Not dolu olsa dahi şablon kütüphanesinden şablon seçip mevcut nota uygulayabilme (`TemplatePickerBottomSheet`).
-  - ⏰ Hatırlatıcı Kur / Düzenle, 📌 Başa Sabitle, 🔒 Notu Kilitle, 📋 Şablon Olarak Kaydet, 💬 Notla Sohbet Et, 📑 İçindekiler Tablosu, ⏱️ Pomodoro Sayacı, 📜 Kağıt Deseni ve 🗑️ Notu Sil.
+  - ⏰ Hatırlatıcı Kur / Düzenle, 📌 Başa Sabitle, 🔒 Notu Kilitle, 📋 Şablon Olarak Kaydet, 💬 Notla Sohbet Et, 📑 İçindekiler Tablosu (`TableOfContentsBottomSheet`), ⏱️ Pomodoro Sayacı, 📜 Kağıt Deseni ve 🗑️ Notu Sil.
 - **İnteraktif Tablo Düzenleyici (`TableEditorDialog`):** Satır ve sütun ekleyip çıkarılabilen, hücreleri kolayca doldurulan görsel tablo oluşturucu.
 - **Zen Daktilo Modu (`ZenFocusModeDialog`):** Tüm butonları ve dikkat dağıtıcıları gizleyen, daktilo odaklı tam ekran yazı modu.
 - **Pomodoro Odak Zamanlayıcısı (`PomodoroTimerDialog`):** Not yazarken 25 dakikalık çalışma ve 5 dakikalık mola döngülerini yöneten entegre sayaç.
@@ -150,6 +162,9 @@ Uygulama, profesyonel not alma yöntemlerini içeren zengin bir yerleşik şablo
   - Kayıt esnasında mikrofonun anlık genliğine (`MediaRecorder.maxAmplitude`) göre dinamik dans eden dikey ses dalgası çubukları.
 - **Arka Planda Ses Kaydı:** Yüksek kaliteli `.m4a` formatında ses kaydı alma (`AudioRecorderHelper`).
 - **Not İçi Dahili Ses Oynatıcı:** Ses dosyasını uygulama dışına çıkmadan dinleyebilme, süre çubuğu ve oynat/durdur kontrolleri.
+- **Yapay Zeka ile Ses Transkripsiyonu & Otomatik Toplantı Tutanağı:**
+  - **🎙️ Metne Dönüştür (`transcribeAudio`):** Kaydedilen `.m4a` ses dosyalarını OpenAI/Groq Whisper veya Gemini Multimodal üzerinden tek dokunuşla metne döküp nota ekleme.
+  - **📋 Toplantı / Ders Özeti (`generateMeetingMinutes`):** Ses kaydını deşifre ettikten sonra otomatik olarak ana konuları, alınan kararları ve `- [ ]` aksiyon maddelerini yapılandırılmış tutanak halinde nota ekleme.
 - **Widget Üzerinden Tek Dokunuşla Sesli Not:** Ana ekran widget'ındaki mikrofon butonuna basıldığında uygulamanın doğrudan mikrofonu açarak kayda başlaması (`ACTION_VOICE_NOTE`).
 
 ---
@@ -168,6 +183,10 @@ Uygulama, profesyonel not alma yöntemlerini içeren zengin bir yerleşik şablo
   - ☀️ **Sabah Özeti (Morning Digest):** Günün ilk açılışında tüm notları tarayarak günlük yapılacakları ve önemli notları özetleme.
   - 🧠 **Çoklu Not Sentezi (Multi-Note Synthesis):** Farklı notlar arasındaki gizli bağlantıları, ortak temaları ve içgörüleri sentezleyen derin analiz aracı.
   - 💬 **Global AI Asistanı (`GlobalAiChatBottomSheet`):** Uygulama genelinde serbestçe soru sorulabilen yapay zeka sohbet botu.
+- **AI Sonuç Önizleme & Ton Değiştirme Penceresi (`AiResultPreviewDialog`):**
+  - Yapay zeka tarafından üretilen metinleri doğrudan nota yazmadan önce inceleme, **Profesyonel / Samimi / Akademik / Kısa** tonlarında yeniden üretme (`regenerateAiPreview`), mevcut metnin sonuna ekleme (`Sona Ekle`) veya metnin yerine koyma (`Değiştir`).
+- **Görselden Metin Okuma (AI Vision OCR - `extractTextFromImage`):**
+  - Nota eklenen fotoğraf, belge veya el yazısı görsellerinin üzerindeki yazıları Gemini Vision ile okuyup doğrudan düzenlenebilir metin olarak nota aktarma.
 - **Not İçin Özel AI Sihirbazı Eylemleri:**
   - 📝 **Özet Çıkar (Summarize):** Notun ana fikirlerini maddeler halinde çıkarma.
   - ✍️ **Yazım ve İmla Denetimi (Fix Grammar):** Dilbilgisi ve noktalama hatalarını düzeltme.

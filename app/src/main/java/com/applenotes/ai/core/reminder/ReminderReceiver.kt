@@ -13,6 +13,7 @@ import com.applenotes.ai.MainActivity
 import com.applenotes.ai.data.local.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class ReminderReceiver : BroadcastReceiver() {
@@ -23,6 +24,30 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    val db = AppDatabase.getInstance(context)
+                    val scheduler = ReminderScheduler(context)
+                    val now = System.currentTimeMillis()
+                    val notes = db.noteDao.getAllNotes().first()
+                    notes.forEach { note ->
+                        val remTime = note.reminderTime
+                        if (!note.isDeleted && remTime != null && remTime > now) {
+                            val title = note.title.ifBlank { "Not Hatırlatıcısı" }
+                            val snippet = note.content.take(120).ifBlank { "Notunuz için hatırlatıcı zamanı geldi." }
+                            scheduler.scheduleReminder(note.id, title, snippet, remTime)
+                        }
+                    }
+                } catch (_: Exception) {
+                } finally {
+                    pendingResult.finish()
+                }
+            }
+            return
+        }
+
         val noteId = intent.getLongExtra("note_id", 0L)
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 

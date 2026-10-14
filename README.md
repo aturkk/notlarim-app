@@ -1,7 +1,7 @@
 # 🍎 Notism - Apple Notes AI (Android)
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Version-v2.5.0-FFB300?style=for-the-badge&logo=android&logoColor=black" alt="Version" />
+  <img src="https://img.shields.io/badge/Version-v2.6.0-FFB300?style=for-the-badge&logo=android&logoColor=black" alt="Version" />
   <img src="https://img.shields.io/badge/Platform-Android_8.0+_(API_26--35)-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Platform" />
   <img src="https://img.shields.io/badge/Design-Apple_Cupertino_(iOS_18)-007AFF?style=for-the-badge&logo=apple&logoColor=white" alt="Design" />
   <img src="https://img.shields.io/badge/Motion-Emil_Kowalski_Springs-FF2D55?style=for-the-badge" alt="Motion" />
@@ -46,9 +46,9 @@ Notlarınız yalnızca cihazınızda yerel SQLite/Room veritabanında saklanır.
 - **Emil Kowalski Fizik Tabanlı Yay Animasyonları:**
   - `bouncyClickable`: Tüm butonlarda, kartlarda ve etkileşimli elemanlarda basış anında hissedilen organik yay tepkisi (`Spring.DampingRatioMediumBouncy`) ve Apple dokunsal haptikleri.
   - `AppleSegmentedControl`: Fiziksel olarak kayan gölgeli gösterge kapsülü.
-  - `SonnerFloatingToast`: Standart Android Toast'ları yerine ekranın üstünden zarifçe süzülen bildirim hapı.
+  - `SonnerFloatingToast`: Standart Android Toast'ları yerine ekranın üstünden zarifçe süzülen, **Geri Al (Undo)** aksiyon butonlu bildirim hapı.
 - **Dinamik Küçülen Başlık (Scroll-Aware Header):** Liste aşağı kaydırıldığında alanın %90'ından fazlasını notlara bırakacak şekilde pürüzsüzce küçülen iOS başlık barı.
-- **6 Apple Vurgu Rengi:** Altın Sarısı, iOS Mavisi, Nane Yeşili, Mor, Turuncu ve Apple Kırmızısı.
+- **6 Apple Vurgu Rengi (İsim Etiketli):** Altın Sarısı, iOS Mavisi, Nane Yeşili, Mor, Turuncu ve Apple Kırmızısı.
 - **3 Tipografi Ailesi:** System (SF Pro), Serif (Kitap & Edebiyat) ve Monospace (Kod & Daktilo).
 
 ---
@@ -61,24 +61,27 @@ Notlarınız yalnızca cihazınızda yerel SQLite/Room veritabanında saklanır.
 5. **🕸️ 2D Bilgi Ağı Grafiği (`GraphViewDialog`):** Obsidian tarzı 2D fizik motoruyla notlar arasındaki `[[Wiki-Link]]` bağlantılarını görselleştiren interaktif bilgi ağı.
 
 > **Hızlı Eylemler:**
+> - **Birleşik Akıllı Klasör & Etiket Çubuğu:** `Tüm Notlar`, `Sabitlenenler`, `Görevler`, `Sesli Notlar`, `Çizimler` ve `#etiket` filtreleri tek bir akıcı çubukta.
+> - **Sola Kaydırarak Silme & "Geri Al" (Undo):** Kartı sola kaydırarak sildiğinizde üstte çıkan `Geri Al` butonuyla tek dokunuşta geri yükleme.
 > - **Kart Üzerinde Doğrudan Görev Tikleme:** Notun içine girmeden karttaki `- [ ]` kutucuklarına dokunarak görevleri tamamlama.
 > - **Akıllı Web Alan Adı Rozetleri:** Not içerisindeki bağlantılardan otomatik alan adı rozeti (`🔗 github.com`, `🔗 medium.com`).
-> - **Akıllı Sıralama:** Son Güncellenen, Oluşturulma Tarihi, Başlık (A-Z) ve Öncelik Sıralaması (Sabitlenen notlar her zaman en üstte kalır).
-> - **Peek & Pop Menüsü (Uzun Basış):** Notu açmadan anında PDF veya Sosyal Medya Görsel Kartı (PNG) olarak dışa aktarma, çoğaltma, kilitleme veya klasörleme.
+> - **Anlamsal (Semantik) AI Arama:** Arama çubuğundaki `✨` butonuyla kelimesi kelimesine eşleşmese bile anlamca ilgili notları bulma.
+> - **Peek & Pop Menüsü (Uzun Basış):** Notu açmadan anında Sürüm Geçmişi (Zaman Makinesi), PDF veya Sosyal Medya Görsel Kartı (PNG) dışa aktarma, çoğaltma, kilitleme veya klasörleme.
 
 ---
 
 ### 3. Gelişmiş Not Düzenleyici
 - **Çoklu Not Sekmeleri:** Son açılan notlar arasında masaüstü tarayıcı rahatlığında tek tıkla geçiş.
-- **Notion Tarzı Sayfa Özellikleri:** Öncelik (Düşük/Orta/Yüksek/Acil), Durum, İlerleme Çubuğu (%0-%100 veya görev listesinden otomatik hesaplama).
+- **Aşamalı Sayfa Özellikleri (`PagePropertiesBar`):** Kompakt `+ Etiket`, `+ Özellik`, `+ Kapak` rozetleri; Öncelik (Düşük/Orta/Yüksek/Acil), Durum, İlerleme Çubuğu (%0-%100 veya görev listesinden otomatik hesaplama).
+- **Tek Katmanlı 50dp Klavye Üstü Araç Çubuğu:** Sol tarafta `+ Ekle` (3x3 Kompakt Araç Izgarası) ve `✨ AI` kapsülleri, sağ tarafta kaydırılabilir Markdown biçimlendirme araçları.
 - **Canlı WYSIWYG Markdown Biçimlendirme:** Başlıklar, kalın, italik, alıntı ve kod blokları yazılırken editörde anında görselleşir.
 - **📂 Katlanabilir Başlıklar:** `# H1`, `## H2`, `### H3` başlıklarını akordeon şeklinde katlayıp açarak uzun belgelerde odaklanma (`CollapsibleMarkdownRenderer`).
 - **✨ Görsel Matematik & Akış Şemaları:** KaTeX formülleri (`$E=mc^2$`) ve Mermaid diagram önizlemesi.
+- **📄 Dahili PDF Okuyucu & Tam Ekran Görsel Lightbox:** Uygulama dışına çıkmadan çok sayfalı PDF okuma (`PdfViewerBottomSheet`) ve görselleri iki parmakla yakınlaştırma (`MediaLightboxDialog`).
 - **İnteraktif Tablo Düzenleyici:** Kolayca satır ve sütun eklenebilen görsel tablo editörü.
-- **Zen Daktilo Modu:** Tüm dikkat dağıtıcıları gizleyen tam ekran minimalist yazım deneyimi.
-- **Pomodoro Sayacı:** Not alırken 25 dk çalışma / 5 dk mola odaklanma zamanlayıcısı.
+- **Zen Daktilo Modu & Pomodoro Sayacı:** Dikkat dağıtıcıları gizleyen tam ekran yazım modu ve 25/5 dk odak sayacı.
 - **Sürüm Geçmişi (Zaman Makinesi):** Geçmiş anlık kopyaları inceleme ve tek dokunuşla önceki sürüme dönebilme.
-- **İki Yönlü Not Bağlantıları (Wiki-Links):** `[[` yazılarak diğer notlara hızlı köprü oluşturma.
+- **İki Yönlü Not Bağlantıları (`[[Wiki-Links]]`) & Backlinks Paneli:** `[[` yazılarak diğer notlara hızlı köprü oluşturma ve sayfa altında o nota bağlanan tüm notları (`Bu Nota Bağlanan Notlar`) görüntüleme.
 - **Slash Komutları Menüsü:** `/` yazıldığında açılan Apple stili hızlı blok ekleme menüsü.
 
 ---
@@ -105,10 +108,11 @@ Notlarınız yalnızca cihazınızda yerel SQLite/Room veritabanında saklanır.
 
 ---
 
-### 6. Sesli Notlar & Canlı Dalga Görselleştiricisi
+### 6. Sesli Notlar, Canlı Dalga & Yapay Zeka Transkripsiyonu
 - **Canlı iOS Ses Dalgası:** Mikrofon genliğine (`maxAmplitude`) duyarlı, kayıt esnasında ritmik dans eden ses dalgaları.
 - **Arka Planda Yüksek Kaliteli Kayıt:** `.m4a` formatında kesintisiz kayıt.
 - **Dahili Oynatıcı:** Uygulama dışına çıkmadan dalga boyu ve süre kontrolüyle not içi dinleme.
+- **🎙️ Yapay Zeka Ses Transkripsiyonu & Toplantı Tutanağı:** Ses kayıtlarını tek dokunuşla metne dökme (`transcribeAudio`) veya alınan kararlar ve aksiyon maddeleriyle yapılandırılmış toplantı/ders tutanağına dönüştürme (`generateMeetingMinutes`).
 - **Widget ile Tek Dokunuşla Kayıt:** Ana ekran widget'ındaki mikrofon butonuyla anında kayda başlama.
 
 ---
@@ -125,9 +129,11 @@ Notism, tek bir modele bağımlı değildir. Kendi API anahtarınızı girerek e
 6. 🏢 **Google Vertex AI:** Kurumsal bulut ve özel proje desteği
 7. 📴 **Cihaz İçi Yerel LLM (MediaPipe Gemma):** İnternetsiz, %100 yerel ve gizli çalışan cihaz içi yapay zeka
 
-> **Yapay Zeka Merkezi (AI Hub) Yetenekleri:**
+> **Yapay Zeka Merkezi (AI Hub) & Editör Yetenekleri:**
 > - ☀️ **Sabah Özeti (Morning Digest):** Güne başlarken tüm notları tarayarak önemli görevleri özetleme.
 > - 🧠 **Çoklu Not Sentezi (Multi-Note Synthesis):** Notlar arasındaki gizli bağlantıları ve temaları ortaya çıkarma.
+> - 📷 **Görselden Metin Okuma (AI Vision OCR):** Fotoğraf ve belgelerdeki yazıları tek tıkla nota aktarma.
+> - 🔄 **AI Sonuç Önizleme & Ton Değiştirme (`AiResultPreviewDialog`):** Üretilen metni nota eklemeden önce inceleme, Profesyonel/Samimi/Akademik/Kısa tonlarında yeniden üretme, sona ekleme veya değiştirme.
 > - 🗂️ **Hafıza Kartları Oluşturucu (AI Flashcards):** Notlardan anında sınav/çalışma kartları üretme.
 > - 💬 **Notla ve Genel Not Defteriyle Sohbet:** Not içeriği bağlamında sorularınızı yanıtlama.
 > - ✍️ **Akıllı Asistan:** Özet çıkarma, dilbilgisi düzeltme, üslup dönüştürme, görev çıkarma, otomatik başlık/etiket ve çeviri.
@@ -145,8 +151,8 @@ Notism, tek bir modele bağımlı değildir. Kendi API anahtarınızı girerek e
 
 ### 9. Hatırlatıcılar & Akıllı Bildirimler
 - **Exact Alarms:** `AlarmManager` ile takvimden tarih ve saat seçilerek kurulan dakik bildirimler.
-- **Cihaz Açılış Koruması (`BOOT_COMPLETED`):** Telefon yeniden başlatıldığında alarmlar otomatik olarak hafızadan geri yüklenir.
-- **Eylemli Bildirimler:** Bildirimden ayrılmadan *⏰ 15 Dk Ertele* veya *✓ Tamamlandı* olarak işaretleme.
+- **Cihaz Açılış Koruması (`BOOT_COMPLETED`):** Telefon yeniden başlatıldığında aktif alarmlar Room veritabanından okunarak otomatik geri yüklenir.
+- **Bildirimden Doğrudan Nota Gitme & Eylemler:** Bildirime dokunulduğunda doğrudan ilgili not açılır; bildirim üzerinden *⏰ 15 Dk Ertele* veya *✓ Tamamlandı* aksiyonları çalıştırılabilir.
 
 ---
 
@@ -167,8 +173,8 @@ Notism, tek bir modele bağımlı değildir. Kendi API anahtarınızı girerek e
 
 ### 12. Donanımsal Güvenlik & Biyometrik Kilit
 - **Android Keystore Donanımsal Şifreleme:** Tüm API anahtarları, şifreler ve kimlik bilgileri **AES-256 GCM** ve **AES-256 SIV** algoritmalarıyla donanım çipinde şifrelenir (`EncryptedSharedPreferences`).
-- **Biyometrik Kilit:** Uygulama genelinde veya not bazında Parmak İzi, Yüz Tanıma ve PIN koruması.
-- **Uygulama Değiştirici Gizliliği (App Switcher Privacy):** Çoklu görev menüsünde notların görünmesini ve ekran görüntüsü alınmasını engelleyen gizlilik modu.
+- **Uygulama Giriş Kilidi & Not Kilidi:** Ayarlardan açılabilen uygulama geneli biyometrik giriş kilidi veya not bazında Parmak İzi, Yüz Tanıma ve PIN koruması.
+- **Uygulama Değiştirici Gizliliği (`FLAG_SECURE`):** Ayarlardan aktif edildiğinde çoklu görev (Son Uygulamalar) menüsünde not içeriklerinin görünmesini ve ekran görüntüsü alınmasını engeller.
 
 ---
 
@@ -189,13 +195,13 @@ Notism, tek bir modele bağımlı değildir. Kendi API anahtarınızı girerek e
 
 - **Dil:** Kotlin 100%
 - **Arayüz Framework'ü:** Jetpack Compose (Material 3 + Apple Cupertino Bileşenleri)
-- **Mimari:** Clean Architecture (Domain, Data, Presentation) + MVVM + MVI prensipleri
-- **Veritabanı:** Room Database (SQLite) + WAL (Write-Ahead Logging) + Foreign Keys
-- **Bağımlılık Yönetimi (DI):** Dagger Hilt
+- **Mimari:** Clean Architecture (Domain, Data, Presentation) + MVVM + Unidirectional Data Flow
+- **Veritabanı:** Room Database (SQLite, Schema v8) + WAL (Write-Ahead Logging) + Sürüm Geçmişi (`NoteHistoryEntity`)
+- **Bağımlılık Yönetimi (DI):** Hafifletilmiş AppContainer (`AppleNotesApp`)
 - **Asenkron Yapı:** Kotlin Coroutines & StateFlow / SharedFlow
-- **Ağ & İletişim:** OkHttp3 + Retrofit + Moshi (JSON Serialization)
-- **Güvenlik:** AndroidX Security Crypto (`EncryptedSharedPreferences` + Android Keystore)
-- **Görsel & Medya:** Coil (Görsel Yükleme), Android MediaRecorder & MediaPlayer (Ses)
+- **Ağ & İletişim:** OkHttp3 + Kotlinx Serialization JSON + Jsoup (Web Clipper)
+- **Güvenlik:** AndroidX Security Crypto (`EncryptedSharedPreferences` + Android Keystore) & AndroidX Biometric
+- **Görsel & Medya:** Coil (Görsel Yükleme), Android MediaRecorder & MediaPlayer (Ses), Android `PdfRenderer`
 - **Animasyon:** Compose Animation (`spring`, `fadeIn`, `shrinkVertically`, `GraphicsLayer`)
 
 ---
